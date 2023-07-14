@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="app" />
+        <module name="cqrs" />
+        <module name="oldbalance" />
+        <module name="balance" />
+        <module name="ddd" />
+        <module name="contract" />
+        <module name="accounting" />
+        <module name="finance" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="library" target="1.8" />
+      <module name="next" target="1.8" />
+      <module name="other" target="1.8" />
+      <module name="saldo" target="11" />
+      <module name="secound" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="accounting" options="-parameters" />
+      <module name="app" options="-parameters" />
+      <module name="balance" options="-parameters" />
+      <module name="contract" options="-parameters" />
+      <module name="cqrs" options="-parameters" />
+      <module name="ddd" options="-parameters" />
+      <module name="finance" options="-parameters" />
+      <module name="library" options="-parameters" />
+      <module name="modules" options="-parameters" />
+      <module name="oldbalance" options="-parameters" />
+    </option>
+  </component>
+</project>

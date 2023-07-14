@@ -1,0 +1,24 @@
+# dev
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/main
+    username: app
+    password: app
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    generate-ddl: true
+    defer-datasource-initialization: true
+    hibernate:
+      dialect: org.hibernate.dialect.MySQL8Dialect
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
+        use_sql_comments: true
+        format_sql: true
+        type: trace
+  sql:
+    init.mode: always
+
+cors-origin: http://localhost:4200

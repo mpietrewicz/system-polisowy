@@ -1,0 +1,19 @@
+springdoc:
+  api-docs:
+    path: /api
+  swagger-ui:
+      path: /swagger
+
+spring:
+  profiles:
+    active: dev
+  h2:
+    console.enabled: true
+    console.path: /h2-console
+  mvc:
+    format:
+      date: yyyy-MM-dd
+      date-time: yyyy-MM-dd HH:mm:ss
+
+server:
+  port:${PORT:8080}
