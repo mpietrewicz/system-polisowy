@@ -18,7 +18,7 @@ import java.util.Optional;
 @NoArgsConstructor
 public class Month extends BaseEntity { // todo: zmienić nazwę -> to nie może sie nazywać month!
 
-    private YearMonth yearMonth;
+    private YearMonth month;
 
     private BigDecimal premium;
 
@@ -32,16 +32,16 @@ public class Month extends BaseEntity { // todo: zmienić nazwę -> to nie może
     @JoinColumn(name = "month_state_id")
     private MonthState monthState;
 
-    public Month(YearMonth yearMonth, BigDecimal premium, MonthStatus monthStatus,
+    public Month(YearMonth month, BigDecimal premium, MonthStatus monthStatus,
                  BigDecimal underpayment, BigDecimal overpayment) {
-        this.yearMonth = yearMonth;
+        this.month = month;
         this.premium = premium;
         this.monthState = MonthStateFactory.createState(this, monthStatus, underpayment, overpayment);
     }
 
-    public Month(YearMonth yearMonth, BigDecimal premium, MonthStatus monthStatus,
+    public Month(YearMonth month, BigDecimal premium, MonthStatus monthStatus,
                  BigDecimal underpayment, BigDecimal overpayment, Month previous) {
-        this.yearMonth = yearMonth;
+        this.month = month;
         this.premium = premium;
         this.monthState = MonthStateFactory.createState(this, monthStatus, underpayment, overpayment);
         this.previous = previous;
@@ -79,7 +79,7 @@ public class Month extends BaseEntity { // todo: zmienić nazwę -> to nie może
     }
 
     public YearMonth getYearMonth() {
-        return yearMonth;
+        return month;
     }
 
     public BigDecimal getPremium() {
@@ -87,7 +87,7 @@ public class Month extends BaseEntity { // todo: zmienić nazwę -> to nie może
     }
 
     public Month createCopy() {
-        return new Month(yearMonth, premium, monthState.getStatus(),
+        return new Month(month, premium, monthState.getStatus(),
                 monthState.getUnderpayment(), monthState.getOverpayment());
     }
 
@@ -124,12 +124,12 @@ public class Month extends BaseEntity { // todo: zmienić nazwę -> to nie może
     }
 
     public int orderComparator(Month month) {
-        return this.yearMonth.compareTo(month.getYearMonth());
+        return this.month.compareTo(month.getYearMonth());
     }
 
     @Override
     public String toString() {
-        return yearMonth +
+        return month +
                 ", " + premium +
                 ", " + monthState.getStatus();
     }
