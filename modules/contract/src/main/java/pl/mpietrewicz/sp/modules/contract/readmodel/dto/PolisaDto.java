@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
 import pl.mpietrewicz.sp.modules.contract.domain.contract.ContractStatus;
 
 import java.math.BigDecimal;
@@ -20,6 +21,7 @@ public class PolisaDto {
     private ContractStatus status;
     private BigDecimal skladka;
     private Frequency czestotliwosc;
+    private PaymentPolicy typ;
 
     public PolisaDto(String id, LocalDate dataRejestracji) {
         this.id = id;

@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.cqrs.annotations.CommandHandlerAnnotation;
 import pl.mpietrewicz.sp.cqrs.command.handler.CommandHandler;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
 import pl.mpietrewicz.sp.modules.contract.application.api.ContractService;
 import pl.mpietrewicz.sp.modules.contract.application.commands.RegisterContractCommand;
 
@@ -22,7 +23,8 @@ public class RegisterContractCommandHandler implements CommandHandler<RegisterCo
         LocalDate registerDate = command.getRegisterDate();
         BigDecimal premium = command.getPremium();
         Frequency frequency = command.getFrequency();
-        contractService.createContract(registerDate, premium, frequency);
+        PaymentPolicy paymentPolicy = command.getPaymentPolicy();
+        contractService.createContract(registerDate, premium, frequency, paymentPolicy);
         return null;
     }
 }

@@ -5,7 +5,7 @@ import pl.mpietrewicz.sp.ddd.annotations.event.EventListener;
 import pl.mpietrewicz.sp.ddd.annotations.event.EventListeners;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.PaymentAddedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PaymentPolicyEnum;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
 import pl.mpietrewicz.sp.modules.balance.application.api.BalanceService;
 
 @EventListeners
@@ -17,9 +17,9 @@ public class PaymentAddedListener {
     @EventListener
     public void handle(PaymentAddedEvent event) {
         PaymentData paymentData = event.getPaymentData();
-        PaymentPolicyEnum paymentPolicyEnum = event.getPaymentPolicyEnum();
+        PaymentPolicy paymentPolicy = event.getPaymentPolicy();
 
-        balanceService.addPayment(paymentData, paymentPolicyEnum);
+        balanceService.addPayment(paymentData, paymentPolicy);
     }
 
 }

@@ -8,7 +8,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundData;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PaymentPolicyEnum;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
 import pl.mpietrewicz.sp.modules.balance.application.api.BalanceService;
 import pl.mpietrewicz.sp.modules.contract.application.api.ComponentService;
 import pl.mpietrewicz.sp.modules.contract.application.api.ContractService;
@@ -42,7 +42,8 @@ public class PayingTest {
         Contract contract = contractService.createContract(
                 LocalDate.parse("2023-01-01"),
                 new BigDecimal("15"),
-                Frequency.QUARTERLY
+                Frequency.QUARTERLY,
+                PaymentPolicy.WITH_RENEWAL
         );
         componentService.addComponent(
                 contract.getAggregateId(),
@@ -53,7 +54,7 @@ public class PayingTest {
                 AggregateId.generate(),
                 contract.getAggregateId(),
                 LocalDate.parse("2023-02-15"),
-                new BigDecimal("65.8")), PaymentPolicyEnum.WITH_RENEWAL
+                new BigDecimal("65.8")), PaymentPolicy.WITH_RENEWAL
         );
         Component component = componentService.addComponent(
                 contract.getAggregateId(),
@@ -64,7 +65,7 @@ public class PayingTest {
                 AggregateId.generate(),
                 contract.getAggregateId(),
                 LocalDate.parse("2023-02-15"),
-                new BigDecimal("20")), PaymentPolicyEnum.WITH_RENEWAL
+                new BigDecimal("20")), PaymentPolicy.WITH_RENEWAL
         );
         premiumService.change(
                 component.getAggregateId(),
@@ -85,7 +86,7 @@ public class PayingTest {
                 AggregateId.generate(),
                 contract.getAggregateId(),
                 LocalDate.parse("2023-05-05"),
-                new BigDecimal("12.5")), PaymentPolicyEnum.WITH_RENEWAL
+                new BigDecimal("12.5")), PaymentPolicy.WITH_RENEWAL
         );
         balanceService.openNewMonth(
                 contract.getAggregateId(),
@@ -95,7 +96,7 @@ public class PayingTest {
                 AggregateId.generate(),
                 contract.getAggregateId(),
                 LocalDate.parse("2023-09-05"),
-                new BigDecimal("50")), PaymentPolicyEnum.WITH_RENEWAL
+                new BigDecimal("50")), PaymentPolicy.WITH_RENEWAL
         );
     }
 

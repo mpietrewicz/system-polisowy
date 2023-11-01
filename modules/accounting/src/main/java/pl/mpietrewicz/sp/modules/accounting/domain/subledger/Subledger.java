@@ -1,4 +1,4 @@
-package pl.mpietrewicz.sp.modules.accounting.domain.accounting;
+package pl.mpietrewicz.sp.modules.accounting.domain.subledger;
 
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.support.domain.BaseAggregateRoot;
@@ -8,11 +8,11 @@ import java.time.LocalDate;
 
 @AggregateRoot
 @Entity
-public class Accounting extends BaseAggregateRoot {
+public class Subledger extends BaseAggregateRoot {
 
     private LocalDate month;
 
-    public Accounting() {
+    public Subledger() {
     }
 
     public void shiftMonth() {

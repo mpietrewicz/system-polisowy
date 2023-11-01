@@ -30,7 +30,7 @@ public interface ContractFinder extends JpaRepository<Contract, BaseAggregateRoo
             "WHERE ph.premium_id = p.aggregate_id " +
             "AND p.component_id = cp.aggregate_id " +
             "AND cp.contract_id = c.aggregate_id " +
-            "AND cp.component_status = 'OPEN' " +
+            "AND cp.component_status = 'ACTIVE' " +
             "AND c.aggregate_id = :contractId " +
             "AND ph.entity_id = ( " +
             "   SELECT ph1.entity_id " +
