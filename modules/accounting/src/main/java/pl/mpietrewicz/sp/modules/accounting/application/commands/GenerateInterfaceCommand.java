@@ -7,6 +7,6 @@ import java.io.Serializable;
 
 @SuppressWarnings("serial")
 @Command
-public class ChangeMonthCommand implements Serializable {
+public class GenerateInterfaceCommand implements Serializable {
 
 }

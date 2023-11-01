@@ -15,7 +15,7 @@ import java.util.List;
 
 public class BalanceAssembler {
 
-    private ContractData contractData = new ContractData(AggregateId.generate(), null, null);
+    private ContractData contractData = new ContractData(AggregateId.generate(), null, null, null);
     private Periods periods;
     private Operations operations = new Operations(new ArrayList<>());
 

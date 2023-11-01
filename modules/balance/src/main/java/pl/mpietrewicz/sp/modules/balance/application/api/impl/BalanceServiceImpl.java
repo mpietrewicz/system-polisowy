@@ -9,7 +9,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundDat
 import pl.mpietrewicz.sp.modules.balance.application.api.BalanceService;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.BalanceRepository;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PaymentPolicyEnum;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -22,12 +22,12 @@ public class BalanceServiceImpl implements BalanceService {
     private final BalanceRepository balanceRepository;
 
     @Override
-    public void addPayment(PaymentData paymentData, PaymentPolicyEnum paymentPolicyEnum) {
+    public void addPayment(PaymentData paymentData, PaymentPolicy paymentPolicy) {
         Balance balance = balanceRepository.findByContractId(paymentData.getContractId());
         LocalDate date = paymentData.getDate();
         BigDecimal amount = paymentData.getAmount();
 
-        balance.addPayment(date, amount, paymentPolicyEnum);
+        balance.addPayment(date, amount, paymentPolicy);
     }
 
     @Override

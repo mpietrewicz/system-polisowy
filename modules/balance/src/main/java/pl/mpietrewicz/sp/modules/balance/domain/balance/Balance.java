@@ -6,7 +6,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.support.domain.BaseAggregateRoot;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PaymentPolicyEnum;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.AddPayment;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.AddPeriod;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.AddPremium;
@@ -61,8 +61,8 @@ public class Balance extends BaseAggregateRoot {
         commit(deletePremium);
     }
 
-    public void addPayment(LocalDate date, BigDecimal amount, PaymentPolicyEnum paymentPolicyEnum) {
-        AddPayment addPayment = new AddPayment(date, amount, paymentPolicyEnum);
+    public void addPayment(LocalDate date, BigDecimal amount, PaymentPolicy paymentPolicy) {
+        AddPayment addPayment = new AddPayment(date, amount, paymentPolicy);
         commit(addPayment);
     }
 
@@ -93,7 +93,8 @@ public class Balance extends BaseAggregateRoot {
                 commit(addPeriod);
                 // todo: wyznacz przypis
             }
-            List<Operation> operationsToExecute = getPendingOperationsToExecute(month, frequency);
+            lastAfectedMonth = getLastAfectedMonth();
+            List<Operation> operationsToExecute = getPendingOperationsToExecute(lastAfectedMonth);
             for (Operation operation : operationsToExecute) {
                 commit(operation);
             }
@@ -132,9 +133,9 @@ public class Balance extends BaseAggregateRoot {
                 .orElseThrow();
     }
 
-    private List<Operation> getPendingOperationsToExecute(YearMonth month, Frequency frequency) {
+    private List<Operation> getPendingOperationsToExecute(YearMonth month) {
         return pendingOperations.stream()
-                .filter(operation -> YearMonth.from(operation.getDate()).compareTo(month) <= 0) // todo: do poprawnej implementajci z czestotliwością
+                .filter(operation -> YearMonth.from(operation.getDate()).compareTo(month) <= 0)
                 .sorted(Operation::orderComparator)
                 .collect(Collectors.toList());
     }

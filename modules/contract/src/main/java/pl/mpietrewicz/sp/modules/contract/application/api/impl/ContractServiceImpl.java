@@ -5,6 +5,7 @@ import pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.ContractCreatedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ComponentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
@@ -37,8 +38,9 @@ public class ContractServiceImpl implements ContractService {
 
 
     @Override
-    public Contract createContract(LocalDate registerDate, BigDecimal premiumAmount, Frequency frequency) {
-        Contract contract = contractFactory.createContract(registerDate, frequency);
+    public Contract createContract(LocalDate registerDate, BigDecimal premiumAmount, Frequency frequency,
+                                   PaymentPolicy paymentPolicy) {
+        Contract contract = contractFactory.createContract(registerDate, frequency, paymentPolicy);
         contractRepository.save(contract);
 
         ContractData contractData = contract.generateSnapshot();

@@ -15,9 +15,9 @@ import java.time.YearMonth;
 import java.util.List;
 
 import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency.MONTHLY;
-import static pl.mpietrewicz.sp.ddd.sharedkernel.PaymentPolicyEnum.WITHOUT_LIMITS;
-import static pl.mpietrewicz.sp.ddd.sharedkernel.PaymentPolicyEnum.WITHOUT_RENEWAL;
-import static pl.mpietrewicz.sp.ddd.sharedkernel.PaymentPolicyEnum.WITH_RENEWAL;
+import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy.WITHOUT_LIMITS;
+import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy.WITHOUT_RENEWAL;
+import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy.WITH_RENEWAL;
 
 public class TestBalance {
 
@@ -45,7 +45,7 @@ public class TestBalance {
     }
 
     private ContractData contractDate(YearMonth start) {
-        return new ContractData(AggregateId.generate(), start.atDay(1), Frequency.QUARTERLY);
+        return new ContractData(AggregateId.generate(), start.atDay(1), Frequency.QUARTERLY, WITHOUT_LIMITS);
     }
 
 

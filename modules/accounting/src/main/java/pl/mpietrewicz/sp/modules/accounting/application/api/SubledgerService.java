@@ -1,7 +1,7 @@
 package pl.mpietrewicz.sp.modules.accounting.application.api;
 
-public interface AccountingService {
+public interface SubledgerService {
 
-    void openNewMonth();
+    void generateInterface();
 
 }

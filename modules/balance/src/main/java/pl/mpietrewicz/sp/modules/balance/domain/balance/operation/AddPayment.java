@@ -3,7 +3,7 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Operation;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PaymentPolicyEnum;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.paymentpolicy.PaymentPolicyFactory;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 
@@ -23,26 +23,26 @@ public class AddPayment extends Operation {
 
     private BigDecimal amount;
 
-    private PaymentPolicyEnum paymentPolicyEnum;
+    private PaymentPolicy paymentPolicy;
 
-    public AddPayment(LocalDate date, BigDecimal amount, PaymentPolicyEnum paymentPolicyEnum) {
+    public AddPayment(LocalDate date, BigDecimal amount, PaymentPolicy paymentPolicy) {
         super(date);
         this.amount = amount;
-        this.paymentPolicyEnum = paymentPolicyEnum;
+        this.paymentPolicy = paymentPolicy;
         this.type = ADD_PAYMENT;
     }
 
-    public AddPayment(LocalDateTime registration, LocalDate date, BigDecimal amount, PaymentPolicyEnum paymentPolicyEnum) {
+    public AddPayment(LocalDateTime registration, LocalDate date, BigDecimal amount, PaymentPolicy paymentPolicy) {
         super(registration, date);
         this.amount = amount;
-        this.paymentPolicyEnum = paymentPolicyEnum;
+        this.paymentPolicy = paymentPolicy;
         this.type = ADD_PAYMENT;
     }
 
     @Override
     public void calculate() {
         PaymentPolicyFactory paymentPolicyFactory = new PaymentPolicyFactory();
-        Month month = paymentPolicyFactory.create(paymentPolicyEnum).getFirstMonthToPay(period, date);
+        Month month = paymentPolicyFactory.create(paymentPolicy).getFirstMonthToPay(period, date);
         month.tryPay(amount);
     }
 

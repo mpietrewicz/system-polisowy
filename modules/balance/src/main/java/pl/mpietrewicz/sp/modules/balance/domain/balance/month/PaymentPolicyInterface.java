@@ -6,7 +6,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import java.time.LocalDate;
 
 @DomainPolicy
-public interface PaymentPolicy {
+public interface PaymentPolicyInterface {
 
     Month getFirstMonthToPay(Period period, LocalDate paymentDate);
 

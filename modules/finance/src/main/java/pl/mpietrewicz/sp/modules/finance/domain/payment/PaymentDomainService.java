@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainService;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.PaymentAddedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PaymentPolicyEnum;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 
 import java.math.BigDecimal;
@@ -19,9 +19,9 @@ public class PaymentDomainService {
 
     public RegisterPayment createPayment(ContractData contractData, BigDecimal amount, LocalDate paymentDate) {
         RegisterPayment registerPayment = paymentFactory.createPayment(contractData, amount, paymentDate);
-        PaymentPolicyEnum paymentPolicyEnum = PaymentPolicyEnum.WITH_RENEWAL; // todo: w przyszłosci wybierać z agregatu Payment lub z UI
+        PaymentPolicy paymentPolicy = contractData.getPaymentPolicy();
 
-        domainEventPublisher.publish(new PaymentAddedEvent(registerPayment.generateSnapshot(), paymentPolicyEnum));
+        domainEventPublisher.publish(new PaymentAddedEvent(registerPayment.generateSnapshot(), paymentPolicy));
         return registerPayment;
     }
 

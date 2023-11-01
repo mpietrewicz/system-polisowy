@@ -23,7 +23,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public void addPayment(String contractId, BigDecimal amount, LocalDate date) {
-        ContractData contractData = contractService.getContractData(new AggregateId(contractId)); // todo: przecież takie dane mogę pochodzić z UI?
+        ContractData contractData = contractService.getContractData(new AggregateId(contractId));
         RegisterPayment registerPayment = paymentDomainService.createPayment(contractData, amount, date);
         paymentRepository.save(registerPayment);
     }
