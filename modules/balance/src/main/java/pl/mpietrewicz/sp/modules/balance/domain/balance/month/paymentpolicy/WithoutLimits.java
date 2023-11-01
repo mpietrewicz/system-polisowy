@@ -1,13 +1,13 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month.paymentpolicy;
 
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaymentPolicy;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaymentPolicyInterface;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 
 import java.time.LocalDate;
 import java.util.Comparator;
 
-public class WithoutLimits implements PaymentPolicy {
+public class WithoutLimits implements PaymentPolicyInterface {
 
     @Override
     public Month getFirstMonthToPay(Period period, LocalDate paymentDate) {

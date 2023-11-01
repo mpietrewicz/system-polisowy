@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import pl.mpietrewicz.sp.SystemParameters;
 import pl.mpietrewicz.sp.cqrs.command.Gate;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
 import pl.mpietrewicz.sp.modules.contract.application.commands.AddComponentCommand;
 import pl.mpietrewicz.sp.modules.contract.application.commands.ChangePremiumCommand;
 import pl.mpietrewicz.sp.modules.contract.application.commands.RegisterContractCommand;
@@ -76,8 +77,9 @@ public class ContractController { // todo: poprawić nazwewnictwo, np. id (id cz
         LocalDate registerDate = polisaDto.getDataRejestracji();
         BigDecimal skladka = polisaDto.getSkladka();
         Frequency czestotliwosc = polisaDto.getCzestotliwosc();
+        PaymentPolicy typ = polisaDto.getTyp();
 
-        gate.dispatch(new RegisterContractCommand(registerDate, skladka, czestotliwosc));
+        gate.dispatch(new RegisterContractCommand(registerDate, skladka, czestotliwosc, typ));
         return "redirect:/lista-polis";
     }
 

@@ -2,18 +2,18 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.month.paymentpolicy;
 
 
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainPolicyFactory;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PaymentPolicyEnum;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaymentPolicy;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaymentPolicyInterface;
 
 @DomainPolicyFactory
 public class PaymentPolicyFactory {
 
-    public PaymentPolicy create(PaymentPolicyEnum policy) {
-        if (policy == PaymentPolicyEnum.WITHOUT_LIMITS) {
+    public PaymentPolicyInterface create(PaymentPolicy policy) {
+        if (policy == PaymentPolicy.WITHOUT_LIMITS) {
             return new WithoutLimits();
-        } else if (policy == PaymentPolicyEnum.WITH_RENEWAL) {
+        } else if (policy == PaymentPolicy.WITH_RENEWAL) {
             return new WithRenewal();
-        } else if (policy == PaymentPolicyEnum.WITHOUT_RENEWAL) {
+        } else if (policy == PaymentPolicy.WITHOUT_RENEWAL) {
             return new WithoutRenewal();
         } else {
             throw new IllegalArgumentException();

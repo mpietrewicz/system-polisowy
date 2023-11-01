@@ -16,7 +16,7 @@ import java.util.Optional;
 @ValueObject
 @Entity
 @NoArgsConstructor
-public class Month extends BaseEntity { // todo: zmienić nazwę -> to nie może sie nazywać month!
+public class Month extends BaseEntity {
 
     private YearMonth month;
 
