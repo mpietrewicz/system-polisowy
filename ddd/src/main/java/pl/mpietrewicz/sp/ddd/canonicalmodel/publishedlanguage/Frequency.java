@@ -18,6 +18,10 @@ public enum Frequency {
         this.numberOfMonths = numberOfMonths;
     }
 
+    public int getNumberOfMonths() {
+        return numberOfMonths;
+    }
+
     public List<YearMonth> getMonths(YearMonth month) {
         return getMonths(month, month);
     }

@@ -1,13 +1,12 @@
 
 package pl.mpietrewicz.sp.modules.contract.domain.contract;
 
-import pl.mpietrewicz.sp.SystemParameters;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
-import pl.mpietrewicz.sp.ddd.support.domain.BaseAggregateRoot;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
+import pl.mpietrewicz.sp.modules.contract.ddd.support.domain.BaseAggregateRoot;
 
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -22,7 +21,7 @@ import static pl.mpietrewicz.sp.modules.contract.domain.contract.ContractStatus.
 public class Contract extends BaseAggregateRoot {
 
 	private LocalDate startDate;
-	private YearMonth accountingMonth = SystemParameters.CURRENT_ACCOUNTING_MONTH;
+	private YearMonth accountingMonth;
 
 	@Enumerated(EnumType.STRING)
 	private ContractStatus contractStatus = PENDING;
@@ -36,15 +35,17 @@ public class Contract extends BaseAggregateRoot {
 	public Contract() {
 	}
 
-	public Contract(AggregateId aggregateId, LocalDate startDate, Frequency frequency, PaymentPolicy paymentPolicy) {
+	public Contract(AggregateId aggregateId, LocalDate startDate, Frequency frequency,
+					PaymentPolicy paymentPolicy, YearMonth accountingMonth) {
 		this.aggregateId = aggregateId;
 		this.startDate = startDate;
 		this.frequency = frequency;
 		this.paymentPolicy = paymentPolicy;
+		this.accountingMonth = accountingMonth;
 	}
 
 	public ContractData generateSnapshot() {
-		return new ContractData(aggregateId, startDate, frequency, paymentPolicy);
+		return new ContractData(aggregateId, startDate, frequency, paymentPolicy, accountingMonth);
 	}
 
 	public LocalDate getStartDate() {
@@ -78,7 +79,7 @@ public class Contract extends BaseAggregateRoot {
 
 	// todo: gdy zostanie przwinienty miesiac nalezy tez zaktualizowac status! -> czyli balance odpowaida za aktualny status contract
 	private ContractStatus initStatus(LocalDate startDate) {
-		if (YearMonth.from(startDate).compareTo(SystemParameters.getCurrentAccountingMonth()) > 0) {
+		if (YearMonth.from(startDate).compareTo(accountingMonth) > 0) {
 			return PENDING;
 		} else {
 			return ContractStatus.ACTIVE;

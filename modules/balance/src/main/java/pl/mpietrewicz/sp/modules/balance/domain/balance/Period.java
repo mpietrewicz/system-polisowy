@@ -2,17 +2,19 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Embeddable;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
-import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+
+import static pl.mpietrewicz.sp.DateUtils.getMonthsBetween;
 
 @ValueObject
 @Embeddable
@@ -39,6 +41,21 @@ public class Period {
                 .orElseThrow();
     }
 
+    public YearMonth getLastYearMonth() {
+        return months.stream()
+                .max(Comparator.comparing(Month::getYearMonth))
+                .map(Month::getYearMonth)
+                .orElseThrow();
+    }
+
+    public YearMonth getLastPaidMonth() {
+        return months.stream()
+                .filter(Month::isPaid)
+                .max(Comparator.comparing(Month::getYearMonth))
+                .map(Month::getYearMonth)
+                .orElse(getFirstMonth().getYearMonth().minusMonths(1));
+    }
+
     public Period returnCopy() {
         List<Month> copiedMonths = new ArrayList<>();
         Month previous = null;
@@ -53,26 +70,59 @@ public class Period {
         return new Period(copiedMonths);
     }
 
-    public void addMonth() {
-        Month month = getLastMonth().createNextMonth();
+    public void addNextMonth(AccountingMonth accountingMonth) {
+        Month month = getLastMonth().createNextMonth(accountingMonth);
         months.add(month);
     }
 
-    public void addMonth(BigDecimal premium) {
-        Month month = getLastMonth().createNextMonth(premium);
+    public void addNextMonthWith(AccountingMonth accountingMonth, ComponentPremium componentPremium) {
+        Month lastMonth = getLastMonth();
+        List<ComponentPremium> componentPremiums = lastMonth.getComponentPremiums();
+        componentPremiums.removeIf(c -> c.isAppliedTo(componentPremium)); // todo: jeśli nie ma takiej składki to zwrócić wyjątek dal ChangePremium
+        componentPremiums.add(componentPremium);
+
+        Month month = lastMonth.createNextMonth(accountingMonth, componentPremiums);
         months.add(month);
     }
 
-    public void deleteMonths(YearMonth from) {
+    public List<YearMonth> deleteMonths(YearMonth from) { // todo: można zmienić nazwę na ogranicz / wyznacz okres do miesiąca
+        List<YearMonth> deletedMonths = new ArrayList<>();
+
         while (getLastMonth().getYearMonth().compareTo(from) >= 0) {
             Month lastMonth = getLastMonth();
             lastMonth.invalidate();
             months.remove(lastMonth);
+            deletedMonths.add(lastMonth.getYearMonth());
         }
+        return deletedMonths;
     }
 
     public List<Month> getMonths() {
         return months;
+    }
+
+    public void includeGracePeriod(AccountingMonth accountingMonth) {
+        int unpaidMonths = getMonthsBetween(getLastPaidMonth(), getLastYearMonth());
+        int grace = accountingMonth.getGrace();
+
+        if (unpaidMonths < grace) {
+            extendPeriodToGrace(accountingMonth, unpaidMonths, grace);
+        } else {
+            reducePeriodToGrace(unpaidMonths, grace);
+        }
+    }
+
+    private void extendPeriodToGrace(AccountingMonth accountingMonth, int unpaidMonths, int grace) {
+        int limit = grace - unpaidMonths;
+        while (limit > 0) {
+            addNextMonth(accountingMonth);
+            limit = getLastMonth().isNotPaid() ? limit - 1 : limit;
+        }
+    }
+
+    private void reducePeriodToGrace(int unpaidMonths, int grace) {
+        int monthsToDelete = unpaidMonths - grace - 1;
+        deleteMonths(getLastYearMonth().minusMonths(monthsToDelete));
     }
 
 }

@@ -1,11 +1,14 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month.state;
 
 import lombok.NoArgsConstructor;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.AccountingMonth;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 
 import javax.persistence.Entity;
 import java.math.BigDecimal;
+import java.util.List;
 
 import static java.math.BigDecimal.ZERO;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.UNDERPAID;
@@ -56,15 +59,16 @@ public class Underpaid extends MonthState {
     }
 
     @Override
-    public Month createNextMonth(BigDecimal premium) {
+    public Month createNextMonth(AccountingMonth accountingMonth, List<ComponentPremium> componentPremiums) {
         Month previous = this.month;
         Month next = new Month(
                 previous.getYearMonth().plusMonths(1),
-                premium,
+                accountingMonth,
                 UNPAID,
                 ZERO,
                 ZERO,
-                previous
+                previous,
+                componentPremiums
         );
         previous.setNext(next);
         return next;

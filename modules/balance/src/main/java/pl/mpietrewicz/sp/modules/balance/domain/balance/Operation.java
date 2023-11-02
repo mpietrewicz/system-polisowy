@@ -3,7 +3,8 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
-import pl.mpietrewicz.sp.ddd.support.domain.BaseEntity;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
+import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
 
 import javax.persistence.DiscriminatorColumn;
 import javax.persistence.DiscriminatorType;
@@ -29,7 +30,7 @@ public abstract class Operation extends BaseEntity {
 
     protected LocalDate date;
 
-    private LocalDateTime registration;
+    private final LocalDateTime registration = LocalDateTime.now();
 
     @Embedded
     protected Period period;
@@ -37,20 +38,20 @@ public abstract class Operation extends BaseEntity {
     @Enumerated(EnumType.STRING)
     protected OperationType type;
 
+    protected boolean pending = true;
+
     protected Operation(LocalDate date) {
-        this.registration = LocalDateTime.now();
         this.date = date;
     }
 
-    protected Operation(LocalDateTime registration, LocalDate date) {
-        this.registration = registration;
-        this.date = date;
-    }
-
-    public void execute(Period previousPeriodCopy) {
-        // todo: jeśli zmieniamy period - if (this.period != null) // to należy odłożyć kopię, żeby mieć OWC
-        this.period = previousPeriodCopy.returnCopy();
+    public void calculate(Operation previousOperation) {
+        this.period = previousOperation.getPeriodCopy();
         calculate();
+
+        AccountingMonth accountingMonth = new AccountingMonth(YearMonth.from(date)); // todo: to powinna byc prawdziwa data miesiąca ksiegowego
+
+        period.includeGracePeriod(accountingMonth);
+        this.pending = false;
     }
 
     protected abstract void calculate();
@@ -89,22 +90,30 @@ public abstract class Operation extends BaseEntity {
         return orderComparator(operation) < 0;
     }
 
-    public YearMonth getLastAfectedMonth() {
-        return period.getLastMonth().getYearMonth();
-    }
-
     public LocalDate getDate() {
         return date;
     }
 
-    public List<Allocationlish> getAllocationlishList() {
+    public YearMonth getMonth() {
+        return YearMonth.from(date);
+    }
+
+    public List<MonthlyBalance> getMonthlyBalances() {
         return period.getMonths().stream()
-                .map(month -> Allocationlish.builder()
+                .map(month -> MonthlyBalance.builder()
                         .month(month.getYearMonth())
-                        .premium(month.getPremium())
+                        .componentPremiums(month.getPremiumComponents())
                         .isPaid(month.isPaid())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    public boolean isPending() {
+        return pending;
+    }
+
+    public boolean isStartCalculatingOperation() {
+        return type == OperationType.START_CALCULATING;
     }
 
 }

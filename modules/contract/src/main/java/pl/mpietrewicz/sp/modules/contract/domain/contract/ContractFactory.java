@@ -9,6 +9,7 @@ import pl.mpietrewicz.sp.modules.contract.domain.contract.policy.ContractStartDa
 import pl.mpietrewicz.sp.modules.contract.domain.contract.policy.impl.FirstDayOfMonthCSDPolicy;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 
 @DomainFactory
 public class ContractFactory {
@@ -17,7 +18,8 @@ public class ContractFactory {
 		AggregateId aggregateId = AggregateId.generate();
 		ContractStartDatePolicy contractStartDatePolicy = new FirstDayOfMonthCSDPolicy();
 		LocalDate contractStart = contractStartDatePolicy.specifyStartDate(registerDate);
+		YearMonth accountingMonth = YearMonth.from(registerDate);
 
-		return new Contract(aggregateId, contractStart, frequency, paymentPolicy);
+		return new Contract(aggregateId, contractStart, frequency, paymentPolicy, accountingMonth);
 	}
 }

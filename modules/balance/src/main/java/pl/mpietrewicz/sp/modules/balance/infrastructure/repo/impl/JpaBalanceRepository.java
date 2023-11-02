@@ -2,28 +2,29 @@ package pl.mpietrewicz.sp.modules.balance.infrastructure.repo.impl;
 
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainRepositoryImpl;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.support.infrastructure.repository.jpa.GenericJpaRepository;
+import pl.mpietrewicz.sp.modules.balance.ddd.support.infrastructure.repository.jpa.GenericJpaRepository;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.BalanceRepository;
+import pl.mpietrewicz.sp.modules.balance.infrastructure.repo.BalanceRepository;
 
-import java.util.List;
+import java.util.stream.Stream;
 
 @DomainRepositoryImpl
 public class JpaBalanceRepository extends GenericJpaRepository<Balance> implements BalanceRepository {
 
     @Override
     public Balance findByContractId(AggregateId contractId) {
-        String query = "SELECT b FROM Balance b WHERE b.contractData.aggregateId = :contractId";
-        return entityManager.createQuery(query, Balance.class)
+        String query = "SELECT b.aggregateId FROM Balance b WHERE b.contractData.aggregateId = :contractId";
+        return load(entityManager.createQuery(query, AggregateId.class)
                 .setParameter("contractId", contractId)
-                .getSingleResult();
+                .getSingleResult());
     }
 
     @Override
-    public List<Balance> findAll() {
-        String query = "SELECT b FROM Balance";
-        return entityManager.createQuery(query, Balance.class)
-                .getResultList();
+    public Stream<Balance> findAll() {
+        String query = "SELECT b.aggregateId FROM Balance";
+        return entityManager.createQuery(query, AggregateId.class)
+                .getResultStream()
+                .map(this::load);
     }
 
 }

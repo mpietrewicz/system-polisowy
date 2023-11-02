@@ -3,7 +3,8 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
-import pl.mpietrewicz.sp.ddd.support.domain.BaseEntity;
+import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.AccountingMonth;
 
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -12,6 +13,7 @@ import javax.persistence.Inheritance;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
 import java.math.BigDecimal;
+import java.util.List;
 
 import static javax.persistence.InheritanceType.SINGLE_TABLE;
 
@@ -44,7 +46,7 @@ public abstract class MonthState extends BaseEntity {
 
     public abstract void refund(BigDecimal refund);
 
-    public abstract Month createNextMonth(BigDecimal premium);
+    public abstract Month createNextMonth(AccountingMonth accountingMonth, List<ComponentPremium> componentPremiums); // todo: tutaj powinien być lust of component premiums
 
     public abstract BigDecimal getPaid();
 

@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import pl.mpietrewicz.sp.SystemParameters;
 import pl.mpietrewicz.sp.cqrs.command.Gate;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
@@ -34,8 +33,7 @@ import java.util.List;
 @RestController
 public class ContractController { // todo: poprawić nazwewnictwo, np. id (id czego?)
 
-    @Inject
-    private ContractFinder contractFinder;
+    private ContractFinder contractFinder = null;
 
     @Inject
     private Gate gate;
@@ -120,11 +118,11 @@ public class ContractController { // todo: poprawić nazwewnictwo, np. id (id cz
     }
 
     private BigDecimal getCurrentContractPremium(String id) {
-        return contractFinder.findContractPremium(id, SystemParameters.getCurrentAccountingMonth().atDay(1));
+        return contractFinder.findContractPremium(id);
     }
 
     private BigDecimal getCurrentPremium(String componentId) {
-        return contractFinder.findComponentPremium(componentId, SystemParameters.getCurrentAccountingMonth().atDay(1));
+        return contractFinder.findComponentPremium(componentId);
     }
 
     private BigDecimal getExceptedPremiumSum(String componentId) {

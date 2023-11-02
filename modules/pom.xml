@@ -12,7 +12,6 @@
         <module>contract</module>
         <module>finance</module>
         <module>balance</module>
-        <module>oldbalance</module>
     </modules>
 
     <parent>

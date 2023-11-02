@@ -2,10 +2,10 @@
 package pl.mpietrewicz.sp.modules.finance.infrastructure.repo.impl;
 
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainRepositoryImpl;
-import pl.mpietrewicz.sp.ddd.support.infrastructure.repository.jpa.GenericJpaRepository;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
+import pl.mpietrewicz.sp.modules.finance.ddd.support.infrastructure.repository.jpa.GenericJpaRepository;
 import pl.mpietrewicz.sp.modules.finance.domain.payment.RegisterPayment;
-import pl.mpietrewicz.sp.modules.finance.domain.payment.PaymentRepository;
+import pl.mpietrewicz.sp.modules.finance.infrastructure.repo.PaymentRepository;
 
 import java.util.List;
 

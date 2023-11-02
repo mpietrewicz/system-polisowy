@@ -1,6 +1,7 @@
 package pl.mpietrewicz.sp.modules.contract.application.api.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 import pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.ComponentCreatedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.ComponentTerminatedEvent;
@@ -12,20 +13,21 @@ import pl.mpietrewicz.sp.modules.contract.application.api.ComponentService;
 import pl.mpietrewicz.sp.modules.contract.domain.component.Component;
 import pl.mpietrewicz.sp.modules.contract.domain.component.ComponentDomainService;
 import pl.mpietrewicz.sp.modules.contract.domain.component.ComponentFactory;
-import pl.mpietrewicz.sp.modules.contract.domain.component.ComponentRepository;
 import pl.mpietrewicz.sp.modules.contract.domain.contract.Contract;
-import pl.mpietrewicz.sp.modules.contract.domain.contract.ContractRepository;
 import pl.mpietrewicz.sp.modules.contract.domain.premium.Premium;
 import pl.mpietrewicz.sp.modules.contract.domain.premium.PremiumFactory;
-import pl.mpietrewicz.sp.modules.contract.domain.premium.PremiumRepository;
 import pl.mpietrewicz.sp.modules.contract.domain.termination.Termination;
 import pl.mpietrewicz.sp.modules.contract.domain.termination.TerminationFactory;
-import pl.mpietrewicz.sp.modules.contract.domain.termination.TerminationRepository;
+import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.ComponentRepository;
+import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.ContractRepository;
+import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.PremiumRepository;
+import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.TerminationRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-@ApplicationService
+@ApplicationService(transactional = @Transactional(
+        transactionManager = "contractTransactionManager"))
 @RequiredArgsConstructor
 public class ComponentServiceImpl implements ComponentService {
 

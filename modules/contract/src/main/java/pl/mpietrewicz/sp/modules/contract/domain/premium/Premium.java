@@ -3,10 +3,10 @@ package pl.mpietrewicz.sp.modules.contract.domain.premium;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
-import pl.mpietrewicz.sp.ddd.support.domain.BaseAggregateRoot;
-import pl.mpietrewicz.sp.modules.contract.domain.contract.ChangePremiumException;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ComponentData;
+import pl.mpietrewicz.sp.modules.contract.ddd.support.domain.BaseAggregateRoot;
+import pl.mpietrewicz.sp.modules.contract.domain.contract.ChangePremiumException;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Embedded;
