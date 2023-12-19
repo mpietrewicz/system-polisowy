@@ -78,19 +78,11 @@ public class PayingTest {
                 LocalDate.parse("2023-03-11"),
                 new BigDecimal("11"))
         );
-        balanceService.openNewMonth(
-                contract.getAggregateId(),
-                YearMonth.parse("2023-04")
-        );
         balanceService.addPayment(new PaymentData(
                 AggregateId.generate(),
                 contract.getAggregateId(),
                 LocalDate.parse("2023-05-05"),
                 new BigDecimal("12.5")), PaymentPolicy.WITH_RENEWAL
-        );
-        balanceService.openNewMonth(
-                contract.getAggregateId(),
-                YearMonth.parse("2023-10")
         );
         balanceService.addPayment(new PaymentData(
                 AggregateId.generate(),

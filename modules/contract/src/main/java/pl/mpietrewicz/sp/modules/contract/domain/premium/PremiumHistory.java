@@ -1,6 +1,6 @@
 package pl.mpietrewicz.sp.modules.contract.domain.premium;
 
-import pl.mpietrewicz.sp.ddd.support.domain.BaseEntity;
+import pl.mpietrewicz.sp.modules.contract.ddd.support.domain.BaseEntity;
 
 import javax.persistence.Embeddable;
 import javax.persistence.Entity;

@@ -4,26 +4,30 @@ import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
-import pl.mpietrewicz.sp.ddd.support.domain.BaseAggregateRoot;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
+import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
+import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseAggregateRoot;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.AddPayment;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.AddPeriod;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.AddPremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.AddRefund;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.ChangeFrequency;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.DeletePremium;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.StopCalculating;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.ChangePremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.StartCalculating;
 
+import javax.inject.Inject;
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
+import javax.persistence.Transient;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.function.Predicate.not;
@@ -37,28 +41,20 @@ public class Balance extends BaseAggregateRoot {
 
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "balance_id")
-    private List<Operation> operations;
+    private Set<Operation> operations = new HashSet<>();
 
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "balance_id")
-    private List<Operation> pendingOperations;
+    @Transient
+    @Inject
+    protected DomainEventPublisher eventPublisher;
 
-
-    public Balance(AggregateId aggregateId, ContractData contractData, List<Operation> operations, List<Operation> pendingOperations) {
+    public Balance(AggregateId aggregateId, ContractData contractData) {
         this.aggregateId = aggregateId;
         this.contractData = contractData;
-        this.operations = operations;
-        this.pendingOperations = pendingOperations;
     }
 
-    public void addPremium(LocalDate start, BigDecimal premium) {
-        AddPremium addPremium = new AddPremium(start, premium);
-        commit(addPremium);
-    }
-
-    public void deletePremium(LocalDate start, BigDecimal premium) {
-        DeletePremium deletePremium = new DeletePremium(start, premium);
-        commit(deletePremium);
+    public void startCalculating(LocalDate date, BigDecimal premium, Frequency frequency, AggregateId componentId) {
+        StartCalculating startCalculating = new StartCalculating(YearMonth.from(date), premium, frequency, componentId);
+        commit(startCalculating);
     }
 
     public void addPayment(LocalDate date, BigDecimal amount, PaymentPolicy paymentPolicy) {
@@ -71,128 +67,90 @@ public class Balance extends BaseAggregateRoot {
         commit(addRefund);
     }
 
-    public void changeFrequency(LocalDate date, Frequency frequency) {
-        ChangeFrequency changeFrequency = new ChangeFrequency(date, frequency);
-        commit(changeFrequency);
+    public void changePremium(LocalDate start, BigDecimal premium, AggregateId componentId) {
+        ComponentPremium componentPremium = new ComponentPremium(componentId, premium);
+        ChangePremium changePremium = new ChangePremium(start, componentPremium);
+        commit(changePremium);
     }
 
-    public void openMonth(YearMonth month) {
-        Optional<StartCalculating> pendingStartCalculating = getPendingStartCalculating();
-        if (pendingStartCalculating.isPresent()) {
-            if (pendingStartCalculating.get().getFrom().equals(month)) {
-                pendingStartCalculating.get().calculate();
-                operations.add(pendingStartCalculating.get());
-                pendingOperations.remove(pendingStartCalculating.get());
-                // todo: wyznacz przypis
-            }
-        } else {
-            YearMonth lastAfectedMonth = getLastAfectedMonth();
-            Frequency frequency = getLastFrequency();
-            if (lastAfectedMonth.plusMonths(1).equals(month)) {
-                AddPeriod addPeriod = new AddPeriod(month, frequency);
-                commit(addPeriod);
-                // todo: wyznacz przypis
-            }
-            lastAfectedMonth = getLastAfectedMonth();
-            List<Operation> operationsToExecute = getPendingOperationsToExecute(lastAfectedMonth);
-            for (Operation operation : operationsToExecute) {
-                commit(operation);
-            }
-            // todo: koryguj przypis - o ile były inne operacje
-            // todo: albo nie rozdzielać na nowe i korygowane i zawsze porównywać to co było z tym co jest po zmianach
+    public void stopCalculating(LocalDate date, Frequency frequency) {
+        StopCalculating stopCalculating = new StopCalculating(date, frequency);
+        commit(stopCalculating);
+    }
+
+    private void commit(StartCalculating operation) {
+        operations.add(operation);
+        calculate(operation);
+        recalculateAfter(operation);
+        publishUpdatedBalance();
+    }
+
+    private void calculate(StartCalculating operation) {
+        operation.calculate();
+    }
+
+    private void commit(Operation operation) {
+        operations.add(operation);
+        calculate(operation);
+        recalculateAfter(operation);
+        publishUpdatedBalance();
+    }
+
+    private void commit(StopCalculating operation) {
+        operations.add(operation);
+        calculate(operation);
+        publishUpdatedBalance();
+    }
+
+    private void calculate(Operation operation) {
+        Operation previousOperation = getPreviousOperation(operation);
+        operation.calculate(previousOperation);
+    }
+
+    private void recalculateAfter(Operation operation) {
+        for (Operation nextOperation : getNextOperationsAfter(operation)) {
+            calculate(nextOperation);
         }
     }
 
-    private void commit(Operation operation) { // todo: informacyjnie: zacommitować można tylko raz operacje
-        if (operation instanceof AddPeriod || !isFromTheFuture(operation)) {
-            Operation previousOperation = getPreviousOperation(operation);
-            operation.execute(previousOperation.getPeriodCopy());
-            operations.add(operation);
-            pendingOperations.remove(operation);
-
-            reexecuteAfter(operation);
-            // todo: wyznaczyć przypis -> wysłać period z ostatniej operacji
-            List<Allocationlish> allocationlishes = operations.stream()
-                    .max(Operation::orderComparator)
-                    .map(Operation::getAllocationlishList)
-                    .orElseThrow();
-            // todo: wywołać zdarzenie wyznaczenia przypisu
-
-        } else {
-            pendingOperations.add(operation);
-        }
-    }
-
-    private Frequency getLastFrequency() {
+    private List<Operation> getExecutedOperations() {
         return operations.stream()
-                .filter(operation -> operation.getFrequency().isPresent())
-                .max(Operation::orderComparator)
-                .map(Operation::getFrequency)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .orElseThrow();
-    }
-
-    private List<Operation> getPendingOperationsToExecute(YearMonth month) {
-        return pendingOperations.stream()
-                .filter(operation -> YearMonth.from(operation.getDate()).compareTo(month) <= 0)
-                .sorted(Operation::orderComparator)
+                .filter(not(Operation::isPending))
                 .collect(Collectors.toList());
     }
 
-    private void reexecuteAfter(Operation operation) {
-        Operation previousOperation = operation;
-        List<Operation> nextOperations = getNextOperationsAfter(operation);
-        for (Operation nextOperation : nextOperations) {
-            nextOperation.execute(previousOperation.getPeriodCopy());
-            previousOperation = nextOperation;
-        }
+    private void publishUpdatedBalance() {
+        List<MonthlyBalance> monthlyBalances = getLastOperation().getMonthlyBalances();
+//        eventPublisher.publish(new BalanceUpdatedEvent(contractData, monthlyBalances));
     }
 
     private Operation getPreviousOperation(Operation operation) {
-        return operations.stream()
+        return getExecutedOperations().stream()
                 .filter(o -> o.isBefore(operation))
                 .max(Operation::orderComparator)
-                .orElse(getStartCalculatingOperation());
+                .orElse(getStartCalculating());
     }
 
     private List<Operation> getNextOperationsAfter(Operation operation) {
-        return operations.stream()
-                .filter(not(StartCalculating.class::isInstance))
+        return getExecutedOperations().stream()
+                .filter(not(Operation::isStartCalculatingOperation))
                 .filter(o -> o.isAfter(operation))
                 .sorted(Operation::orderComparator)
                 .collect(Collectors.toList());
     }
 
-    private boolean isFromTheFuture(Operation operation) {
-        return operations.stream()
+    private Operation getLastOperation() {
+        return getExecutedOperations().stream()
                 .max(Operation::orderComparator)
-                .map(Operation::getLastAfectedMonth)
-                .map(lastAfectedMonth -> YearMonth.from(operation.getDate()).isAfter(lastAfectedMonth))
-                .orElse(true);
+                .orElseThrow(); // todo: dodać wyjątek że musi istnieć chociaż startCalculating
     }
 
-    private YearMonth getLastAfectedMonth() {
+    private StartCalculating getStartCalculating() {
         return operations.stream()
-                .filter(operation -> operation instanceof StartCalculating
-                        || operation instanceof AddPeriod)
-                .max(Operation::orderComparator)
-                .map(Operation::getLastAfectedMonth)
-                .orElseThrow(() -> new IllegalStateException("Balance is not started!"));
-    }
-
-    private Optional<StartCalculating> getPendingStartCalculating() {
-        return pendingOperations.stream()
-                .filter(StartCalculating.class::isInstance)
+                .filter(Operation::isStartCalculatingOperation)
                 .map(StartCalculating.class::cast)
-                .findAny();
-    }
-
-    private Operation getStartCalculatingOperation() {
-        return operations.stream()
-                .filter(StartCalculating.class::isInstance)
                 .findAny()
-                .orElseThrow();
+                .orElseThrow();  // todo: dodać wyjątek że musi istnieć chociaż startCalculating
     }
 
 }

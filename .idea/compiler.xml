@@ -9,7 +9,6 @@
         <outputRelativeToContentRoot value="true" />
         <module name="app" />
         <module name="cqrs" />
-        <module name="oldbalance" />
         <module name="balance" />
         <module name="ddd" />
         <module name="contract" />
@@ -20,6 +19,7 @@
     <bytecodeTargetLevel>
       <module name="library" target="1.8" />
       <module name="next" target="1.8" />
+      <module name="oldbalance" target="11" />
       <module name="other" target="1.8" />
       <module name="saldo" target="11" />
       <module name="secound" target="1.8" />

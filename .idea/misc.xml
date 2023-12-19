@@ -10,6 +10,7 @@
     <option name="ignoredFiles">
       <set>
         <option value="$PROJECT_DIR$/library/pom.xml" />
+        <option value="$PROJECT_DIR$/modules/oldbalance/pom.xml" />
       </set>
     </option>
   </component>

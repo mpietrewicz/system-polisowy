@@ -26,8 +26,7 @@ import java.util.List;
 @RestController
 public class FinanceController {
 
-    @Inject
-    private FinanceFinder financeFinder;
+    private FinanceFinder financeFinder = null;
 
     @Inject
     private Gate gate;

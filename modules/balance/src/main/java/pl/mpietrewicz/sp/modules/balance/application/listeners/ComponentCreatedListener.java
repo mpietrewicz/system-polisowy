@@ -20,6 +20,6 @@ public class ComponentCreatedListener {
         ComponentData componentData = event.getComponentData();
         BigDecimal premium = event.getPremium();
 
-        balanceService.addPremium(componentData, premium);
+        balanceService.changePremium(componentData, premium);
     }
 }

@@ -17,6 +17,7 @@ import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.Transient;
 import java.time.LocalDate;
+import java.time.YearMonth;
 
 /**
  * Contract's snapshot
@@ -43,14 +44,19 @@ public class ContractData {
 	@Enumerated(EnumType.STRING)
 	private PaymentPolicy paymentPolicy;
 
+	@Transient
+	private YearMonth accountingMonth;
+
 	@SuppressWarnings("unused")
 	private ContractData(){}
 
-	public ContractData(AggregateId aggregateId, LocalDate contractStartDate, Frequency frequency, PaymentPolicy paymentPolicy) {
+	public ContractData(AggregateId aggregateId, LocalDate contractStartDate, Frequency frequency,
+						PaymentPolicy paymentPolicy, YearMonth accountingMonth) {
 		this.aggregateId = aggregateId;
 		this.contractStartDate = contractStartDate;
 		this.frequency = frequency;
 		this.paymentPolicy = paymentPolicy;
+		this.accountingMonth = accountingMonth;
 	}
 
 }

@@ -28,7 +28,7 @@ public class AddRefund extends Operation {
 
     @Override
     public void calculate() {
-        Month month = period.getLastMonth();
+        Month month = period.getLastMonth(); // todo: zdejmowanie wpłat powinno skutkować też usutaniem miesiacy nieopłaconych
         month.tryRefund(amount);
         this.type = ADD_REFUND;
     }

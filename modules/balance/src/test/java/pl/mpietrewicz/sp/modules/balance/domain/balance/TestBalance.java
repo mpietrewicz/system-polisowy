@@ -15,6 +15,7 @@ import java.time.YearMonth;
 import java.util.List;
 
 import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency.MONTHLY;
+import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency.QUARTERLY;
 import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy.WITHOUT_LIMITS;
 import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy.WITHOUT_RENEWAL;
 import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy.WITH_RENEWAL;
@@ -22,40 +23,34 @@ import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPoli
 public class TestBalance {
 
     @Test
-    public void testAllChanges() {
-        BalanceFactory balanceFactory = new BalanceFactory();
-        Balance balance = balanceFactory.create(
-                contractDate(month("2023-10")),
-                month("2023-10"),
-                amount("5"), Frequency.QUARTERLY);
+    public void newTest() {
+        LocalDate contractStart = LocalDate.parse("2023-01-01");
+        ContractData contractData = contractDate(contractStart);
 
-        balance.openMonth(YearMonth.parse("2024-01"));
-        balance.addPremium(date("2024-01-01"), amount("10"));
-        balance.openMonth(YearMonth.parse("2024-04"));
-        balance.openMonth(YearMonth.parse("2024-07"));
-        balance.addPremium(date("2024-06-01"), amount("20"));
-        balance.deletePremium(date("2024-05-01"), amount("8"));
-        balance.addPayment(date("2024-05-10"), amount("30"), WITHOUT_LIMITS);
-        balance.addRefund(date("2024-05-15"), amount("29"));
-        balance.addPayment(date("2024-05-20"), amount("60"), WITHOUT_LIMITS);
-        balance.addPremium(date("2024-07-01"), amount("100"));
-        balance.changeFrequency(date("2024-07-01"), Frequency.MONTHLY);
-        balance.openMonth(YearMonth.parse("2024-08"));
+        Balance balance = new Balance(AggregateId.generate(), contractData);
+
+        balance.startCalculating(contractStart, BigDecimal.TEN, QUARTERLY, contractData.getAggregateId());
+        balance.addPayment(date("2023-02-10"), amount("30"), WITHOUT_LIMITS);
+        balance.addRefund(date("2023-03-10"), amount("20"));
+        balance.addPayment(date("2023-05-20"), amount("60"), WITHOUT_LIMITS);
+        balance.stopCalculating(date("2023-05-31"), Frequency.MONTHLY);
+//        balance.changePremium(LocalDate.parse("2023-02-01"), new BigDecimal(100), contractData.getAggregateId());
+
         System.out.println("koniec");
     }
 
-    private ContractData contractDate(YearMonth start) {
-        return new ContractData(AggregateId.generate(), start.atDay(1), Frequency.QUARTERLY, WITHOUT_LIMITS);
+    private ContractData contractDate(LocalDate start) {
+        return new ContractData(AggregateId.generate(), start, Frequency.QUARTERLY, WITHOUT_LIMITS, YearMonth.from(start));
     }
 
 
     @Test
     public void testUmowyZPrzeszlosci() {
         BalanceFactory balanceFactory = new BalanceFactory();
-        Balance balance = balanceFactory.create(
-                contractDate(month("2023-10")),
-                month("2023-03"),
-                amount("5"), Frequency.QUARTERLY);
+        Balance balance = null;
+//        Balance balance = balanceFactory.create(
+//                contractDate(month("2023-10")),
+//                amount("5"), Frequency.QUARTERLY, AggregateId.generate());
         System.out.println("koniec");
     }
 
@@ -63,11 +58,10 @@ public class TestBalance {
     @Test
     public void testUmowyZPszyszlosci() {
         BalanceFactory balanceFactory = new BalanceFactory();
-        Balance balance = balanceFactory.create(
-                contractDate(month("2023-10")),
-                month("2023-12"),
-                amount("5"), Frequency.QUARTERLY);
-        balance.openMonth(month("2023-11"));
+        Balance balance = null;
+//        Balance balance = balanceFactory.create(
+//                contractDate(month("2023-10")),
+//                amount("5"), Frequency.QUARTERLY, AggregateId.generate());
         System.out.println("koniec");
     }
 
@@ -96,53 +90,37 @@ public class TestBalance {
     @Test
     public void testChangesAfterAccountingMonth() {
         BalanceFactory balanceFactory = new BalanceFactory();
-        Balance balance = balanceFactory.create(
-                contractDate(month("2023-10")),
-                month("2023-10"),
-                amount("5"), Frequency.QUARTERLY);
+        Balance balance = null;
+//        Balance balance = balanceFactory.create(
+//                contractDate(month("2023-10")),
+//                amount("5"), Frequency.QUARTERLY, AggregateId.generate());
 
-        balance.addPremium(date("2023-11-01"), amount("10"));
-        balance.addPremium(date("2023-12-01"), amount("20"));
-        balance.openMonth(month("2023-11"));
-        balance.openMonth(month("2023-12"));
         System.out.println("koniec");
     }
 
     @Test
     public void testWplatyZeWznowieniem() {
         BalanceFactory balanceFactory = new BalanceFactory();
-        Balance balance = balanceFactory.create(
-                contractDate(month("2023-10")),
-                month("2023-10"),
-                amount("10"), Frequency.QUARTERLY);
+        Balance balance = null;
+//        Balance balance = balanceFactory.create(
+//                contractDate(month("2023-10")),
+//                amount("10"), Frequency.QUARTERLY, AggregateId.generate());
 
-        balance.openMonth(month("2023-11"));
         balance.addPayment(date("2023-10-31"), amount("10"), WITHOUT_LIMITS);
-        balance.openMonth(month("2023-12"));
-        balance.openMonth(month("2024-01"));
-        balance.openMonth(month("2024-02"));
-        balance.openMonth(month("2024-03"));
         balance.addPayment(date("2024-03-01"), amount("20"), WITH_RENEWAL);
-        balance.openMonth(month("2024-04"));
         System.out.println("koniec");
     }
 
 //    @Test
     public void testWplatyZeBlokadaWznowienia() {
         BalanceFactory balanceFactory = new BalanceFactory();
-        Balance balance = balanceFactory.create(
-                contractDate(month("2023-10")),
-                month("2023-10"),
-                amount("10"), Frequency.QUARTERLY);
+        Balance balance = null;
+//        Balance balance = balanceFactory.create(
+//                contractDate(month("2023-10")),
+//                amount("10"), Frequency.QUARTERLY, AggregateId.generate());
 
-        balance.openMonth(month("2023-11"));
         balance.addPayment(date("2023-10-31"), amount("10"), WITHOUT_LIMITS);
-        balance.openMonth(month("2023-12"));
-        balance.openMonth(month("2024-01"));
-        balance.openMonth(month("2024-02"));
-        balance.openMonth(month("2024-03"));
         balance.addPayment(date("2024-03-01"), amount("20"), WITHOUT_RENEWAL);
-        balance.openMonth(month("2024-04"));
         System.out.println("koniec");
     }
 

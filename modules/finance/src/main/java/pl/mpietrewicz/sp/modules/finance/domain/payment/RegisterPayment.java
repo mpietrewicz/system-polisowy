@@ -2,10 +2,10 @@
 package pl.mpietrewicz.sp.modules.finance.domain.payment;
 
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
-import pl.mpietrewicz.sp.ddd.support.domain.BaseAggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
+import pl.mpietrewicz.sp.modules.finance.ddd.support.domain.BaseAggregateRoot;
 
 import javax.persistence.Embedded;
 import javax.persistence.Entity;

@@ -1,11 +1,14 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month.state;
 
 import lombok.NoArgsConstructor;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.AccountingMonth;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 
 import javax.persistence.Entity;
 import java.math.BigDecimal;
+import java.util.List;
 
 import static java.math.BigDecimal.ZERO;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.OVERPAID;
@@ -55,18 +58,20 @@ public class Overpaid extends MonthState {
     }
 
     @Override
-    public Month createNextMonth(BigDecimal premium) {
+    public Month createNextMonth(AccountingMonth accountingMonth, List<ComponentPremium> componentPremiums) {
+        BigDecimal premium = componentPremiums.stream().map(ComponentPremium::getAmount).reduce(ZERO, BigDecimal::add);
         Month previous = this.month;
+
         BigDecimal overpayment = getOverpayment();
 
         previous.changeState(new Paid(month));
 
         if (overpayment.compareTo(premium) > 0) {
-            return createOverpaid(overpayment.subtract(premium), previous, premium);
+            return createOverpaid(accountingMonth, overpayment.subtract(premium), previous, componentPremiums);
         } else if (overpayment.compareTo(premium) == 0) {
-            return createPaid(previous, premium);
+            return createPaid(accountingMonth, previous, componentPremiums);
         } else {
-            return createUnderpaid(premium.subtract(overpayment), previous, premium);
+            return createUnderpaid(accountingMonth, premium.subtract(overpayment), previous, componentPremiums);
         }
     }
 
@@ -75,19 +80,21 @@ public class Overpaid extends MonthState {
         return getOverpayment();
     }
 
-    private Month createOverpaid(BigDecimal overpayment, Month previous, BigDecimal premium) {
-        return new Month(previous.getYearMonth().plusMonths(1), premium,
-                OVERPAID, ZERO, overpayment, previous);
+    private Month createOverpaid(AccountingMonth accountingMonth, BigDecimal overpayment, Month previous,
+                                 List<ComponentPremium> componentPremiums) {
+        return new Month(previous.getYearMonth().plusMonths(1), accountingMonth,
+                OVERPAID, ZERO, overpayment, previous, componentPremiums);
     }
 
-    private Month createPaid(Month previous, BigDecimal premium) {
-        return new Month(previous.getYearMonth().plusMonths(1), premium,
-                PAID, ZERO, ZERO, previous);
+    private Month createPaid(AccountingMonth accountingMonth, Month previous, List<ComponentPremium> componentPremiums) {
+        return new Month(previous.getYearMonth().plusMonths(1), accountingMonth,
+                PAID, ZERO, ZERO, previous, componentPremiums);
     }
 
-    private Month createUnderpaid(BigDecimal underpayment, Month previous, BigDecimal premium) {
-        return new Month(previous.getYearMonth().plusMonths(1), premium,
-                UNDERPAID, underpayment, ZERO, previous);
+    private Month createUnderpaid(AccountingMonth accountingMonth, BigDecimal underpayment, Month previous,
+                                  List<ComponentPremium> componentPremiums) {
+        return new Month(previous.getYearMonth().plusMonths(1), accountingMonth,
+                UNDERPAID, underpayment, ZERO, previous, componentPremiums);
     }
 
 }

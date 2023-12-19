@@ -1,12 +1,11 @@
 package pl.mpietrewicz.sp.modules.contract.domain.component;
 
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
-import pl.mpietrewicz.sp.ddd.support.domain.BaseAggregateRoot;
-import pl.mpietrewicz.sp.SystemParameters;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.ComponentStatus;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ComponentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
+import pl.mpietrewicz.sp.modules.contract.ddd.support.domain.BaseAggregateRoot;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Embedded;
@@ -52,9 +51,9 @@ public class Component extends BaseAggregateRoot {
 
     public void terminate(LocalDate terminatedDate) {
         liability.end(terminatedDate);
-        if (isBeforeCurrentAccountingMonth(terminatedDate)) {
-            changeComponentStatus(ComponentStatus.CLOSE);
-        }
+//        if (isBeforeCurrentAccountingMonth(terminatedDate)) { // todo: zaimplementować to jakoś inaczej?
+//            changeComponentStatus(ComponentStatus.CLOSE);
+//        }
     }
 
     public ComponentData generateSnapshot() {
@@ -71,10 +70,6 @@ public class Component extends BaseAggregateRoot {
 
     public boolean isAdditional() {
         return this.componentType == ComponentType.ADDITIONAL;
-    }
-
-    private boolean isBeforeCurrentAccountingMonth(LocalDate date) {
-        return date.compareTo(SystemParameters.getCurrentAccountingMonth().atDay(1)) <= 0;
     }
 
     private void changeComponentStatus(ComponentStatus componentStatus) {

@@ -15,5 +15,5 @@ import java.lang.annotation.Target;
 @Transactional(propagation = Propagation.MANDATORY)
 @Target(ElementType.TYPE)
 public @interface InternalApplicationService {
-
+    Transactional transactional(); // wymaga podania transactionManager'a
 }

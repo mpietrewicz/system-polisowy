@@ -1,6 +1,7 @@
 package pl.mpietrewicz.sp.modules.contract.application.api.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 import pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.ContractCreatedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
@@ -12,19 +13,20 @@ import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.contract.application.api.ContractService;
 import pl.mpietrewicz.sp.modules.contract.domain.component.Component;
 import pl.mpietrewicz.sp.modules.contract.domain.component.ComponentFactory;
-import pl.mpietrewicz.sp.modules.contract.domain.component.ComponentRepository;
 import pl.mpietrewicz.sp.modules.contract.domain.contract.Contract;
 import pl.mpietrewicz.sp.modules.contract.domain.contract.ContractFactory;
-import pl.mpietrewicz.sp.modules.contract.domain.contract.ContractRepository;
 import pl.mpietrewicz.sp.modules.contract.domain.premium.Premium;
 import pl.mpietrewicz.sp.modules.contract.domain.premium.PremiumFactory;
-import pl.mpietrewicz.sp.modules.contract.domain.premium.PremiumRepository;
+import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.ComponentRepository;
+import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.ContractRepository;
+import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.PremiumRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 
-@ApplicationService
+@ApplicationService(transactional = @Transactional(
+        transactionManager = "accountingTransactionManager"))
 @RequiredArgsConstructor
 public class ContractServiceImpl implements ContractService {
 
@@ -51,7 +53,7 @@ public class ContractServiceImpl implements ContractService {
         Premium premium = premiumFactory.create(componentData, registerDate, premiumAmount);
         premiumRepository.save(premium);
 
-        ContractCreatedEvent event = new ContractCreatedEvent(contractData, premiumAmount, frequency);
+        ContractCreatedEvent event = new ContractCreatedEvent(contractData, componentData, premiumAmount);
         domainEventPublisher.publish(event);
 
         return contract;
