@@ -1,15 +1,16 @@
-package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
+package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.OperationType.ADD_REFUND;
+import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_REFUND;
 
 @ValueObject
 @Entity

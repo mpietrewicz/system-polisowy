@@ -1,8 +1,9 @@
-package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
+package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 
 import javax.persistence.CascadeType;
 import javax.persistence.DiscriminatorValue;
@@ -12,7 +13,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.OperationType.CHANGE_PREMIUM;
+import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.CHANGE_PREMIUM;
 
 @ValueObject
 @Entity

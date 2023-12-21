@@ -1,4 +1,4 @@
-package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
+package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
@@ -6,6 +6,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
@@ -15,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.math.BigDecimal.ZERO;
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.OperationType.START_CALCULATING;
+import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.START_CALCULATING;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.UNPAID;
 
 @ValueObject
@@ -35,8 +36,7 @@ public class StartCalculating extends Operation {
         this.pending = false;
     }
 
-    @Override
-    public void execute(Operation previousOperation, int grace) {
+    public void execute(int grace) {
         List<Month> months = createMonths(grace);
         period = new Period(months);
         this.pending = false;
@@ -63,6 +63,11 @@ public class StartCalculating extends Operation {
         }
 
         return months;
+    }
+
+    @Override
+    public int orderComparator(Operation operation) {
+        return -1;
     }
 
 }

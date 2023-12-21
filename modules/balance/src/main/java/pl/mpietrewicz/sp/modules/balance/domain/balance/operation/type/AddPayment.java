@@ -1,4 +1,4 @@
-package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
+package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
@@ -6,13 +6,14 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaymentPolicyInterface;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.paymentpolicy.PaymentPolicyFactory;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.OperationType.ADD_PAYMENT;
+import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_PAYMENT;
 
 @ValueObject
 @Entity

@@ -1,4 +1,4 @@
-package pl.mpietrewicz.sp.modules.balance.domain.balance;
+package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
 
 public enum OperationType {
 
