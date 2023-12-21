@@ -70,18 +70,18 @@ public class Period {
         return new Period(copiedMonths);
     }
 
-    public void addNextMonth(AccountingMonth accountingMonth) {
-        Month month = getLastMonth().createNextMonth(accountingMonth);
+    public void addNextMonth() {
+        Month month = getLastMonth().createNextMonth();
         months.add(month);
     }
 
-    public void addNextMonthWith(AccountingMonth accountingMonth, ComponentPremium componentPremium) {
+    public void addNextMonthWith(ComponentPremium componentPremium) {
         Month lastMonth = getLastMonth();
         List<ComponentPremium> componentPremiums = lastMonth.getComponentPremiums();
         componentPremiums.removeIf(c -> c.isAppliedTo(componentPremium)); // todo: jeśli nie ma takiej składki to zwrócić wyjątek dal ChangePremium
         componentPremiums.add(componentPremium);
 
-        Month month = lastMonth.createNextMonth(accountingMonth, componentPremiums);
+        Month month = lastMonth.createNextMonth(componentPremiums);
         months.add(month);
     }
 
@@ -101,21 +101,20 @@ public class Period {
         return months;
     }
 
-    public void includeGracePeriod(AccountingMonth accountingMonth) {
+    public void includeGracePeriod(int grace) {
         int unpaidMonths = getMonthsBetween(getLastPaidMonth(), getLastYearMonth());
-        int grace = accountingMonth.getGrace();
 
         if (unpaidMonths < grace) {
-            extendPeriodToGrace(accountingMonth, unpaidMonths, grace);
+            extendPeriodToGrace(unpaidMonths, grace);
         } else {
             reducePeriodToGrace(unpaidMonths, grace);
         }
     }
 
-    private void extendPeriodToGrace(AccountingMonth accountingMonth, int unpaidMonths, int grace) {
+    private void extendPeriodToGrace(int unpaidMonths, int grace) {
         int limit = grace - unpaidMonths;
         while (limit > 0) {
-            addNextMonth(accountingMonth);
+            addNextMonth();
             limit = getLastMonth().isNotPaid() ? limit - 1 : limit;
         }
     }

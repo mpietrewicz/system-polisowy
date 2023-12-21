@@ -3,7 +3,6 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
@@ -12,8 +11,8 @@ import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseAggregateRoot;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.AddPayment;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.AddRefund;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.StopCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.ChangePremium;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.StartCalculating;
 
 import javax.inject.Inject;
@@ -39,6 +38,8 @@ public class Balance extends BaseAggregateRoot {
 
     private ContractData contractData;
 
+    private int grace;
+
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "balance_id")
     private Set<Operation> operations = new HashSet<>();
@@ -47,13 +48,14 @@ public class Balance extends BaseAggregateRoot {
     @Inject
     protected DomainEventPublisher eventPublisher;
 
-    public Balance(AggregateId aggregateId, ContractData contractData) {
+    public Balance(AggregateId aggregateId, ContractData contractData, int grace) {
         this.aggregateId = aggregateId;
         this.contractData = contractData;
+        this.grace = grace;
     }
 
-    public void startCalculating(LocalDate date, BigDecimal premium, Frequency frequency, AggregateId componentId) {
-        StartCalculating startCalculating = new StartCalculating(YearMonth.from(date), premium, frequency, componentId);
+    public void startCalculating(LocalDate date, BigDecimal premium, AggregateId componentId) {
+        StartCalculating startCalculating = new StartCalculating(YearMonth.from(date), premium, componentId);
         commit(startCalculating);
     }
 
@@ -73,22 +75,6 @@ public class Balance extends BaseAggregateRoot {
         commit(changePremium);
     }
 
-    public void stopCalculating(LocalDate date, Frequency frequency) {
-        StopCalculating stopCalculating = new StopCalculating(date, frequency);
-        commit(stopCalculating);
-    }
-
-    private void commit(StartCalculating operation) {
-        operations.add(operation);
-        calculate(operation);
-        recalculateAfter(operation);
-        publishUpdatedBalance();
-    }
-
-    private void calculate(StartCalculating operation) {
-        operation.calculate();
-    }
-
     private void commit(Operation operation) {
         operations.add(operation);
         calculate(operation);
@@ -96,15 +82,9 @@ public class Balance extends BaseAggregateRoot {
         publishUpdatedBalance();
     }
 
-    private void commit(StopCalculating operation) {
-        operations.add(operation);
-        calculate(operation);
-        publishUpdatedBalance();
-    }
-
     private void calculate(Operation operation) {
         Operation previousOperation = getPreviousOperation(operation);
-        operation.calculate(previousOperation);
+        operation.execute(previousOperation, grace);
     }
 
     private void recalculateAfter(Operation operation) {

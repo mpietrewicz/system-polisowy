@@ -32,7 +32,7 @@ class PeriodTest extends Specification {
         def period = new Period([month1, month2, month3, month4, month5] as List)
 
         when:
-        period.includeGracePeriod(accountingMonth)
+        period.includeGracePeriod(accountingMonth.getGrace())
 
         then:
         period.months.size() == 3
@@ -48,7 +48,7 @@ class PeriodTest extends Specification {
         def period = new Period([month1, month2, month3, month4] as List)
 
         when:
-        period.includeGracePeriod(accountingMonth)
+        period.includeGracePeriod(accountingMonth.getGrace())
 
         then:
         period.months.size() == 6
@@ -63,7 +63,7 @@ class PeriodTest extends Specification {
         def period = new Period([month1, month2, month3] as List)
 
         when:
-        period.includeGracePeriod(accountingMonth)
+        period.includeGracePeriod(accountingMonth.getGrace())
 
         then:
         period.months.size() == 9
@@ -78,7 +78,7 @@ class PeriodTest extends Specification {
         def period = new Period([month1, month2, month3] as List)
 
         when:
-        period.includeGracePeriod(accountingMonth)
+        period.includeGracePeriod(accountingMonth.getGrace())
 
         then:
         period.months.size() == 4
@@ -91,7 +91,7 @@ class PeriodTest extends Specification {
     def createMonth(String yearMonth, Month previousMonth, MonthStatus status, BigDecimal overpayment) {
         def accountingMonth = new AccountingMonth(YearMonth.parse("2023-01"))
         def componentPremium = new ComponentPremium(AggregateId.generate(), TEN)
-        def nextMonth = new Month(YearMonth.parse(yearMonth), accountingMonth, status, ZERO, overpayment, previousMonth, [componentPremium])
+        def nextMonth = new Month(YearMonth.parse(yearMonth), status, ZERO, overpayment, previousMonth, [componentPremium])
 
         if (previousMonth != null) {
             previousMonth.next = nextMonth

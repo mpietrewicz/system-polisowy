@@ -1,10 +1,11 @@
-package pl.mpietrewicz.sp.modules.balance.domain.balance;
+package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.OperationType;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 
 import javax.persistence.DiscriminatorColumn;
 import javax.persistence.DiscriminatorType;
@@ -18,7 +19,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @ValueObject
@@ -44,24 +44,17 @@ public abstract class Operation extends BaseEntity {
         this.date = date;
     }
 
-    public void calculate(Operation previousOperation) {
+    public void execute(Operation previousOperation, int grace) {
         this.period = previousOperation.getPeriodCopy();
-        calculate();
-
-        AccountingMonth accountingMonth = new AccountingMonth(YearMonth.from(date)); // todo: to powinna byc prawdziwa data miesiąca ksiegowego
-
-        period.includeGracePeriod(accountingMonth);
+        execute();
+        period.includeGracePeriod(grace);
         this.pending = false;
     }
 
-    protected abstract void calculate();
+    protected abstract void execute();
 
     public Period getPeriodCopy() {
         return period.returnCopy();
-    }
-
-    public Optional<Frequency> getFrequency() {
-        return Optional.empty();
     }
 
     public int orderComparator(Operation operation) {

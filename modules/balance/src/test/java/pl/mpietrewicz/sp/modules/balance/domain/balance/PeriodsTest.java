@@ -31,7 +31,7 @@ public class PeriodsTest {
 
         // when
         AccountingMonth accountingMonth = new AccountingMonth(YearMonth.parse("2023-01"));
-        period.includeGracePeriod(accountingMonth);
+        period.includeGracePeriod(accountingMonth.getGrace());
 
         // then
         Assert.assertEquals(period.getLastMonth(), month3);
@@ -41,7 +41,7 @@ public class PeriodsTest {
     private Month createMonth(String yearMonth, Month previousMonth, MonthStatus status) {
         AccountingMonth accountingMonth = new AccountingMonth(YearMonth.parse("2023-01"));
         ComponentPremium componentPremium = new ComponentPremium(AggregateId.generate(), TEN);
-        Month nextMonth = new Month(YearMonth.parse(yearMonth), accountingMonth, status, ZERO, ZERO, previousMonth, List.of(componentPremium));
+        Month nextMonth = new Month(YearMonth.parse(yearMonth), status, ZERO, ZERO, previousMonth, List.of(componentPremium));
 
         if (previousMonth != null) {
             previousMonth.setNext(nextMonth);

@@ -4,14 +4,12 @@ import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.AccountingMonth;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToMany;
-import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import java.math.BigDecimal;
 import java.time.YearMonth;
@@ -28,9 +26,6 @@ public class Month extends BaseEntity {
 
     private YearMonth month;
 
-    @ManyToOne(cascade = CascadeType.ALL)
-    private AccountingMonth accountingMonth;
-
     @ManyToMany(cascade = CascadeType.ALL)
     private List<ComponentPremium> componentPremiums = new ArrayList<>(); // todo: zamienić na hashset
 
@@ -44,29 +39,27 @@ public class Month extends BaseEntity {
     @JoinColumn(name = "month_state_id")
     private MonthState monthState;
 
-    public Month(YearMonth month, AccountingMonth accountingMonth, MonthStatus monthStatus, BigDecimal underpayment, BigDecimal overpayment,
+    public Month(YearMonth month, MonthStatus monthStatus, BigDecimal underpayment, BigDecimal overpayment,
                  List<ComponentPremium> componentPremiums) {
         this.month = month;
-        this.accountingMonth = accountingMonth;
         this.monthState = MonthStateFactory.createState(this, monthStatus, underpayment, overpayment);
         this.componentPremiums = componentPremiums;
     }
 
-    public Month(YearMonth month, AccountingMonth accountingMonth, MonthStatus monthStatus, BigDecimal underpayment, BigDecimal overpayment,
+    public Month(YearMonth month, MonthStatus monthStatus, BigDecimal underpayment, BigDecimal overpayment,
                  Month previous, List<ComponentPremium> componentPremiums) {
         this.month = month;
-        this.accountingMonth = accountingMonth;
         this.monthState = MonthStateFactory.createState(this, monthStatus, underpayment, overpayment);
         this.previous = previous;
         this.componentPremiums = componentPremiums;
     }
 
-    public Month createNextMonth(AccountingMonth accountingMonth) {
-        return monthState.createNextMonth(accountingMonth, getComponentPremiums());
+    public Month createNextMonth() {
+        return monthState.createNextMonth(getComponentPremiums());
     }
 
-    public Month createNextMonth(AccountingMonth accountingMonth, List<ComponentPremium> componentPremiums) {
-        return monthState.createNextMonth(accountingMonth, componentPremiums); // todo: skąd brać grace? a może nie jest potrzebne
+    public Month createNextMonth(List<ComponentPremium> componentPremiums) {
+        return monthState.createNextMonth(componentPremiums);
     }
 
     public void tryPay(BigDecimal payment) {
@@ -110,7 +103,7 @@ public class Month extends BaseEntity {
     }
 
     public Month createCopy() {
-        return new Month(month, accountingMonth, monthState.getStatus(), monthState.getUnderpayment(), monthState.getOverpayment(),
+        return new Month(month, monthState.getStatus(), monthState.getUnderpayment(), monthState.getOverpayment(),
                 getComponentPremiums());
     }
 

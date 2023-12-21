@@ -1,7 +1,6 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month.state;
 
 import lombok.NoArgsConstructor;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.AccountingMonth;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
@@ -50,11 +49,10 @@ public class Paid extends MonthState {
     }
 
     @Override
-    public Month createNextMonth(AccountingMonth accountingMonth, List<ComponentPremium> componentPremiums) {
+    public Month createNextMonth(List<ComponentPremium> componentPremiums) {
         Month previous = this.month;
         Month next = new Month(
                 previous.getYearMonth().plusMonths(1),
-                accountingMonth,
                 UNPAID,
                 ZERO,
                 ZERO,
