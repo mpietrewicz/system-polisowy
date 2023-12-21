@@ -3,7 +3,6 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainFactory;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ComponentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 
@@ -19,12 +18,11 @@ public class BalanceFactory {
 
     public Balance create(ContractData contractData, ComponentData componentData, BigDecimal premium) {
         LocalDate contractStart = contractData.getContractStartDate();
-        Frequency frequency = contractData.getFrequency();
         AggregateId componentId = componentData.getAggregateId();
 
         Balance balance = new Balance(AggregateId.generate(), contractData);
         spring.autowireBean(balance);
-        balance.startCalculating(contractStart, premium, frequency, componentId);
+        balance.startCalculating(contractStart, premium, componentId);
         return balance;
     }
 

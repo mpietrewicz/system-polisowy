@@ -60,10 +60,6 @@ public abstract class Operation extends BaseEntity {
         return period.returnCopy();
     }
 
-    public Optional<Frequency> getFrequency() {
-        return Optional.empty();
-    }
-
     public int orderComparator(Operation operation) {
         int dateComparator = this.date.compareTo(operation.date);
         if (dateComparator != 0) {

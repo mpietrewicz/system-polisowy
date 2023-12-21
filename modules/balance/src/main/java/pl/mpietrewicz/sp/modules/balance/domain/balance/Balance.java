@@ -52,8 +52,8 @@ public class Balance extends BaseAggregateRoot {
         this.contractData = contractData;
     }
 
-    public void startCalculating(LocalDate date, BigDecimal premium, Frequency frequency, AggregateId componentId) {
-        StartCalculating startCalculating = new StartCalculating(YearMonth.from(date), premium, frequency, componentId);
+    public void startCalculating(LocalDate date, BigDecimal premium, AggregateId componentId) {
+        StartCalculating startCalculating = new StartCalculating(YearMonth.from(date), premium, componentId);
         commit(startCalculating);
     }
 
@@ -73,8 +73,8 @@ public class Balance extends BaseAggregateRoot {
         commit(changePremium);
     }
 
-    public void stopCalculating(LocalDate date, Frequency frequency) {
-        StopCalculating stopCalculating = new StopCalculating(date, frequency);
+    public void stopCalculating(LocalDate date) {
+        StopCalculating stopCalculating = new StopCalculating(date);
         commit(stopCalculating);
     }
 
