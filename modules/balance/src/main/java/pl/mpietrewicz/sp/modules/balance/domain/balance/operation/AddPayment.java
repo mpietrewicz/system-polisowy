@@ -3,7 +3,6 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaymentPolicyInterface;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.paymentpolicy.PaymentPolicyFactory;
@@ -33,7 +32,7 @@ public class AddPayment extends Operation {
     }
 
     @Override
-    public void calculate() {
+    public void execute() {
         PaymentPolicyFactory paymentPolicyFactory = new PaymentPolicyFactory();
         PaymentPolicyInterface paymentPolicy = paymentPolicyFactory.create(this.paymentPolicy);
         Month month = paymentPolicy.getFirstMonthToPay(period, date); // todo: pozwlić na dodanie nowych okresów z przerwą (gdy wznowienie)

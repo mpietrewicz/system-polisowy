@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.AccountingMonth;
 
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -46,7 +45,7 @@ public abstract class MonthState extends BaseEntity {
 
     public abstract void refund(BigDecimal refund);
 
-    public abstract Month createNextMonth(AccountingMonth accountingMonth, List<ComponentPremium> componentPremiums); // todo: tutaj powinien być lust of component premiums
+    public abstract Month createNextMonth(List<ComponentPremium> componentPremiums);
 
     public abstract BigDecimal getPaid();
 

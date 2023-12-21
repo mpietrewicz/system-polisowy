@@ -24,14 +24,13 @@ public class TestBalance {
         LocalDate contractStart = LocalDate.parse("2023-01-01");
         ContractData contractData = contractDate(contractStart);
 
-        Balance balance = new Balance(AggregateId.generate(), contractData);
+        Balance balance = new Balance(AggregateId.generate(), contractData, 3);
 
         balance.startCalculating(contractStart, BigDecimal.TEN, contractData.getAggregateId());
         balance.addPayment(date("2023-02-10"), amount("30"), WITHOUT_LIMITS);
         balance.addRefund(date("2023-03-10"), amount("20"));
         balance.addPayment(date("2023-05-20"), amount("60"), WITHOUT_LIMITS);
-        balance.stopCalculating(date("2023-05-31"));
-//        balance.changePremium(LocalDate.parse("2023-02-01"), new BigDecimal(100), contractData.getAggregateId());
+        balance.changePremium(LocalDate.parse("2023-02-01"), new BigDecimal(100), contractData.getAggregateId());
 
         System.out.println("koniec");
     }

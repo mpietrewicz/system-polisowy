@@ -2,8 +2,6 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.AccountingMonth;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
 
 import javax.persistence.CascadeType;
@@ -32,12 +30,11 @@ public class ChangePremium extends Operation {
     }
 
     @Override
-    public void calculate() { // todo: może wypadać w okresie nie opłaconym
-        AccountingMonth accountingMonth = new AccountingMonth(YearMonth.from(date)); // todo: raczej to nie będzie ta data
+    public void execute() { // todo: może wypadać w okresie nie opłaconym
         List<YearMonth> deleteMonths = period.deleteMonths(YearMonth.from(date));
         deleteMonths.stream()
                 .sorted(YearMonth::compareTo)
-                .forEach(month -> period.addNextMonthWith(accountingMonth, componentPremium));
+                .forEach(month -> period.addNextMonthWith(componentPremium));
     }
 
 }
