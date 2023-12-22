@@ -27,8 +27,7 @@ public class BalanceServiceImpl implements BalanceService {
 
     @Override
     public void createBalance(ContractData contractData, ComponentData componentData, BigDecimal premium) {
-        int grace = 3; // todo: do wyniesienia wyżej
-        Balance balance = balanceFactory.create(contractData, componentData, premium, grace);
+        Balance balance = balanceFactory.create(contractData, componentData, premium);
         balanceRepository.save(balance);
     }
 

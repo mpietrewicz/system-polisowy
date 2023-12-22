@@ -16,11 +16,11 @@ public class BalanceFactory {
     @Inject
     private AutowireCapableBeanFactory spring;
 
-    public Balance create(ContractData contractData, ComponentData componentData, BigDecimal premium, int grace) {
+    public Balance create(ContractData contractData, ComponentData componentData, BigDecimal premium) {
         LocalDate contractStart = contractData.getContractStartDate();
         AggregateId componentId = componentData.getAggregateId();
 
-        Balance balance = new Balance(AggregateId.generate(), contractData, grace);
+        Balance balance = new Balance(AggregateId.generate(), contractData);
         spring.autowireBean(balance);
         balance.startCalculating(contractStart, premium, componentId);
         return balance;

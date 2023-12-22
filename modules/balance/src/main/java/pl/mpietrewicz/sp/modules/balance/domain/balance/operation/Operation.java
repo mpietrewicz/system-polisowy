@@ -4,8 +4,8 @@ import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.OperationType;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
 
 import javax.persistence.DiscriminatorColumn;
 import javax.persistence.DiscriminatorType;
@@ -58,6 +58,8 @@ public abstract class Operation extends BaseEntity {
     }
 
     public int orderComparator(Operation operation) {
+        if (operation instanceof StartCalculating) return 1;
+
         int dateComparator = this.date.compareTo(operation.date);
         if (dateComparator != 0) {
             return dateComparator;
@@ -103,10 +105,6 @@ public abstract class Operation extends BaseEntity {
 
     public boolean isPending() {
         return pending;
-    }
-
-    public boolean isStartCalculatingOperation() {
-        return type == OperationType.START_CALCULATING;
     }
 
 }
