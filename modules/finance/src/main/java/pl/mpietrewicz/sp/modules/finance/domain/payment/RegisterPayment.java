@@ -5,11 +5,13 @@ import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.finance.ddd.support.domain.BaseAggregateRoot;
 
+import javax.persistence.AttributeOverride;
+import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -17,8 +19,12 @@ import java.time.LocalDateTime;
 @Entity
 public class RegisterPayment extends BaseAggregateRoot {
 
-	private BigDecimal amount;
+	@Embedded
+	@AttributeOverride(name = "value", column = @Column(name = "amount"))
+	private Amount amount;
+
 	private LocalDate date;
+
 	private final LocalDateTime register = LocalDateTime.now();
 
 	@Embedded
@@ -27,7 +33,7 @@ public class RegisterPayment extends BaseAggregateRoot {
 	@SuppressWarnings("unused")
 	private RegisterPayment(){}
 	
-	public RegisterPayment(AggregateId aggregateId, ContractData contractData, BigDecimal amount, LocalDate date) {
+	public RegisterPayment(AggregateId aggregateId, ContractData contractData, Amount amount, LocalDate date) {
 		this.aggregateId = aggregateId;
 		this.contractData = contractData;
 		this.amount = amount;
@@ -40,10 +46,6 @@ public class RegisterPayment extends BaseAggregateRoot {
 
 	public LocalDate getDate() {
 		return date;
-	}
-
-	public BigDecimal getAmount() {
-		return amount;
 	}
 
 	public ContractData getContractData() {

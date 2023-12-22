@@ -2,9 +2,9 @@
 package pl.mpietrewicz.sp.modules.finance.application.commands;
 
 import pl.mpietrewicz.sp.cqrs.annotations.Command;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @SuppressWarnings("serial")
@@ -12,10 +12,10 @@ import java.time.LocalDate;
 public class RegisterPaymentCommand implements Serializable {
 
     private final String contractId;
-    private final BigDecimal amount;
+    private final Amount amount;
     private final LocalDate date;
 
-    public RegisterPaymentCommand(String contractId, BigDecimal amount, LocalDate date) {
+    public RegisterPaymentCommand(String contractId, Amount amount, LocalDate date) {
         this.contractId = contractId;
         this.amount = amount;
         this.date = date;
@@ -25,7 +25,7 @@ public class RegisterPaymentCommand implements Serializable {
         return contractId;
     }
 
-    public BigDecimal getAmount() {
+    public Amount getAmount() {
         return amount;
     }
 

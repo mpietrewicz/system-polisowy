@@ -1,10 +1,13 @@
 package pl.mpietrewicz.sp.modules.contract.domain.premium;
 
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.contract.ddd.support.domain.BaseEntity;
 
+import javax.persistence.AttributeOverride;
+import javax.persistence.Column;
 import javax.persistence.Embeddable;
+import javax.persistence.Embedded;
 import javax.persistence.Entity;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -13,20 +16,24 @@ import java.time.LocalDateTime;
 public class PremiumHistory extends BaseEntity {
 
     private LocalDate since;
+
     private LocalDateTime registration;
-    private BigDecimal monthlyAmount;
+
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "premium"))
+    private Amount premium;
 
     public PremiumHistory() {
     }
 
-    public PremiumHistory(LocalDate since, BigDecimal amount) {
+    public PremiumHistory(LocalDate since, Amount amount) {
         this.since = since;
         this.registration = LocalDateTime.now();
-        this.monthlyAmount = amount;
+        this.premium = amount;
     }
 
-    protected BigDecimal getMonthlyAmount() {
-        return monthlyAmount;
+    protected Amount getPremium() {
+        return premium;
     }
 
     protected LocalDate getSince() {

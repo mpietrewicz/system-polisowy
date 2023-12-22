@@ -39,10 +39,10 @@ spring:
 
 cors-origin: http://localhost:4200
 
-# logging:
-#   level:
-#     org:
-#       springframework: DEBUG
-#       hibernate:
-#         SQL: TRACE
-#         type: TRACE
+logging:
+  level:
+    org:
+      springframework: DEBUG
+      hibernate:
+        SQL: TRACE
+        type: TRACE

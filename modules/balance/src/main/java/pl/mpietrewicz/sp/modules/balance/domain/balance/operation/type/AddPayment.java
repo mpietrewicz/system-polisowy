@@ -2,15 +2,18 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaymentPolicyInterface;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.paymentpolicy.PaymentPolicyFactory;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicy;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicyFactory;
 
+import javax.persistence.AttributeOverride;
+import javax.persistence.Column;
 import javax.persistence.DiscriminatorValue;
+import javax.persistence.Embedded;
 import javax.persistence.Entity;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_PAYMENT;
@@ -21,23 +24,24 @@ import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operati
 @NoArgsConstructor
 public class AddPayment extends Operation {
 
-    private BigDecimal amount;
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "amount"))
+    private Amount amount;
 
-    private PaymentPolicy paymentPolicy;
+    private PaymentPolicyEnum paymentPolicyEnum;
 
-    public AddPayment(LocalDate date, BigDecimal amount, PaymentPolicy paymentPolicy) {
+    public AddPayment(LocalDate date, Amount amount, PaymentPolicyEnum paymentPolicyEnum) {
         super(date);
         this.amount = amount;
-        this.paymentPolicy = paymentPolicy;
+        this.paymentPolicyEnum = paymentPolicyEnum;
         this.type = ADD_PAYMENT;
     }
 
     @Override
     public void execute() {
-        PaymentPolicyFactory paymentPolicyFactory = new PaymentPolicyFactory();
-        PaymentPolicyInterface paymentPolicy = paymentPolicyFactory.create(this.paymentPolicy);
-        Month month = paymentPolicy.getFirstMonthToPay(period, date); // todo: pozwlić na dodanie nowych okresów z przerwą (gdy wznowienie)
-        month.tryPay(amount);
+        PaymentData paymentData = new PaymentData(date, amount);
+        PaymentPolicy paymentPolicy = PaymentPolicyFactory.create(paymentPolicyEnum, premium);
+        period.tryPay(paymentPolicy, paymentData);
     }
 
 }

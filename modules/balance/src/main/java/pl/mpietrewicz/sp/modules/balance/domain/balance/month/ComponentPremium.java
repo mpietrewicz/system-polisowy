@@ -3,14 +3,13 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
 
 import javax.persistence.AttributeOverride;
-import javax.persistence.AttributeOverrides;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
-import java.math.BigDecimal;
 
 @ValueObject
 @Entity
@@ -18,22 +17,24 @@ import java.math.BigDecimal;
 public class ComponentPremium extends BaseEntity {
 
     @Embedded
-    @AttributeOverrides({
-            @AttributeOverride(name = "aggregateId", column = @Column(name = "contractId", nullable = false))})
-    private AggregateId componentId; // todo: te wartości powinny być final
-    private BigDecimal amount; // todo: te wartości powinny być final
+    @AttributeOverride(name = "aggregateId", column = @Column(name = "componentId", nullable = false))
+    private AggregateId componentId;
 
-    public ComponentPremium(AggregateId componentId, BigDecimal amount) {
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "premium"))
+    private Amount premium;
+
+    public ComponentPremium(AggregateId componentId, Amount premium) {
         if (componentId == null) {
             this.componentId = AggregateId.generate();
         } else {
             this.componentId = componentId;
         }
-        this.amount = amount;
+        this.premium = premium;
     }
 
-    public BigDecimal getAmount() {
-        return amount;
+    public Amount getPremium() {
+        return premium;
     }
 
     public boolean isAppliedTo(ComponentPremium componentPremium) {
@@ -42,6 +43,10 @@ public class ComponentPremium extends BaseEntity {
 
     protected AggregateId getComponentId() {
         return componentId;
+    }
+
+    public ComponentPremium createCopy() {
+        return new ComponentPremium(componentId, premium);
     }
 
 }

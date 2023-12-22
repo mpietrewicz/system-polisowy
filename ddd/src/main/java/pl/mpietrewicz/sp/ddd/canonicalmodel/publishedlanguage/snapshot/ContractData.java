@@ -6,7 +6,7 @@ import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.AttributeOverrides;
@@ -42,7 +42,7 @@ public class ContractData {
 
 	@Transient
 	@Enumerated(EnumType.STRING)
-	private PaymentPolicy paymentPolicy;
+	private PaymentPolicyEnum paymentPolicyEnum;
 
 	@Transient
 	private YearMonth accountingMonth;
@@ -51,11 +51,11 @@ public class ContractData {
 	private ContractData(){}
 
 	public ContractData(AggregateId aggregateId, LocalDate contractStartDate, Frequency frequency,
-						PaymentPolicy paymentPolicy, YearMonth accountingMonth) {
+                        PaymentPolicyEnum paymentPolicyEnum, YearMonth accountingMonth) {
 		this.aggregateId = aggregateId;
 		this.contractStartDate = contractStartDate;
 		this.frequency = frequency;
-		this.paymentPolicy = paymentPolicy;
+		this.paymentPolicyEnum = paymentPolicyEnum;
 		this.accountingMonth = accountingMonth;
 	}
 

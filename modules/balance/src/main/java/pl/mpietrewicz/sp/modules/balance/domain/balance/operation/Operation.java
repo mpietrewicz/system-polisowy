@@ -1,10 +1,11 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
 
 import lombok.NoArgsConstructor;
-import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
+import pl.mpietrewicz.sp.ddd.annotations.domain.DomainEntity;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.Period;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Premium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
 
 import javax.persistence.DiscriminatorColumn;
@@ -19,9 +20,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
-import java.util.stream.Collectors;
 
-@ValueObject
+@DomainEntity
 @Entity
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "operation_type", discriminatorType = DiscriminatorType.STRING)
@@ -35,6 +35,9 @@ public abstract class Operation extends BaseEntity {
     @Embedded
     protected Period period;
 
+    @Embedded
+    protected Premium premium;
+
     @Enumerated(EnumType.STRING)
     protected OperationType type;
 
@@ -46,15 +49,20 @@ public abstract class Operation extends BaseEntity {
 
     public void execute(Operation previousOperation, int grace) {
         this.period = previousOperation.getPeriodCopy();
+        this.premium = previousOperation.getPremiumCopy();
         execute();
-        period.includeGracePeriod(grace);
+        period.includeGracePeriod(premium, grace);
         this.pending = false;
     }
 
     protected abstract void execute();
 
     public Period getPeriodCopy() {
-        return period.returnCopy();
+        return period.createCopy();
+    }
+
+    public Premium getPremiumCopy() {
+        return premium.createCopy();
     }
 
     public int orderComparator(Operation operation) {
@@ -94,13 +102,7 @@ public abstract class Operation extends BaseEntity {
     }
 
     public List<MonthlyBalance> getMonthlyBalances() {
-        return period.getMonths().stream()
-                .map(month -> MonthlyBalance.builder()
-                        .month(month.getYearMonth())
-                        .componentPremiums(month.getPremiumComponents())
-                        .isPaid(month.isPaid())
-                        .build())
-                .collect(Collectors.toList());
+        return period.getMonthlyBalances();
     }
 
     public boolean isPending() {

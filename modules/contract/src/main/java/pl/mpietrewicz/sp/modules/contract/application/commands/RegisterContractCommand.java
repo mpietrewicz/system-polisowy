@@ -4,10 +4,10 @@ package pl.mpietrewicz.sp.modules.contract.application.commands;
 import lombok.Getter;
 import pl.mpietrewicz.sp.cqrs.annotations.Command;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @SuppressWarnings("serial")
@@ -16,15 +16,15 @@ import java.time.LocalDate;
 public class RegisterContractCommand implements Serializable {
 
     private final LocalDate registerDate;
-    private final BigDecimal premium;
+    private final Amount premium;
     private final Frequency frequency;
-    private final PaymentPolicy paymentPolicy;
+    private final PaymentPolicyEnum paymentPolicyEnum;
 
-    public RegisterContractCommand(LocalDate registerDate, BigDecimal premium, Frequency frequency, PaymentPolicy paymentPolicy) {
+    public RegisterContractCommand(LocalDate registerDate, Amount premium, Frequency frequency, PaymentPolicyEnum paymentPolicyEnum) {
         this.registerDate = registerDate;
         this.premium = premium;
         this.frequency = frequency;
-        this.paymentPolicy = paymentPolicy;
+        this.paymentPolicyEnum = paymentPolicyEnum;
     }
 
 }

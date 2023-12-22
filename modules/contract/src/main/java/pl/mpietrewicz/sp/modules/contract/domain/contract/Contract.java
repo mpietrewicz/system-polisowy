@@ -4,7 +4,7 @@ package pl.mpietrewicz.sp.modules.contract.domain.contract;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.modules.contract.ddd.support.domain.BaseAggregateRoot;
 
@@ -30,22 +30,22 @@ public class Contract extends BaseAggregateRoot {
 	private Frequency frequency;
 
 	@Enumerated(EnumType.STRING)
-	PaymentPolicy paymentPolicy;
+    PaymentPolicyEnum paymentPolicyEnum;
 
 	public Contract() {
 	}
 
 	public Contract(AggregateId aggregateId, LocalDate startDate, Frequency frequency,
-					PaymentPolicy paymentPolicy, YearMonth accountingMonth) {
+                    PaymentPolicyEnum paymentPolicyEnum, YearMonth accountingMonth) {
 		this.aggregateId = aggregateId;
 		this.startDate = startDate;
 		this.frequency = frequency;
-		this.paymentPolicy = paymentPolicy;
+		this.paymentPolicyEnum = paymentPolicyEnum;
 		this.accountingMonth = accountingMonth;
 	}
 
 	public ContractData generateSnapshot() {
-		return new ContractData(aggregateId, startDate, frequency, paymentPolicy, accountingMonth);
+		return new ContractData(aggregateId, startDate, frequency, paymentPolicyEnum, accountingMonth);
 	}
 
 	public LocalDate getStartDate() {

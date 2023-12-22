@@ -4,10 +4,10 @@ import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainService;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.PaymentAddedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @DomainService
@@ -17,11 +17,11 @@ public class PaymentDomainService {
     private final PaymentFactory paymentFactory;
     private final DomainEventPublisher domainEventPublisher;
 
-    public RegisterPayment createPayment(ContractData contractData, BigDecimal amount, LocalDate paymentDate) {
+    public RegisterPayment createPayment(ContractData contractData, Amount amount, LocalDate paymentDate) {
         RegisterPayment registerPayment = paymentFactory.createPayment(contractData, amount, paymentDate);
-        PaymentPolicy paymentPolicy = contractData.getPaymentPolicy();
+        PaymentPolicyEnum paymentPolicyEnum = contractData.getPaymentPolicyEnum();
 
-        domainEventPublisher.publish(new PaymentAddedEvent(registerPayment.generateSnapshot(), paymentPolicy));
+        domainEventPublisher.publish(new PaymentAddedEvent(registerPayment.generateSnapshot(), paymentPolicyEnum));
         return registerPayment;
     }
 

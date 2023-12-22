@@ -19,7 +19,8 @@ import java.util.Objects;
 @EnableTransactionManagement
 @EnableJpaRepositories(
         basePackages = {
-                "pl.mpietrewicz.sp.modules.finance.infrastructure.repo"
+                "pl.mpietrewicz.sp.modules.finance.infrastructure.repo",
+                "pl.mpietrewicz.sp.modules.finance.readmodel"
         },
         entityManagerFactoryRef = "financeEntityManagerFactory",
         transactionManagerRef = "financeTransactionManager"

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import pl.mpietrewicz.sp.cqrs.command.Gate;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.finance.application.commands.RegisterPaymentCommand;
 import pl.mpietrewicz.sp.modules.finance.readmodel.FinanceFinder;
 import pl.mpietrewicz.sp.modules.finance.readmodel.dto.PrzypisDto;
@@ -16,7 +17,6 @@ import pl.mpietrewicz.sp.modules.finance.readmodel.dto.SaldoDto;
 import pl.mpietrewicz.sp.modules.finance.readmodel.dto.WplataDto;
 
 import javax.inject.Inject;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -50,7 +50,7 @@ public class FinanceController {
     @CrossOrigin(origins = {"${cors-origin}"})
     @PostMapping("/rejestracja-wplaty")
     public String rejestrujWplate(@RequestBody WplataDto wplataDto) {
-        BigDecimal kwota = wplataDto.getKwota();
+        Amount kwota = new Amount(wplataDto.getKwota());
         LocalDate dataWplaty = wplataDto.getDataWplaty();
 
         gate.dispatch(new RegisterPaymentCommand(wplataDto.getIdUmowy(), kwota, dataWplaty));

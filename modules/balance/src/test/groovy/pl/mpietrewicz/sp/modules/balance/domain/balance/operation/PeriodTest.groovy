@@ -1,96 +1,110 @@
 //file:noinspection NonAsciiCharacters
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation
 
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId
-import pl.mpietrewicz.sp.modules.balance.domain.balance.Period
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount
+import pl.mpietrewicz.sp.modules.balance.domain.balance.ComponentPremiumAssembler
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Premium
+import pl.mpietrewicz.sp.modules.balance.domain.balance.PremiumAssembler
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthAssembler
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus
+import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.Period
 import spock.lang.Specification
 
 import java.time.YearMonth
 
-import static java.math.BigDecimal.TEN
-import static java.math.BigDecimal.ZERO
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.*
 
 class PeriodTest extends Specification {
 
+    def monthAssembler = new MonthAssembler()
+
+    def componentPremiumAssembler = new ComponentPremiumAssembler()
+
+    def premiumAssembler = new PremiumAssembler()
+
     def "should reduce period to grace months limit (3 months)"() {
         given:
-        def month1 = createMonth("2023-01", null, UNPAID)
-        def month2 = createMonth("2023-02", month1, UNPAID)
-        def month3 = createMonth("2023-03", month2, UNPAID)
-        def month4 = createMonth("2023-04", month3, UNPAID)
-        def month5 = createMonth("2023-05", month4, UNPAID)
-
-        def period = new Period([month1, month2, month3, month4, month5] as List)
+        def period = new Period([
+                month("2023-01", UNPAID),
+                month("2023-02", UNPAID),
+                month("2023-03", UNPAID),
+                month("2023-04", UNPAID),
+                month("2023-05", UNPAID)
+        ])
 
         when:
-        period.includeGracePeriod(3)
+        period.includeGracePeriod(_ as Premium, 3)
 
         then:
-        period.months.size() == 3
+        period.getLastMonthOfLiability() == YearMonth.parse("2023-03")
     }
 
     def "should extend period to paid and grace months (6 months)"() {
         given:
-        def month1 = createMonth("2023-01", null, PAID)
-        def month2 = createMonth("2023-02", month1, PAID)
-        def month3 = createMonth("2023-03", month2, PAID)
-        def month4 = createMonth("2023-04", month3, UNPAID)
-
-        def period = new Period([month1, month2, month3, month4] as List)
+        def period = new Period([
+                month("2023-01", PAID),
+                month("2023-02", PAID),
+                month("2023-03", PAID),
+                month("2023-04", UNPAID)
+        ])
 
         when:
-        period.includeGracePeriod(3)
+        period.includeGracePeriod(_ as Premium, 3)
 
         then:
-        period.months.size() == 6
+        period.getLastMonthOfLiability() == YearMonth.parse("2023-06")
     }
 
     def "should extend overpaid period to paid and grace months (9 months)"() {
         given:
-        def month1 = createMonth("2023-01", null, PAID)
-        def month2 = createMonth("2023-02", month1, PAID)
-        def month3 = createMonth("2023-03", month2, OVERPAID, new BigDecimal("30"))
-
-        def period = new Period([month1, month2, month3] as List)
+        def period = new Period([
+                month("2023-01", PAID),
+                month("2023-02", PAID),
+                month("2023-03", OVERPAID, "30")
+        ])
+        def componentPremium = componentPremiumAssembler.builder()
+                .withAmount("15")
+                .build()
+        def premium = premiumAssembler.builder()
+                .addComponentPremium(componentPremium)
+                .build()
 
         when:
-        period.includeGracePeriod(3)
+        period.includeGracePeriod(premium, 3)
 
         then:
-        period.months.size() == 9
+        period.getLastMonthOfLiability() == YearMonth.parse("2023-08")
     }
 
     def "should extend period to two unpaid months"() {
         given:
-        def month1 = createMonth("2023-01", null, PAID)
-        def month2 = createMonth("2023-02", month1, UNDERPAID)
-        def month3 = createMonth("2023-03", month2, UNPAID)
-
-        def period = new Period([month1, month2, month3] as List)
+        def period = new Period([
+                month("2023-01", PAID),
+                month("2023-02", UNDERPAID),
+                month("2023-03", UNPAID)
+        ])
 
         when:
-        period.includeGracePeriod(3)
+        period.includeGracePeriod(_ as Premium, 3)
 
         then:
-        period.months.size() == 4
+        period.getLastMonthOfLiability() == YearMonth.parse("2023-04")
     }
 
-    def createMonth(String yearMonth, Month previousMonth, MonthStatus status) {
-        return createMonth(yearMonth, previousMonth, status, ZERO)
+    def month(String yearMonth, MonthStatus status) {
+        month(yearMonth, status, Amount.ZERO as String)
     }
 
-    def createMonth(String yearMonth, Month previousMonth, MonthStatus status, BigDecimal overpayment) {
-        def componentPremium = new ComponentPremium(AggregateId.generate(), TEN)
-        def nextMonth = new Month(YearMonth.parse(yearMonth), status, ZERO, overpayment, previousMonth, [componentPremium])
-
-        if (previousMonth != null) {
-            previousMonth.next = nextMonth
-        }
-        return nextMonth
+    def month(String yearMonth, MonthStatus status, String overpayment) {
+        def componentPremium = componentPremiumAssembler.builder()
+                .withAmount("10")
+                .build()
+        monthAssembler.builder()
+                .withYearMonth(yearMonth)
+                .withMonthStatus(status)
+                .withOverpayment(overpayment)
+                .withComponentPremiums([componentPremium])
+                .build()
     }
 
 }

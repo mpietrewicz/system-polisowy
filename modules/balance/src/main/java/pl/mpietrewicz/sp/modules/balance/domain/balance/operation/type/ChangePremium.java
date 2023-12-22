@@ -10,8 +10,6 @@ import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
 import javax.persistence.OneToOne;
 import java.time.LocalDate;
-import java.time.YearMonth;
-import java.util.List;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.CHANGE_PREMIUM;
 
@@ -22,7 +20,7 @@ import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operati
 public class ChangePremium extends Operation {
 
     @OneToOne(cascade = CascadeType.ALL)
-    private ComponentPremium componentPremium;
+    private ComponentPremium componentPremium; // todo: zamienić na listę ComponentPremium
 
     public ChangePremium(LocalDate date, ComponentPremium componentPremium) {
         super(date);
@@ -31,11 +29,9 @@ public class ChangePremium extends Operation {
     }
 
     @Override
-    public void execute() { // todo: może wypadać w okresie nie opłaconym
-        List<YearMonth> deleteMonths = period.deleteMonths(YearMonth.from(date));
-        deleteMonths.stream()
-                .sorted(YearMonth::compareTo)
-                .forEach(month -> period.addNextMonthWith(componentPremium));
+    public void execute() {
+        premium.update(componentPremium);
+        period.changePremium(date, premium);
     }
 
 }

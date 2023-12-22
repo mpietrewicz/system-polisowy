@@ -4,8 +4,9 @@ import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseAggregateRoot;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
@@ -21,7 +22,6 @@ import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
 import javax.persistence.Transient;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -52,22 +52,23 @@ public class Balance extends BaseAggregateRoot {
         this.contractData = contractData;
     }
 
-    public void startCalculating(LocalDate date, BigDecimal premium, AggregateId componentId) {
-        StartCalculating startCalculating = new StartCalculating(YearMonth.from(date), premium, componentId);
+    public void startCalculating(LocalDate date, Amount premium, AggregateId componentId) {
+        ComponentPremium componentPremium = new ComponentPremium(componentId, premium);
+        StartCalculating startCalculating = new StartCalculating(YearMonth.from(date), componentPremium);
         commit(startCalculating);
     }
 
-    public void addPayment(LocalDate date, BigDecimal amount, PaymentPolicy paymentPolicy) {
-        AddPayment addPayment = new AddPayment(date, amount, paymentPolicy);
+    public void addPayment(LocalDate date, Amount payment, PaymentPolicyEnum paymentPolicyEnum) {
+        AddPayment addPayment = new AddPayment(date, payment, paymentPolicyEnum);
         commit(addPayment);
     }
 
-    public void addRefund(LocalDate date, BigDecimal amount) {
-        AddRefund addRefund = new AddRefund(date, amount);
+    public void addRefund(LocalDate date, Amount refund) {
+        AddRefund addRefund = new AddRefund(date, refund);
         commit(addRefund);
     }
 
-    public void changePremium(LocalDate start, BigDecimal premium, AggregateId componentId) {
+    public void changePremium(LocalDate start, Amount premium, AggregateId componentId) {
         ComponentPremium componentPremium = new ComponentPremium(componentId, premium);
         ChangePremium changePremium = new ChangePremium(start, componentPremium);
         commit(changePremium);
