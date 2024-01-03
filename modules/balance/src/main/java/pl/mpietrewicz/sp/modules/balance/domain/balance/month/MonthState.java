@@ -6,6 +6,7 @@ import pl.mpietrewicz.sp.ddd.annotations.domain.DomainEntity;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Unpaid;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.AttributeOverrides;
@@ -60,6 +61,11 @@ public abstract class MonthState extends BaseEntity {
     public abstract Amount pay(PositiveAmount payment, Optional<Month> nextMonth); // todo: tak naprawdę potrzebuję tylko wiedzieć czy istniej następny okres!
 
     public abstract Amount refund(PositiveAmount refund, Optional<Month> previousMonth);
+
+    public Amount refund() {
+        month.changeState(new Unpaid(month));
+        return getPaid();
+    }
 
     public abstract boolean canPaidBy(Amount payment);
 

@@ -1,12 +1,14 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 
 import org.hibernate.procedure.NoSuchParameterException;
+import pl.mpietrewicz.sp.ddd.annotations.domain.DomainFactory;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Overpaid;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Paid;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Underpaid;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Unpaid;
 
+@DomainFactory
 public class MonthStateFactory {
 
     private MonthStateFactory() {

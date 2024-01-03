@@ -12,8 +12,12 @@ public enum MonthStatus { // todo: to powinno być widoczne na zewnatrz?
         return List.of(PAID, OVERPAID).contains(this);
     }
 
+    boolean isPartlyPaid() {
+        return UNDERPAID == this;
+    }
+
     boolean isNotPaid() {
-        return List.of(UNPAID, UNDERPAID).contains(this);
+        return List.of(UNPAID).contains(this);
     }
 
 }

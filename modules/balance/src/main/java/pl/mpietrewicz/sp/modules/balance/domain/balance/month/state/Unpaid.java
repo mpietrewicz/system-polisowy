@@ -69,7 +69,7 @@ public class Unpaid extends MonthState {
 
     @Override
     public MonthState getCopy() {
-        return new Underpaid(month, underpayment);
+        return new Unpaid(month);
     }
 
     private boolean premiumIsLessThan(Amount amount) {
