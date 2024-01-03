@@ -1,5 +1,6 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation
 
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddPayment
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddRefund
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.ChangePremium
@@ -14,7 +15,7 @@ class OperationComparingTest extends Specification {
     def "startCalculating should always be first (before any operation)"() {
         given:
         def addPayment = prepareAddPayment("2023-02-28")
-        def startCalculating = prepareStartCalculating("2023-03")
+        def startCalculating = prepareStartCalculating("2023-03-01")
 
         expect:
         startCalculating.isBefore(addPayment)
@@ -24,11 +25,11 @@ class OperationComparingTest extends Specification {
     def "non startCalculating operations should comparing by default conditions - by date"() {
         given:
         def addPayment1 = prepareAddPayment("2023-02-28")
-        def addPayment2 = prepareStartCalculating("2023-03-31")
+        def addPayment2 = prepareAddPayment("2023-03-31")
 
         expect:
         addPayment1.isBefore(addPayment2)
-        addPayment2.isAfter(addPayment2)
+        addPayment2.isAfter(addPayment1)
     }
 
     def "should order other operations starting on startCalculating"() {
@@ -37,7 +38,7 @@ class OperationComparingTest extends Specification {
         sleep(10)
         def addPayment2 = prepareAddPayment("2023-02-21")
         sleep(10)
-        def startCalculating = prepareStartCalculating("2023-03")
+        def startCalculating = prepareStartCalculating("2023-03-15")
         sleep(10)
         def addPayment3 = prepareAddPayment("2023-02-20")
         sleep(10)
@@ -58,12 +59,12 @@ class OperationComparingTest extends Specification {
         }
     }
 
-    private static StartCalculating prepareStartCalculating(String month) {
-        new StartCalculating(YearMonth.parse(month), null, null)
+    private static StartCalculating prepareStartCalculating(String date) {
+        new StartCalculating(YearMonth.from(LocalDate.parse(date)), null, null)
     }
 
     private static AddPayment prepareAddPayment(String date) {
-        new AddPayment(LocalDate.parse(date), null, null)
+        new AddPayment(LocalDate.parse(date), null, PaymentPolicyEnum.CONTINUATION)
     }
 
     private static AddRefund prepareAddRefund(String date) {

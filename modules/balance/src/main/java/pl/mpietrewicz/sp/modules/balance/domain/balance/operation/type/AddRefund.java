@@ -2,12 +2,14 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 
+import javax.persistence.AttributeOverride;
+import javax.persistence.Column;
 import javax.persistence.DiscriminatorValue;
+import javax.persistence.Embedded;
 import javax.persistence.Entity;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_REFUND;
@@ -18,19 +20,19 @@ import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operati
 @NoArgsConstructor
 public class AddRefund extends Operation {
 
-    private BigDecimal amount;
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "amount"))
+    private Amount refund;
 
-    public AddRefund(LocalDate date, BigDecimal amount) {
+    public AddRefund(LocalDate date, Amount refund) {
         super(date);
-        this.amount = amount;
+        this.refund = refund;
         this.type = ADD_REFUND;
     }
 
     @Override
     public void execute() {
-        Month month = period.getLastMonth(); // todo: zdejmowanie wpłat powinno skutkować też usutaniem miesiacy nieopłaconych
-        month.tryRefund(amount);
-        this.type = ADD_REFUND;
+        period.tryRefund(refund);
     }
 
 }

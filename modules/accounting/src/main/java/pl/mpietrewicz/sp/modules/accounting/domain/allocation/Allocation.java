@@ -5,17 +5,15 @@ import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.accounting.ddd.support.domain.BaseAggregateRoot;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import static java.math.BigDecimal.ZERO;
 
 @AggregateRoot
 @Entity
@@ -48,10 +46,10 @@ public class Allocation extends BaseAggregateRoot {
         }
     }
 
-    public BigDecimal getAmount() {
+    public Amount getAmount() {
         return months.stream()
                 .map(Month::getAmount)
-                .reduce(ZERO, BigDecimal::add);
+                .reduce(Amount.ZERO, Amount::add);
     }
 
     private Optional<Month> getCurrentMonth(MonthlyBalance monthlyBalance) {

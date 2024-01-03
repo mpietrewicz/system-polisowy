@@ -3,10 +3,13 @@ package pl.mpietrewicz.sp.modules.accounting.domain.allocation;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.accounting.ddd.support.domain.BaseEntity;
 
+import javax.persistence.AttributeOverride;
+import javax.persistence.Column;
+import javax.persistence.Embedded;
 import javax.persistence.Entity;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 
@@ -16,9 +19,12 @@ import java.util.Objects;
 public class Risk extends BaseEntity {
 
     private Long riskId;
-    private BigDecimal amount;
 
-    public Risk(Long riskId, BigDecimal amount) {
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "amount"))
+    private Amount amount;
+
+    public Risk(Long riskId, Amount amount) {
         this.riskId = riskId;
         this.amount = amount;
     }
@@ -36,7 +42,7 @@ public class Risk extends BaseEntity {
                 .anyMatch(this::isAppliesTo);
     }
 
-    public BigDecimal getAmount() {
+    public Amount getAmount() {
         return amount;
     }
 

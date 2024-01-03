@@ -10,7 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import pl.mpietrewicz.sp.cqrs.command.Gate;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.contract.application.commands.AddComponentCommand;
 import pl.mpietrewicz.sp.modules.contract.application.commands.ChangePremiumCommand;
 import pl.mpietrewicz.sp.modules.contract.application.commands.RegisterContractCommand;
@@ -33,7 +34,8 @@ import java.util.List;
 @RestController
 public class ContractController { // todo: poprawić nazwewnictwo, np. id (id czego?)
 
-    private ContractFinder contractFinder = null;
+    @Inject
+    private ContractFinder contractFinder;
 
     @Inject
     private Gate gate;
@@ -41,7 +43,7 @@ public class ContractController { // todo: poprawić nazwewnictwo, np. id (id cz
     @GetMapping("/lista-polis")
     public List<PolisaDto> pobierzWszystkiePolisy() {
         List<PolisaDto> polisaDtos = contractFinder.find();
-        polisaDtos.forEach(p -> p.setSkladka(getCurrentContractPremium(p.getId())));
+//        polisaDtos.forEach(p -> p.setSkladka(getCurrentContractPremium(p.getId())));
         return polisaDtos;
     }
 
@@ -73,9 +75,9 @@ public class ContractController { // todo: poprawić nazwewnictwo, np. id (id cz
     @PostMapping("/rejestracja-polisy")
     public String rejestrujPolise(@RequestBody PolisaDto polisaDto) {
         LocalDate registerDate = polisaDto.getDataRejestracji();
-        BigDecimal skladka = polisaDto.getSkladka();
+        Amount skladka = new Amount(polisaDto.getSkladka());
         Frequency czestotliwosc = polisaDto.getCzestotliwosc();
-        PaymentPolicy typ = polisaDto.getTyp();
+        PaymentPolicyEnum typ = polisaDto.getTyp(); // todo: czy to jest istotne?, czyba nie - to powinno dotyczyć wpłaty
 
         gate.dispatch(new RegisterContractCommand(registerDate, skladka, czestotliwosc, typ));
         return "redirect:/lista-polis";
@@ -84,7 +86,7 @@ public class ContractController { // todo: poprawić nazwewnictwo, np. id (id cz
     @PostMapping("/zmiana-skladki")
     public void zmienSkladke(@RequestBody ZmianaSkladkiDto zmianaSkladkiDto) {
         String idSkladnika = zmianaSkladkiDto.getIdSkladnika();
-        BigDecimal skladka = zmianaSkladkiDto.getSkladka();
+        Amount skladka = new Amount(zmianaSkladkiDto.getSkladka());
         YearMonth dataZmiany = YearMonth.parse(zmianaSkladkiDto.getDataZmiany());
 
         gate.dispatch(new ChangePremiumCommand(idSkladnika, skladka, dataZmiany));
@@ -94,7 +96,7 @@ public class ContractController { // todo: poprawić nazwewnictwo, np. id (id cz
     public String dokupSkladnik(@RequestBody SkladnikDto skladnikDto) {
         String idUmowy = skladnikDto.getIdUmowy();
         LocalDate dataDokupienia = skladnikDto.getDataDokupienia();
-        BigDecimal skladka = skladnikDto.getSkladka();
+        Amount skladka = new Amount(skladnikDto.getSkladka());
 
         gate.dispatch(new AddComponentCommand(idUmowy, dataDokupienia, skladka));
         return "redirect:/lista-polis";

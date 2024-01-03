@@ -2,9 +2,9 @@ package pl.mpietrewicz.sp.modules.contract.application.commands;
 
 import pl.mpietrewicz.sp.cqrs.annotations.Command;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.time.YearMonth;
 
 @SuppressWarnings("serial")
@@ -12,10 +12,10 @@ import java.time.YearMonth;
 public class ChangePremiumCommand implements Serializable {
 
     private final AggregateId componentId;
-    private final BigDecimal premium;
+    private final Amount premium;
     private final YearMonth changeDate;
 
-    public ChangePremiumCommand(String componentId, BigDecimal premium, YearMonth changeDate) {
+    public ChangePremiumCommand(String componentId, Amount premium, YearMonth changeDate) {
         this.componentId = new AggregateId(componentId);
         this.premium = premium;
         this.changeDate = changeDate;
@@ -25,7 +25,7 @@ public class ChangePremiumCommand implements Serializable {
         return componentId;
     }
 
-    public BigDecimal getPremium() {
+    public Amount getPremium() {
         return premium;
     }
 

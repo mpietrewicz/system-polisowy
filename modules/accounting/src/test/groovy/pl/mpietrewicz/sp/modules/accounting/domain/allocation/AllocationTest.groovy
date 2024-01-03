@@ -5,6 +5,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount
 import pl.mpietrewicz.sp.ddd.sharedkernel.Divisor
 import spock.lang.Specification
 import spock.lang.Subject
@@ -23,7 +24,7 @@ class AllocationTest extends Specification {
         when:
         allocation.update(monthlyBalances, riskDefinition)
         then:
-        allocation.getAmount().equals(BigDecimal.ZERO)
+        allocation.getAmount().equals(Amount.ZERO)
     }
 
     def "Powinien utworzyć nowy przypis"() {
@@ -32,7 +33,7 @@ class AllocationTest extends Specification {
                 MonthlyBalance.builder()
                         .month(YearMonth.parse("2023-03"))
                         .componentPremiums(Map.of(
-                                new AggregateId("1"), new BigDecimal("10")
+                                new AggregateId("1"), new Amount("10")
                         ))
                         .build())
         List<RiskDefinition> riskDefinition = List.of(
@@ -47,7 +48,7 @@ class AllocationTest extends Specification {
         when:
         allocation.update(monthlyBalances, riskDefinition)
         then:
-        allocation.getAmount().subtract(BigDecimal.TEN) == 0
+        allocation.getAmount().subtract(Amount.TEN) == 0
     }
 
     def "Powinien skorygować istniejący przypis nowy przypis"() {
@@ -56,7 +57,7 @@ class AllocationTest extends Specification {
                 MonthlyBalance.builder()
                         .month(YearMonth.parse("2023-03"))
                         .componentPremiums(Map.of(
-                                new AggregateId("1"), new BigDecimal("10")
+                                new AggregateId("1"), new Amount("10")
                         ))
                         .build())
         List<RiskDefinition> riskDefinition = List.of(
@@ -71,8 +72,7 @@ class AllocationTest extends Specification {
         when:
         allocation.update(monthlyBalances, riskDefinition)
         then:
-        allocation.getAmount().subtract(BigDecimal.TEN) == 0
+        allocation.getAmount().subtract(Amount.TEN).equals(Amount.ZERO)
     }
-
 
 }

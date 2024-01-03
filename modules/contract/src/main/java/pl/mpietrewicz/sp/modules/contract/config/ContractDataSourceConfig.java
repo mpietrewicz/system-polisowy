@@ -20,7 +20,8 @@ import java.util.Objects;
 @EnableTransactionManagement
 @EnableJpaRepositories(
         basePackages = {
-                "pl.mpietrewicz.sp.modules.contract.infrastructure.repo"
+                "pl.mpietrewicz.sp.modules.contract.infrastructure.repo",
+                "pl.mpietrewicz.sp.modules.contract.readmodel"
         },
         entityManagerFactoryRef = "contractEntityManagerFactory",
         transactionManagerRef = "contractTransactionManager"

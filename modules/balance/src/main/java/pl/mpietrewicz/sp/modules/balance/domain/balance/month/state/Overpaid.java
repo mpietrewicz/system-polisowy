@@ -1,97 +1,116 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month.state;
 
 import lombok.NoArgsConstructor;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 
 import javax.persistence.Entity;
-import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Optional;
 
-import static java.math.BigDecimal.ZERO;
+import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.OVERPAID;
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.PAID;
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.UNDERPAID;
 
 @Entity
 @NoArgsConstructor
 public class Overpaid extends MonthState {
 
-    public Overpaid(Month month, BigDecimal overpayment) {
+    public Overpaid(Month month, Amount overpayment) {
         super(month, OVERPAID, ZERO, overpayment);
     }
 
-    public void pay(BigDecimal payment) {
-        if (month.getNext().isPresent()) {
+    public Amount pay(PositiveAmount payment, Optional<Month> nextMonth) {
+        if (nextMonth.isPresent()) {
             throw new RuntimeException("The overpaid month is not last!");
         } else {
             increaseOverpayment(payment);
+            return ZERO;
         }
     }
 
-    public void refund(BigDecimal refund) {
-        BigDecimal overpayment = getOverpayment();
-        BigDecimal paid = month.getPremium().add(overpayment);
-
-        if (refund.compareTo(paid) > 0) {
-            if (month.getPrevious().isPresent()) {
+    public Amount refund(PositiveAmount refund, Optional<Month> previousMonth) {
+        if (paidIsLessThan(refund)) {
+            if (previousMonth.isPresent()) {
                 month.changeState(new Unpaid(month));
-                month.getPrevious().get().tryRefund(refund.subtract(paid));
+                return refund.subtract(getPaid());
             } else {
                 throw new RuntimeException("You're trying to refund more than you have!");
             }
-        } else if (refund.compareTo(paid) == 0) {
+        } else if (paidEquals(refund)) {
             month.changeState(new Unpaid(month));
-        } else if (refund.compareTo(paid) < 0) {
-
-            if (refund.compareTo(overpayment) > 0) {
+        } else if (paidIsHigherThan(refund)) {
+            if (overpaymentIsLessThan(refund)) {
                 month.changeState(new Underpaid(month, refund.subtract(overpayment)));
-            } else if (refund.compareTo(overpayment) == 0) {
+            } else if (overpaymentEquals(refund)) {
                 month.changeState(new Paid(month));
-            } else if (refund.compareTo(overpayment) < 0 ) {
+            } else if (overpaymentIsHigherThan(refund)) {
                 decreaseOverpayment(refund);
             }
-
         }
+
+        return ZERO;
     }
 
     @Override
-    public Month createNextMonth(List<ComponentPremium> componentPremiums) {
-        BigDecimal premium = componentPremiums.stream().map(ComponentPremium::getAmount).reduce(ZERO, BigDecimal::add);
+    public boolean canPaidBy(Amount payment) {
+        return true;
+    }
+
+    @Override
+    public Month createNextMonth(List<ComponentPremium> newComponentPremiums) {
+        Amount premium = newComponentPremiums.stream()
+                .map(ComponentPremium::getPremium)
+                .reduce(ZERO, Amount::add);
+
         Month previous = this.month;
-
-        BigDecimal overpayment = getOverpayment();
-
         previous.changeState(new Paid(month));
+        YearMonth nextYearMonth = previous.getYearMonth().plusMonths(1);
 
-        if (overpayment.compareTo(premium) > 0) {
-            return createOverpaid(overpayment.subtract(premium), previous, componentPremiums);
-        } else if (overpayment.compareTo(premium) == 0) {
-            return createPaid(previous, componentPremiums);
+        if (overpaymentIsLessThan(premium)) {
+            Amount underpayment = premium.subtract(overpayment);
+            return createUnderpaid(nextYearMonth, underpayment, newComponentPremiums);
+        } else if (overpaymentEquals(premium)) {
+            return createPaid(nextYearMonth, newComponentPremiums);
+        } else if (overpaymentIsHigherThan(premium)) {
+            Amount newOverpayment = overpayment.subtract(premium);
+            return createOverpaid(nextYearMonth, newOverpayment, newComponentPremiums);
         } else {
-            return createUnderpaid(premium.subtract(overpayment), previous, componentPremiums);
+            throw new IllegalStateException();
         }
     }
 
     @Override
-    public BigDecimal getPaid() {
-        return getOverpayment();
+    public Amount getPaid() {
+        return getPremium().add(overpayment);
     }
 
-    private Month createOverpaid(BigDecimal overpayment, Month previous, List<ComponentPremium> componentPremiums) {
-        return new Month(previous.getYearMonth().plusMonths(1),
-                OVERPAID, ZERO, overpayment, previous, componentPremiums);
+    @Override
+    public MonthState getCopy() {
+        return new Overpaid(month, overpayment);
     }
 
-    private Month createPaid(Month previous, List<ComponentPremium> componentPremiums) {
-        return new Month(previous.getYearMonth().plusMonths(1),
-                PAID, ZERO, ZERO, previous, componentPremiums);
+    private void increaseOverpayment(Amount amount) {
+        this.overpayment = this.overpayment.add(amount);
     }
 
-    private Month createUnderpaid(BigDecimal underpayment, Month previous, List<ComponentPremium> componentPremiums) {
-        return new Month(previous.getYearMonth().plusMonths(1),
-                UNDERPAID, underpayment, ZERO, previous, componentPremiums);
+    private void decreaseOverpayment(Amount amount) {
+        this.overpayment = this.overpayment.subtract(amount);
+    }
+
+    private boolean overpaymentIsLessThan(Amount amount) {
+        return this.overpayment.isLessThan(amount);
+    }
+
+    private boolean overpaymentEquals(Amount amount) {
+        return this.overpayment.equals(amount);
+    }
+
+    private boolean overpaymentIsHigherThan(Amount amount) {
+        return this.overpayment.isHigherThan(amount);
     }
 
 }

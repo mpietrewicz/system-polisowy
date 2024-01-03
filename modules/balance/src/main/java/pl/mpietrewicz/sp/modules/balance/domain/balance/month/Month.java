@@ -1,9 +1,11 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 
 import lombok.NoArgsConstructor;
-import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
+import pl.mpietrewicz.sp.ddd.annotations.domain.DomainEntity;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
+import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
@@ -11,7 +13,6 @@ import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToMany;
 import javax.persistence.OneToOne;
-import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,112 +20,72 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@ValueObject
+@DomainEntity
 @Entity
 @NoArgsConstructor
 public class Month extends BaseEntity {
 
-    private YearMonth month;
+    private YearMonth yearMonth;
 
     @ManyToMany(cascade = CascadeType.ALL)
     private List<ComponentPremium> componentPremiums = new ArrayList<>(); // todo: zamienić na hashset
-
-    @OneToOne(cascade = CascadeType.ALL)
-    private Month previous;
-
-    @OneToOne(cascade = CascadeType.ALL)
-    private Month next;
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "month_state_id")
     private MonthState monthState;
 
-    public Month(YearMonth month, MonthStatus monthStatus, BigDecimal underpayment, BigDecimal overpayment,
+    public Month(YearMonth yearMonth, MonthStatus monthStatus, Amount underpayment, Amount overpayment,
                  List<ComponentPremium> componentPremiums) {
-        this.month = month;
+        this.yearMonth = yearMonth;
         this.monthState = MonthStateFactory.createState(this, monthStatus, underpayment, overpayment);
         this.componentPremiums = componentPremiums;
     }
 
-    public Month(YearMonth month, MonthStatus monthStatus, BigDecimal underpayment, BigDecimal overpayment,
-                 Month previous, List<ComponentPremium> componentPremiums) {
-        this.month = month;
-        this.monthState = MonthStateFactory.createState(this, monthStatus, underpayment, overpayment);
-        this.previous = previous;
+    public Month(YearMonth yearMonth, MonthState monthState, List<ComponentPremium> componentPremiums) {
+        this.yearMonth = yearMonth;
+        this.monthState = monthState;
         this.componentPremiums = componentPremiums;
-    }
-
-    public Month createNextMonth() {
-        return monthState.createNextMonth(getComponentPremiums());
     }
 
     public Month createNextMonth(List<ComponentPremium> componentPremiums) {
         return monthState.createNextMonth(componentPremiums);
     }
 
-    public void tryPay(BigDecimal payment) {
-        if (payment.signum() > 0) {
-            monthState.pay(payment);
-        }
+    public Amount pay(PositiveAmount payment, Optional<Month> nextMonth) {
+        return monthState.pay(payment, nextMonth);
     }
 
-    public void tryRefund(BigDecimal refund) {
-        if (refund.signum() > 0) {
-            monthState.refund(refund);
-        }
+    public Amount refund(PositiveAmount refund, Optional<Month> previousMonth) {
+        return monthState.refund(refund, previousMonth);
     }
 
-    public void invalidate() {
-        if (!isTheLastOne()) {
-            throw new IllegalStateException("Nie można usuwać oresów innych niż ostatni");
-        }
-        BigDecimal paid = monthState.getPaid();
-        getPrevious().ifPresent(month -> {
-            month.setNext(null);
-            month.tryPay(paid);
-        });
+    public Amount getPaidAmount() {
+        return monthState.getPaid();
     }
 
     public YearMonth getYearMonth() {
-        return month;
+        return yearMonth;
     }
 
-    public BigDecimal getPremium() {
+    public Amount getPremium() {
         return componentPremiums.stream()
-                .map(ComponentPremium::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .map(ComponentPremium::getPremium)
+                .reduce(Amount.ZERO, Amount::add);
     }
 
-    public Map<AggregateId, BigDecimal> getPremiumComponents() {
+    public Map<AggregateId, Amount> getPremiumComponents() {
         return componentPremiums.stream()
                 .collect(Collectors.toMap(
                         ComponentPremium::getComponentId,
-                        ComponentPremium::getAmount));
+                        ComponentPremium::getPremium));
     }
 
     public Month createCopy() {
-        return new Month(month, monthState.getStatus(), monthState.getUnderpayment(), monthState.getOverpayment(),
-                getComponentPremiums());
-    }
-
-    public Optional<Month> getPrevious() {
-        return Optional.ofNullable(previous);
-    }
-
-    public Optional<Month> getNext() {
-        return Optional.ofNullable(next);
+        return new Month(yearMonth, monthState.getCopy(), getComponentPremiums());
     }
 
     public void changeState(MonthState monthState) {
         this.monthState = monthState;
-    }
-
-    public void setNext(Month next) {
-        this.next = next;
-    }
-
-    public void setPervious(Month previous) {
-        this.previous = previous;
     }
 
     public boolean isPaid() {
@@ -135,22 +96,38 @@ public class Month extends BaseEntity {
         return monthState.isNotPaid();
     }
 
-    private boolean isTheLastOne() {
-        return getNext().isEmpty();
+    public int compareAscending(Month month) {
+        return this.yearMonth.compareTo(month.getYearMonth());
     }
 
-    public int orderComparator(Month month) {
-        return this.month.compareTo(month.getYearMonth());
+    public int compareDescending(Month month) {
+        return month.getYearMonth().compareTo(this.yearMonth);
     }
 
-    public List<ComponentPremium> getComponentPremiums() {
+    private List<ComponentPremium> getComponentPremiums() {
         return new ArrayList<>(componentPremiums);
     }
 
     @Override
     public String toString() {
-        return month +
+        return yearMonth +
                 ", " + getPremium() +
                 ", " + monthState.getStatus();
+    }
+
+    public boolean isAfter(Month month) {
+        return compareAscending(month) > 0;
+    }
+
+    public boolean isBefore(Month month) {
+        return compareAscending(month) < 0;
+    }
+
+    public boolean equals(Month month) {
+        return compareAscending(month) == 0;
+    }
+
+    public boolean canPaidBy(Amount payment) {
+        return monthState.canPaidBy(payment);
     }
 }

@@ -1,17 +1,18 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month.state;
 
 import lombok.NoArgsConstructor;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 
 import javax.persistence.Entity;
-import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
-import static java.math.BigDecimal.ZERO;
+import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.PAID;
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.UNPAID;
 
 @Entity
 @NoArgsConstructor
@@ -22,50 +23,52 @@ public class Paid extends MonthState {
     }
 
     @Override
-    public void pay(BigDecimal payment) {
-        if (month.getNext().isEmpty()) {
+    public Amount pay(PositiveAmount payment, Optional<Month> nextMonth) {
+        if (nextMonth.isEmpty()) {
             month.changeState(new Overpaid(month, payment));
+            return ZERO;
         } else {
-            month.getNext().get().tryPay(payment);
+            return payment;
         }
     }
 
     @Override
-    public void refund(BigDecimal refund) {
-        BigDecimal paid = month.getPremium();
-
-        if (refund.compareTo(paid) > 0) {
-            if (month.getPrevious().isPresent()) {
+    public Amount refund(PositiveAmount refund, Optional<Month> previousMonth) {
+        if (paidIsLessThan(refund)) {
+            if (previousMonth.isPresent()) {
                 month.changeState(new Unpaid(month));
-                month.getPrevious().get().tryRefund(refund.subtract(paid));
+                return refund.subtract(getPaid());
             } else {
                 throw new RuntimeException("You're trying to refund more than you have!");
             }
-        } else if (refund.compareTo(paid) == 0) {
+        } else if (paidEquals(refund)) {
             month.changeState(new Unpaid(month));
-        } else if (refund.compareTo(paid) < 0) {
+        } else if (paidIsHigherThan(refund)) {
             month.changeState(new Underpaid(month, refund));
         }
+
+        return ZERO;
     }
 
     @Override
     public Month createNextMonth(List<ComponentPremium> componentPremiums) {
         Month previous = this.month;
-        Month next = new Month(
-                previous.getYearMonth().plusMonths(1),
-                UNPAID,
-                ZERO,
-                ZERO,
-                previous,
-                componentPremiums
-        );
-        previous.setNext(next);
-        return next;
+        return createUnpaid(previous.getYearMonth().plusMonths(1), componentPremiums);
     }
 
     @Override
-    public BigDecimal getPaid() {
+    public boolean canPaidBy(Amount payment) {
+        return true;
+    }
+
+    @Override
+    public Amount getPaid() {
         return month.getPremium();
+    }
+
+    @Override
+    public MonthState getCopy() {
+        return new Paid(month);
     }
 
 }

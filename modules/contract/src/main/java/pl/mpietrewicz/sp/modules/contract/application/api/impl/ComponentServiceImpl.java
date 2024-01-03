@@ -8,6 +8,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.events.ComponentTerminatedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ComponentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.contract.application.api.ComponentService;
 import pl.mpietrewicz.sp.modules.contract.domain.component.Component;
@@ -23,7 +24,6 @@ import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.ContractRepository
 import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.PremiumRepository;
 import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.TerminationRepository;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @ApplicationService(transactional = @Transactional(
@@ -42,7 +42,7 @@ public class ComponentServiceImpl implements ComponentService {
     private final PremiumFactory premiumFactory;
 
     @Override
-    public Component addComponent(AggregateId contractId, LocalDate registerDate, BigDecimal premiumAmount) {
+    public Component addComponent(AggregateId contractId, LocalDate registerDate, Amount premiumAmount) {
         Contract contract = contractRepository.load(contractId);
 
         ContractData contractData = contract.generateSnapshot();

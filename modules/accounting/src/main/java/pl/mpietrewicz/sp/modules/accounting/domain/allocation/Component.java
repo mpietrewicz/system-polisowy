@@ -4,16 +4,15 @@ import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.accounting.ddd.support.domain.BaseEntity;
 
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static java.math.BigDecimal.ZERO;
 import static java.util.function.Predicate.not;
 import static javax.persistence.CascadeType.ALL;
 
@@ -36,7 +35,7 @@ public class Component extends BaseEntity {
         return this.componentId.equals(componentId);
     }
 
-    public void correct(Map.Entry<AggregateId, BigDecimal> newComponentsPremium, List<RiskDefinition> riskDefinitions) {
+    public void correct(Map.Entry<AggregateId, Amount> newComponentsPremium, List<RiskDefinition> riskDefinitions) {
         correctCommonsRisks(newComponentsPremium, riskDefinitions);
         correctOtherRisks(riskDefinitions);
 
@@ -45,9 +44,9 @@ public class Component extends BaseEntity {
 //        }
     }
 
-    private void correctCommonsRisks(Map.Entry<AggregateId, BigDecimal> newComponentsPremium, List<RiskDefinition> riskDefinitions) {
+    private void correctCommonsRisks(Map.Entry<AggregateId, Amount> newComponentsPremium, List<RiskDefinition> riskDefinitions) {
         for (RiskDefinition riskDefinition : riskDefinitions) {
-            BigDecimal premium = determinePremium(newComponentsPremium, riskDefinition);
+            Amount premium = determinePremium(newComponentsPremium, riskDefinition);
             Risk risk = AllocationFactory.createRisk(premium, riskDefinition);
             this.risks.add(risk);
         }
@@ -62,7 +61,7 @@ public class Component extends BaseEntity {
                 });
     }
 
-    private BigDecimal determinePremium(Map.Entry<AggregateId, BigDecimal> newComponentsPremium, RiskDefinition riskDefinition) {
+    private Amount determinePremium(Map.Entry<AggregateId, Amount> newComponentsPremium, RiskDefinition riskDefinition) {
         Optional<Risk> currentRisk = getCurrentRisk(riskDefinition);
         if (currentRisk.isEmpty()) {
             return newComponentsPremium.getValue();
@@ -77,10 +76,10 @@ public class Component extends BaseEntity {
                 .findAny();
     }
 
-    public BigDecimal getAmount() {
+    public Amount getAmount() {
         return risks.stream()
                 .map(Risk::getAmount)
-                .reduce(ZERO, BigDecimal::add);
+                .reduce(Amount.ZERO, Amount::add);
     }
 
 }

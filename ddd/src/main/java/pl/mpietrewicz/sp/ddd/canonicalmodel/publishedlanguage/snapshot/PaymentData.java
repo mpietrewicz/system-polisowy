@@ -5,6 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.AttributeOverrides;
@@ -12,9 +13,7 @@ import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.persistence.Embedded;
 import javax.persistence.Transient;
-import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Objects;
 
 @ValueObject
 @Embeddable
@@ -34,12 +33,12 @@ public class PaymentData {
 	private LocalDate date;
 
 	@Transient
-	private BigDecimal amount;
+	private Amount amount;
 
 	@SuppressWarnings("unused")
 	private PaymentData(){}
 
-	public PaymentData(AggregateId aggregateId, AggregateId contractId, LocalDate date, BigDecimal amount) {
+	public PaymentData(AggregateId aggregateId, AggregateId contractId, LocalDate date, Amount amount) {
 		this.aggregateId = aggregateId;
 		this.contractId = contractId;
 		this.amount = amount;

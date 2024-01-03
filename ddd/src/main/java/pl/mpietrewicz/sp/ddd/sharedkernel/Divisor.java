@@ -29,8 +29,10 @@ public class Divisor implements Serializable {
 		this.divisor = new BigDecimal(divisor);
 	}
 
-	public BigDecimal getQuotient(BigDecimal dividend) {
-		return divisor.divide(dividend, DEFAULT_SCALE, DEFAULT_ROUNDING);
+	public Amount getQuotient(Amount dividend) {
+		return new Amount(
+				divisor.divide(dividend.getBigDecimal(), DEFAULT_SCALE, DEFAULT_ROUNDING)
+		);
 	}
 
 }

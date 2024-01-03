@@ -2,22 +2,20 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.Period;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Premium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 
+import javax.persistence.CascadeType;
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
-import java.math.BigDecimal;
+import javax.persistence.OneToOne;
 import java.time.YearMonth;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static java.math.BigDecimal.ZERO;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.START_CALCULATING;
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.UNPAID;
 
 @ValueObject
 @Entity
@@ -25,44 +23,25 @@ import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus
 @NoArgsConstructor
 public class StartCalculating extends Operation {
 
-    private BigDecimal premium;
-    private AggregateId componentId;
+    @OneToOne(cascade = CascadeType.ALL)
+    private ComponentPremium componentPremium; // todo: zamienić na listę ComponentPremium
 
-    public StartCalculating(YearMonth from, BigDecimal premium, AggregateId componentId) {
+    public StartCalculating(YearMonth from, ComponentPremium componentPremium) {
         super(from.atDay(1));
-        this.premium = premium;
-        this.componentId = componentId;
+        this.componentPremium = componentPremium;
         this.type = START_CALCULATING;
         this.pending = false;
     }
 
     public void execute(int grace) {
-        List<Month> months = createMonths(grace);
-        period = new Period(months);
+        this.premium = new Premium(Stream.of(componentPremium).collect(Collectors.toList()));
+        this.period = Period.init(date, premium, grace);
         this.pending = false;
     }
 
     @Override
     public void execute() {
         throw new UnsupportedOperationException("Metoda nie obsługiwana w StartCalculating Operation");
-    }
-
-    private List<Month> createMonths(int grace) {
-        List<Month> months = new ArrayList<>();
-
-        List<ComponentPremium> componentPremiums = new ArrayList<>();
-        componentPremiums.add(new ComponentPremium(componentId, premium));
-
-        Month next = null;
-        Month previous = null;
-        for (int i = 0; i < grace; i++) {
-            next = new Month(YearMonth.from(date).plusMonths(i), UNPAID, ZERO, ZERO, previous, componentPremiums);
-            if (previous != null) previous.setNext(next);
-            previous = next;
-            months.add(previous);
-        }
-
-        return months;
     }
 
     @Override

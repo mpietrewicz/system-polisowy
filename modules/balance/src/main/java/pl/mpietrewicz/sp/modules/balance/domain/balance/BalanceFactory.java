@@ -5,9 +5,9 @@ import pl.mpietrewicz.sp.ddd.annotations.domain.DomainFactory;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ComponentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 
 import javax.inject.Inject;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @DomainFactory
@@ -16,7 +16,7 @@ public class BalanceFactory {
     @Inject
     private AutowireCapableBeanFactory spring;
 
-    public Balance create(ContractData contractData, ComponentData componentData, BigDecimal premium) {
+    public Balance create(ContractData contractData, ComponentData componentData, Amount premium) {
         LocalDate contractStart = contractData.getContractStartDate();
         AggregateId componentId = componentData.getAggregateId();
 

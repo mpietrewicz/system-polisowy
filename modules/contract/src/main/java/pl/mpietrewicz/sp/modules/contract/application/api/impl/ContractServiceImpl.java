@@ -6,9 +6,10 @@ import pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.ContractCreatedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicy;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ComponentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.contract.application.api.ContractService;
 import pl.mpietrewicz.sp.modules.contract.domain.component.Component;
@@ -21,7 +22,6 @@ import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.ComponentRepositor
 import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.ContractRepository;
 import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.PremiumRepository;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 
@@ -40,9 +40,9 @@ public class ContractServiceImpl implements ContractService {
 
 
     @Override
-    public Contract createContract(LocalDate registerDate, BigDecimal premiumAmount, Frequency frequency,
-                                   PaymentPolicy paymentPolicy) {
-        Contract contract = contractFactory.createContract(registerDate, frequency, paymentPolicy);
+    public Contract createContract(LocalDate registerDate, Amount premiumAmount, Frequency frequency,
+                                   PaymentPolicyEnum paymentPolicyEnum) {
+        Contract contract = contractFactory.createContract(registerDate, frequency, paymentPolicyEnum);
         contractRepository.save(contract);
 
         ContractData contractData = contract.generateSnapshot();

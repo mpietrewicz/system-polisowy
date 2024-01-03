@@ -1,11 +1,12 @@
 
 package pl.mpietrewicz.sp.modules.finance.application.api;
 
-import java.math.BigDecimal;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+
 import java.time.LocalDate;
 
 public interface PaymentService {
 
-	void addPayment(String contractId, BigDecimal amount, LocalDate date);
+	void addPayment(String contractId, Amount amount, LocalDate date);
 
 }
