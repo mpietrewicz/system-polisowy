@@ -57,14 +57,10 @@ public class Period {
         rozsmarujWplatePoMiesiacach(payment, miesiaceDoRozsmarowania);
     }
 
-    private void rozsmarujWplatePoMiesiacach(Amount payment, Month month) { // todo: zmienić nazwę
-        rozsmarujWplatePoMiesiacach(payment, List.of(month));
-    }
-
-    private void rozsmarujWplatePoMiesiacach(Amount payment, List<Month> months) { // todo: zmienić nazwę
+    public void rozsmarujWplatePoMiesiacach(Amount payment, List<Month> months) { // todo: zmienić nazwę
         for (Month month : months) {
             if (payment.isPositive()) {
-                payment = month.pay(payment.castToPositive(), getNextMonth(month));
+                payment = month.pay(payment.castToPositive(), getNextMonth(month)); // todo: tutaj powinienem przekazywać jaka jest aktualna składka za miesiac
             }
         }
         if (payment.isPositive()) throw new IllegalStateException();
@@ -74,6 +70,23 @@ public class Period {
         rozsmarujZwrotPoMiesiacach(refund, getDescendingMonths());
     }
 
+    public Amount tryRefundUpTo(List<Month> months) {
+        return months.stream()
+                .sorted(Month::compareDescending)
+                .map(this::tryRefund)
+                .reduce(ZERO, Amount::add);
+    }
+
+    private Amount tryRefund(Month month) {
+        Optional<Month> nextMonth = getNextMonth(month);
+
+        if (nextMonth.isEmpty() || nextMonth.get().isNotPaid()) {
+            return month.refund();
+        } else {
+            throw new IllegalStateException("Nie można zwrócić gdy kolejny miesiac jest opłacony");
+        }
+    }
+
     private void rozsmarujZwrotPoMiesiacach(Amount refund, List<Month> months) {  // todo: zmienić nazwę
         for (Month month : months) {
             if (refund.isPositive()) {
@@ -81,13 +94,6 @@ public class Period {
             }
         }
         if (refund.isPositive()) throw new IllegalStateException();
-    }
-
-    public void changePremium(LocalDate from, Premium premium) {
-        List<YearMonth> deletedMonths = deleteMonths(YearMonth.from(from));
-        deletedMonths.stream()
-                .sorted(YearMonth::compareTo)
-                .forEach(month -> addNextMonth(premium));
     }
 
     public void includeGracePeriod(Premium premium, int grace) {
@@ -140,7 +146,7 @@ public class Period {
                 .max(Month::compareAscending);
     }
 
-    protected Optional<Month> getNextMonth(Month month) {
+    public Optional<Month> getNextMonth(Month month) {
         return months.stream()
                 .filter(m -> m.isAfter(month))
                 .min(Month::compareAscending);
@@ -152,29 +158,25 @@ public class Period {
                 .findAny();
     }
 
-    private List<YearMonth> deleteMonths(YearMonth from) {
-        List<YearMonth> deletedMonths = new ArrayList<>();
+    private void deleteMonths(YearMonth from) {
+        List<Month> descendingMonths = getDescendingMonthsStarting(from);
+        descendingMonths.forEach(this::deleteMonth);
+    }
 
-        while (getLastMonth().getYearMonth().compareTo(from) >= 0) {
-            Month lastMonth = getLastMonth();
-            Amount paid = getLastMonth().getPaidAmount();
-
-            Optional<Month> previousMonth = getPreviousMonth(lastMonth);
-            if (previousMonth.isPresent()) {
-                rozsmarujWplatePoMiesiacach(paid, previousMonth.get());
-            }
-
-            months.remove(lastMonth);
-            deletedMonths.add(lastMonth.getYearMonth());
-        }
-        return deletedMonths;
+    private void deleteMonth(Month month) {
+        getOptionalLastMonth()
+                .filter(last -> last.equals(month))
+                .filter(Month::canBeDeleted)
+                .ifPresentOrElse(removable -> months.remove(removable), () -> {
+                    throw new IllegalArgumentException("Nie można usunąć danego miesiąca");
+                });
     }
 
     private void extendPeriodToGrace(int unpaidMonths, Premium premium, int grace) {
         int limit = grace - unpaidMonths;
         while (limit > 0) {
             addNextMonth(premium);
-            limit = getLastMonth().isNotPaid() ? limit - 1 : limit;
+            limit = getLastMonth().isNotPaid() || getLastMonth().isPartlyPaid() ? limit - 1 : limit;
         }
     }
 
@@ -193,6 +195,11 @@ public class Period {
         return months.stream()
                 .max(Month::compareAscending)
                 .orElseThrow();
+    }
+
+    private Optional<Month> getOptionalLastMonth() {
+        return months.stream()
+                .max(Month::compareAscending);
     }
 
     private YearMonth getLastYearMonth() {
@@ -223,6 +230,13 @@ public class Period {
         return months.stream()
                 .filter(not(month -> month.isBefore(from)))
                 .sorted(Month::compareAscending)
+                .collect(Collectors.toList());
+    }
+
+    public List<Month> getDescendingMonthsStarting(YearMonth yearMonth) {
+        return months.stream()
+                .filter(not(month -> month.getYearMonth().isBefore(yearMonth)))
+                .sorted(Month::compareDescending)
                 .collect(Collectors.toList());
     }
 

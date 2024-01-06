@@ -28,7 +28,7 @@ public class Month extends BaseEntity {
     private YearMonth yearMonth;
 
     @ManyToMany(cascade = CascadeType.ALL)
-    private List<ComponentPremium> componentPremiums = new ArrayList<>(); // todo: zamienić na hashset
+    private List<ComponentPremium> componentPremiums = new ArrayList<>();
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "month_state_id")
@@ -59,6 +59,10 @@ public class Month extends BaseEntity {
         return monthState.refund(refund, previousMonth);
     }
 
+    public Amount refund() {
+        return monthState.refund();
+    }
+
     public Amount getPaidAmount() {
         return monthState.getPaid();
     }
@@ -80,8 +84,12 @@ public class Month extends BaseEntity {
                         ComponentPremium::getPremium));
     }
 
-    public Month createCopy() {
-        return new Month(yearMonth, monthState.getCopy(), getComponentPremiums());
+    public Month createCopy() { // todo: tak średnio to wygląda
+        Month monthCopy = new Month(yearMonth, monthState, getComponentPremiums());
+        MonthState monthStateCopy = MonthStateFactory.createState(monthCopy, monthState.getStatus(),
+                monthState.underpayment, monthState.underpayment);
+        monthCopy.changeState(monthStateCopy);
+        return monthCopy;
     }
 
     public void changeState(MonthState monthState) {
@@ -92,8 +100,16 @@ public class Month extends BaseEntity {
         return monthState.isPaid();
     }
 
+    public boolean isPartlyPaid() {
+        return monthState.isPaid();
+    }
+
     public boolean isNotPaid() {
         return monthState.isNotPaid();
+    }
+
+    public boolean canBeDeleted() {
+        return getPaidAmount() == Amount.ZERO;
     }
 
     public int compareAscending(Month month) {
