@@ -15,4 +15,6 @@ public interface ComponentRepository {
 
 	List<Component> findByContractId(AggregateId contractId);
 
+	Component findByNumber(String number);
+
 }

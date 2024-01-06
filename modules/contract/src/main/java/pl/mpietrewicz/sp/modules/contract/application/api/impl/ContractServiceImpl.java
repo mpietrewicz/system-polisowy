@@ -9,6 +9,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ComponentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.contract.application.api.ContractService;
@@ -23,6 +24,7 @@ import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.ContractRepository
 import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.PremiumRepository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 
 @ApplicationService(transactional = @Transactional(
@@ -34,27 +36,27 @@ public class ContractServiceImpl implements ContractService {
     private final ComponentRepository componentRepository;
     private final PremiumRepository premiumRepository;
     private final ComponentFactory componentFactory;
-    private final PremiumFactory premiumFactory;
     private final ContractFactory contractFactory;
-    private final DomainEventPublisher domainEventPublisher;
-
+    private final DomainEventPublisher eventPublisher;
+    private final PremiumFactory premiumFactory;
 
     @Override
-    public Contract createContract(LocalDate registerDate, Amount premiumAmount, Frequency frequency,
+    public Contract createContract(String number, LocalDate registerDate, Amount premiumAmount, Frequency frequency,
                                    PaymentPolicyEnum paymentPolicyEnum) {
         Contract contract = contractFactory.createContract(registerDate, frequency, paymentPolicyEnum);
         contractRepository.save(contract);
 
         ContractData contractData = contract.generateSnapshot();
-        Component component = componentFactory.createBasicComponent(contractData);
-        componentRepository.save(component);
+        Component basicComponent = componentFactory.createBasicComponent(contractData, number);
+        componentRepository.save(basicComponent);
 
-        ComponentData componentData = component.generateSnapshot();
-        Premium premium = premiumFactory.create(componentData, registerDate, premiumAmount);
+        ComponentData componentData = basicComponent.generateSnapshot();
+        Premium premium = premiumFactory.create(contractData, componentData, premiumAmount);
         premiumRepository.save(premium);
 
-        ContractCreatedEvent event = new ContractCreatedEvent(contractData, componentData, premiumAmount);
-        domainEventPublisher.publish(event);
+        PremiumSnapshot premiumSnapshot = premium.generateSnapshot(LocalDateTime.now());
+        ContractCreatedEvent event = new ContractCreatedEvent(contractData, premiumSnapshot); // todo: wysyłam dwa komunikaty, add premium i create balance
+        eventPublisher.publish(event);
 
         return contract;
     }

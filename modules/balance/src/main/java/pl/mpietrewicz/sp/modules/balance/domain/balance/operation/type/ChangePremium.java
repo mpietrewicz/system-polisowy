@@ -2,18 +2,21 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicy;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicyFactory;
 
-import javax.persistence.CascadeType;
+import javax.persistence.AttributeOverride;
+import javax.persistence.Column;
 import javax.persistence.DiscriminatorValue;
+import javax.persistence.Embedded;
 import javax.persistence.Entity;
-import javax.persistence.OneToOne;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.List;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.CHANGE_PREMIUM;
 
@@ -23,24 +26,30 @@ import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operati
 @NoArgsConstructor
 public class ChangePremium extends Operation {
 
-    @OneToOne(cascade = CascadeType.ALL)
-    private ComponentPremium componentPremium; // todo: zamienić na listę ComponentPremium
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "amount"))
+    private Amount premium;
 
-    public ChangePremium(LocalDate date, ComponentPremium componentPremium) {
+    public ChangePremium(LocalDate date, Amount premium) {
         super(date);
-        this.componentPremium = componentPremium;
+        this.premium = premium;
         this.type = CHANGE_PREMIUM;
     }
 
     @Override
-    public void execute() {
+    public void execute(PremiumSnapshot premiumSnapshot) {
         YearMonth monthOfChange = YearMonth.from(date);
-        List<Month> monthsToChange = period.getDescendingMonthsStarting(monthOfChange);
-        Amount refunded = period.tryRefundUpTo(monthsToChange);
+        Amount refunded = period.tryRefundUpTo(monthOfChange);
 
-        premium.update(componentPremium);
+        if (refunded.isPositive()) {
+            PaymentPolicy paymentPolicy = PaymentPolicyFactory.create(PaymentPolicyEnum.CONTINUATION, premiumSnapshot);
+            PaymentData paymentData = new PaymentData(date, refunded);
+            period.tryPay(paymentPolicy, paymentData, premiumSnapshot);
+        }
+    }
 
-        period.rozsmarujWplatePoMiesiacach(refunded, monthsToChange);
+    protected void execute() {
+        throw new UnsupportedOperationException("Metoda nie obsługiwana w StartCalculating Operation");
     }
 
 }

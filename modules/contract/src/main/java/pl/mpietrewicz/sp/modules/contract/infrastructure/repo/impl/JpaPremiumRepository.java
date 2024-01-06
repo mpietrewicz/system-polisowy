@@ -10,11 +10,21 @@ import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.PremiumRepository;
 public class JpaPremiumRepository extends GenericJpaRepository<Premium> implements PremiumRepository {
 
     @Override
+    public Premium findByContractId(AggregateId contractId) {
+        String query = "SELECT p.aggregateId FROM Premium p WHERE p.contractData.aggregateId = :contractId";
+        return load(entityManager.createQuery(query, AggregateId.class)
+                .setParameter("contractId", contractId)
+                .getSingleResult());
+    }
+
+    @Override
     public Premium findByComponentId(AggregateId componentId) {
-        String query = "SELECT p FROM Premium p WHERE p.componentData.aggregateId = :componentId"; // todo: takie zapytania przyspażają dużo problemów
-        return entityManager.createQuery(query, Premium.class)
+        String query = "SELECT p.aggregateId FROM Premium p JOIN p.componentPremiums cp WHERE cp.componentData.aggregateId = :componentId";
+        return load(entityManager.createQuery(query, AggregateId.class)
                 .setParameter("componentId", componentId)
-                .getSingleResult();
+                .getResultStream()
+                .findAny()
+                .orElseThrow());
     }
 
 }

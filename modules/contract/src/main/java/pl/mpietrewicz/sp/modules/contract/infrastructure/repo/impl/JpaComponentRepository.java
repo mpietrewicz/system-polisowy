@@ -18,4 +18,13 @@ public class JpaComponentRepository extends GenericJpaRepository<Component> impl
                 .setParameter("contractId", contractId)
                 .getResultList();
     }
+
+    @Override
+    public Component findByNumber(String number) {
+        String query = "SELECT cp FROM Component cp WHERE cp.number = :number";
+        return entityManager.createQuery(query, Component.class)
+                .setParameter("number", number)
+                .getSingleResult();
+    }
+
 }

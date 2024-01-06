@@ -10,7 +10,6 @@ class MonthAssembler {
     private MonthStatus monthStatus;
     private Amount underpayment = Amount.ZERO;
     private Amount overpayment = Amount.ZERO;
-    private List<ComponentPremium> componentPremiums;
 
     MonthAssembler builder() {
         this
@@ -36,13 +35,8 @@ class MonthAssembler {
         this
     }
 
-    MonthAssembler withComponentPremiums(List<ComponentPremium> componentPremiums) {
-        this.componentPremiums = componentPremiums
-        this
-    }
-
     Month build() {
-        new Month(yearMonth, monthStatus, underpayment, overpayment, componentPremiums)
+        new Month(yearMonth, monthStatus, Amount.ZERO, Amount.ZERO)
     }
 
 }

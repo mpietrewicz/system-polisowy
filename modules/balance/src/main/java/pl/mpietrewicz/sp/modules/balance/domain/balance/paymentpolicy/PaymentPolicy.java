@@ -7,6 +7,6 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
 @DomainPolicy
 public interface PaymentPolicy {
 
-    Month getMonthToPay(Period period, PaymentData paymentData);
+    Month getMonthToPay(Period period, PaymentData paymentData); // todo: mogę przekazać interfejs PeriodChecker który nie pozwil na za dużo tylko na sprawdzaniemiesiecy
 
 }

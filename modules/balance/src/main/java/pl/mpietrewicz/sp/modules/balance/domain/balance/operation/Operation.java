@@ -3,10 +3,10 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainEntity;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.Period;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.Premium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.Period;
 
 import javax.persistence.DiscriminatorColumn;
 import javax.persistence.DiscriminatorType;
@@ -35,9 +35,6 @@ public abstract class Operation extends BaseEntity {
     @Embedded
     protected Period period;
 
-    @Embedded
-    protected Premium premium;
-
     @Enumerated(EnumType.STRING)
     protected OperationType type;
 
@@ -47,22 +44,16 @@ public abstract class Operation extends BaseEntity {
         this.date = date;
     }
 
-    public void execute(Operation previousOperation, int grace) {
+    public void execute(Operation previousOperation, PremiumSnapshot premiumSnapshot) {
         this.period = previousOperation.getPeriodCopy();
-        this.premium = previousOperation.getPremiumCopy();
-        execute();
-        period.includeGracePeriod(premium, grace);
+        execute(premiumSnapshot);
         this.pending = false;
     }
 
-    protected abstract void execute();
+    protected abstract void execute(PremiumSnapshot premiumSnapshot);
 
     public Period getPeriodCopy() {
         return period.createCopy();
-    }
-
-    public Premium getPremiumCopy() {
-        return premium.createCopy();
     }
 
     public int orderComparator(Operation operation) {
@@ -101,12 +92,15 @@ public abstract class Operation extends BaseEntity {
         return YearMonth.from(date);
     }
 
-    public List<MonthlyBalance> getMonthlyBalances() {
-        return period.getMonthlyBalances();
+    public List<MonthlyBalance> getMonthlyBalances(PremiumSnapshot premiumSnapshot) {
+        return period.getMonthlyBalances(premiumSnapshot);
     }
 
     public boolean isPending() {
         return pending;
     }
 
+    public LocalDateTime getRegistration() {
+        return registration;
+    }
 }

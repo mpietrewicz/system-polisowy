@@ -14,7 +14,7 @@ public class Amount implements Serializable {
     public static final Amount ZERO = new Amount(BigDecimal.ZERO);
     public static final Amount TEN = new Amount(BigDecimal.TEN);
 
-    private BigDecimal value;
+    public BigDecimal value;
 
     public Amount() {
     }
@@ -73,4 +73,9 @@ public class Amount implements Serializable {
     public Amount negate() {
         return new Amount(value.negate());
     }
+
+    public Amount absolute() {
+        return new Amount(value.abs());
+    }
+
 }

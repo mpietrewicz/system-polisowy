@@ -38,7 +38,11 @@ public class ComponentData {
 	private ComponentStatus componentStatus;
 
 	@SuppressWarnings("unused")
-	private ComponentData(){}
+	private ComponentData() {}
+
+	public ComponentData(AggregateId aggregateId) {
+		this.aggregateId = aggregateId;
+	}
 
 	public ComponentData(AggregateId aggregateId, ContractData contractData, LocalDate startDate, ComponentStatus componentStatus) {
 		this.aggregateId = aggregateId;

@@ -1,7 +1,7 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy
 
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot
 
-import pl.mpietrewicz.sp.modules.balance.domain.balance.ComponentPremiumAssembler
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthAssembler
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus
 import spock.lang.Specification
@@ -12,11 +12,11 @@ import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus
 
 class ContinuationPolicyTest extends Specification {
 
-    def continuationPolicy = new ContinuationPolicy()
+    def premiumSnapshot = PremiumSnapshot.builder().build()
+
+    def continuationPolicy = new ContinuationPolicy(premiumSnapshot)
 
     def monthAssembler = new MonthAssembler()
-
-    def componentPremiumAssembler = new ComponentPremiumAssembler()
 
     def "should return first month of period if period is unpaid"() {
         given:
@@ -30,12 +30,12 @@ class ContinuationPolicyTest extends Specification {
         continuationPolicy.getMonthToPay(period, paymentData).getYearMonth() == monthToPay
 
         where:
-        paymentData         || monthToPay
-        data("2022-10-10")  || yearMonth("2023-01")
-        data("2023-01-01")  || yearMonth("2023-01")
-        data("2023-02-12")  || yearMonth("2023-01")
-        data("2023-03-31")  || yearMonth("2023-01")
-        data("2023-04-01")  || yearMonth("2023-01")
+        paymentData        || monthToPay
+        data("2022-10-10") || yearMonth("2023-01")
+        data("2023-01-01") || yearMonth("2023-01")
+        data("2023-02-12") || yearMonth("2023-01")
+        data("2023-03-31") || yearMonth("2023-01")
+        data("2023-04-01") || yearMonth("2023-01")
     }
 
     def "should return last paid month if period is paid"() {
@@ -50,11 +50,11 @@ class ContinuationPolicyTest extends Specification {
         continuationPolicy.getMonthToPay(period, paymentData).getYearMonth() == monthToPay
 
         where:
-        paymentData         || monthToPay
-        data("2022-10-10")  || yearMonth("2023-03")
-        data("2023-01-01")  || yearMonth("2023-03")
-        data("2023-03-31")  || yearMonth("2023-03")
-        data("2023-04-01")  || yearMonth("2023-03")
+        paymentData        || monthToPay
+        data("2022-10-10") || yearMonth("2023-03")
+        data("2023-01-01") || yearMonth("2023-03")
+        data("2023-03-31") || yearMonth("2023-03")
+        data("2023-04-01") || yearMonth("2023-03")
     }
 
     def "should return last month if period is overpaid"() {
@@ -69,11 +69,11 @@ class ContinuationPolicyTest extends Specification {
         continuationPolicy.getMonthToPay(period, paymentData).getYearMonth() == monthToPay
 
         where:
-        paymentData         || monthToPay
-        data("2022-10-10")  || yearMonth("2023-03")
-        data("2023-01-01")  || yearMonth("2023-03")
-        data("2023-03-31")  || yearMonth("2023-03")
-        data("2023-04-01")  || yearMonth("2023-03")
+        paymentData        || monthToPay
+        data("2022-10-10") || yearMonth("2023-03")
+        data("2023-01-01") || yearMonth("2023-03")
+        data("2023-03-31") || yearMonth("2023-03")
+        data("2023-04-01") || yearMonth("2023-03")
     }
 
     def "should return first unpaid month if period is partly paid"() {
@@ -88,22 +88,18 @@ class ContinuationPolicyTest extends Specification {
         continuationPolicy.getMonthToPay(period, paymentData).getYearMonth() == monthToPay
 
         where:
-        paymentData         || monthToPay
-        data("2022-10-10")  || yearMonth("2023-02")
-        data("2023-01-01")  || yearMonth("2023-02")
-        data("2023-03-31")  || yearMonth("2023-02")
-        data("2023-04-01")  || yearMonth("2023-02")
+        paymentData        || monthToPay
+        data("2022-10-10") || yearMonth("2023-02")
+        data("2023-01-01") || yearMonth("2023-02")
+        data("2023-03-31") || yearMonth("2023-02")
+        data("2023-04-01") || yearMonth("2023-02")
     }
 
     def month(String yearMonth, MonthStatus status) {
-        def componentPremium = componentPremiumAssembler.builder()
-                .withAmount("10")
-                .build()
 
         monthAssembler.builder()
                 .withYearMonth(yearMonth)
                 .withMonthStatus(status)
-                .withComponentPremiums([componentPremium])
                 .build()
     }
 

@@ -1,6 +1,6 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy
 
-import pl.mpietrewicz.sp.modules.balance.domain.balance.ComponentPremiumAssembler
+
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthAssembler
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus
 import spock.lang.Specification
@@ -15,8 +15,6 @@ class NoRenewalPolicyTest extends Specification {
     def renewalPolicy = new NoRenewalPolicy(paymentPolicyMock)
 
     def monthAssembler = new MonthAssembler()
-
-    def componentPremiumAssembler = new ComponentPremiumAssembler()
 
     def "should use continuation policy if payment is in period"() {
         given:
@@ -71,14 +69,10 @@ class NoRenewalPolicyTest extends Specification {
     }
 
     def month(String yearMonth, MonthStatus status) {
-        def componentPremium = componentPremiumAssembler.builder()
-                .withAmount("10")
-                .build()
 
         monthAssembler.builder()
                 .withYearMonth(yearMonth)
                 .withMonthStatus(status)
-                .withComponentPremiums([componentPremium])
                 .build()
     }
 

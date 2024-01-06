@@ -48,10 +48,14 @@ public class ContractData {
 	private YearMonth accountingMonth;
 
 	@SuppressWarnings("unused")
-	private ContractData(){}
+	private ContractData() {}
+
+	public ContractData(AggregateId aggregateId) {
+		this.aggregateId = aggregateId;
+	}
 
 	public ContractData(AggregateId aggregateId, LocalDate contractStartDate, Frequency frequency,
-                        PaymentPolicyEnum paymentPolicyEnum, YearMonth accountingMonth) {
+						PaymentPolicyEnum paymentPolicyEnum, YearMonth accountingMonth) {
 		this.aggregateId = aggregateId;
 		this.contractStartDate = contractStartDate;
 		this.frequency = frequency;

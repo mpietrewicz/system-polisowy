@@ -10,8 +10,8 @@ import java.time.LocalDate;
 
 public interface ComponentService {
 
-	Component addComponent(AggregateId contractId, LocalDate registerDate, Amount premium);
+	Component addComponent(AggregateId contractId, String number, LocalDate registerDate, Amount premium);
 
-	void terminate(AggregateId componentId, LocalDate endDate);
+	void terminate(String number, LocalDate endDate);
 
 }

@@ -27,7 +27,7 @@ spring:
     defer-datasource-initialization: true
     hibernate:
       dialect: org.hibernate.dialect.MySQL8Dialect
-      ddl-auto: update
+      ddl-auto: create-drop
     properties:
       hibernate:
         show_sql: true
