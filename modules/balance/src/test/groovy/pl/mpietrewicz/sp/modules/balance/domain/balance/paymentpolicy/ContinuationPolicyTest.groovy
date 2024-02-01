@@ -3,12 +3,12 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthAssembler
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus
 import spock.lang.Specification
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.TestUtils.data
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.TestUtils.yearMonth
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.*
+import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus.*
 
 class ContinuationPolicyTest extends Specification {
 
@@ -95,7 +95,7 @@ class ContinuationPolicyTest extends Specification {
         data("2023-04-01") || yearMonth("2023-02")
     }
 
-    def month(String yearMonth, MonthStatus status) {
+    def month(String yearMonth, PaidStatus status) {
 
         monthAssembler.builder()
                 .withYearMonth(yearMonth)

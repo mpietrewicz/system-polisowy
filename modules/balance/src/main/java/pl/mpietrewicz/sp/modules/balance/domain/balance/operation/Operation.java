@@ -45,7 +45,12 @@ public abstract class Operation extends BaseEntity {
     }
 
     public void execute(Operation previousOperation, PremiumSnapshot premiumSnapshot) {
-        this.period = previousOperation.getPeriodCopy();
+        if (period != null) {
+            period.clear(); // todo: jeśli coś jest to znaczy że ponwonie przeliczam, wiec mogę gdzieś odłożyć sobię historią, albo wydzielić do dwóch metod execute i reexecute
+            period.months.addAll(previousOperation.getPeriodCopy().months);
+        } else {
+            period = previousOperation.getPeriodCopy();
+        }
         execute(premiumSnapshot);
         this.pending = false;
     }

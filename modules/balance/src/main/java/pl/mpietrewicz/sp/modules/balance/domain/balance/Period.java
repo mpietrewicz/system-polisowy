@@ -11,6 +11,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicy;
 
 import javax.persistence.CascadeType;
+import javax.persistence.ElementCollection;
 import javax.persistence.Embeddable;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
@@ -27,9 +28,10 @@ import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 @NoArgsConstructor
 public class Period {
 
-    @OneToMany(cascade = CascadeType.ALL)
+    @ElementCollection
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "operation_id")
-    private List<Month> months;
+    public List<Month> months;
 
     private LocalDate start;
 
@@ -62,7 +64,7 @@ public class Period {
 
         do {
             refund = month.refund(refund.castToPositive());
-            if (month.isUnpaid()) { // todo: dla umowy bez okresu prolongaty to będzie tylko pierwszy warunek
+            if (!month.isPaid()) { // todo: dla umowy bez okresu prolongaty to będzie tylko pierwszy warunek
                 months.remove(month);
                 month = getPreviousMonth(month)
                         .orElseThrow(() -> new IllegalStateException("Nie można zwrócić, bo nie ma opłaconych miesięcy"));
@@ -170,6 +172,10 @@ public class Period {
         return getLastMonth()
                 .map(Month::getPaid)
                 .orElse(ZERO);
+    }
+
+    public void clear() {
+        if (months != null) months.clear();
     }
 
 }

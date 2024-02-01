@@ -1,13 +1,14 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month
 
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Unpaid
 
 import java.time.YearMonth
 
 class MonthAssembler {
 
     private YearMonth yearMonth;
-    private MonthStatus monthStatus;
+    private PaidStatus monthStatus;
     private Amount underpayment = Amount.ZERO;
     private Amount overpayment = Amount.ZERO;
 
@@ -20,7 +21,7 @@ class MonthAssembler {
         this
     }
 
-    MonthAssembler withMonthStatus(MonthStatus monthStatus) {
+    MonthAssembler withMonthStatus(PaidStatus monthStatus) {
         this.monthStatus = monthStatus
         this
     }
@@ -36,7 +37,7 @@ class MonthAssembler {
     }
 
     Month build() {
-        new Month(yearMonth, monthStatus, Amount.ZERO, Amount.ZERO)
+        new Month(yearMonth, Amount.ZERO, new Unpaid())
     }
 
 }

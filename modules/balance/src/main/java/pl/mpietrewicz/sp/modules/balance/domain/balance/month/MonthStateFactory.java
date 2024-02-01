@@ -14,15 +14,15 @@ public class MonthStateFactory {
         throw new IllegalStateException("Factory (utility) class");
     }
 
-    public static MonthState createState(Month month, MonthStatus status, Amount paid) {
-        if (status == MonthStatus.UNPAID) {
-            return new Unpaid(month);
-        } else if (status == MonthStatus.UNDERPAID) {
-            return new Underpaid(month, paid);
-        } else if (status == MonthStatus.PAID) {
-            return new Paid(month);
-        } else if (status == MonthStatus.OVERPAID) {
-            return new Overpaid(month, paid);
+    public static MonthState createState(PaidStatus paidStatus, Amount paid) {
+        if (paidStatus == PaidStatus.UNPAID) {
+            return new Unpaid();
+        } else if (paidStatus == PaidStatus.UNDERPAID) {
+            return new Underpaid(paid);
+        } else if (paidStatus == PaidStatus.PAID) {
+            return new Paid(paid);
+        } else if (paidStatus == PaidStatus.OVERPAID) {
+            return new Overpaid(paid);
         } else {
             throw new IllegalStateException("Illegal month state!");
         }
