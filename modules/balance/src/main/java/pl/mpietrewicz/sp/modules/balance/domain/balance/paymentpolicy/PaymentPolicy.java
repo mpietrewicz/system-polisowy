@@ -1,12 +1,13 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy;
 
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainPolicy;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.MonthToPay;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
 
 @DomainPolicy
 public interface PaymentPolicy {
 
-    Month getMonthToPay(Period period, PaymentData paymentData); // todo: mogę przekazać interfejs PeriodChecker który nie pozwil na za dużo tylko na sprawdzaniemiesiecy
+    MonthToPay getMonthToPay(Period period, PaymentData paymentData);
 
 }
