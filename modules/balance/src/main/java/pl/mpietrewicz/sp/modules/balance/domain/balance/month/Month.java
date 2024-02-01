@@ -2,23 +2,21 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainEntity;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
+import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 
+import javax.persistence.AttributeOverride;
 import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
-import javax.persistence.ManyToMany;
 import javax.persistence.OneToOne;
 import java.time.YearMonth;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+
+import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 
 @DomainEntity
 @Entity
@@ -27,69 +25,52 @@ public class Month extends BaseEntity {
 
     private YearMonth yearMonth;
 
-    @ManyToMany(cascade = CascadeType.ALL)
-    private List<ComponentPremium> componentPremiums = new ArrayList<>();
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "premium"))
+    protected Amount premium;
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "month_state_id")
     private MonthState monthState;
 
-    public Month(YearMonth yearMonth, MonthStatus monthStatus, Amount underpayment, Amount overpayment,
-                 List<ComponentPremium> componentPremiums) {
+    public Month(YearMonth yearMonth, MonthStatus monthStatus, Amount premium, Amount paid) {
         this.yearMonth = yearMonth;
-        this.monthState = MonthStateFactory.createState(this, monthStatus, underpayment, overpayment);
-        this.componentPremiums = componentPremiums;
+        this.premium = premium;
+        this.monthState = MonthStateFactory.createState(this, monthStatus, paid);
     }
 
-    public Month(YearMonth yearMonth, MonthState monthState, List<ComponentPremium> componentPremiums) {
+    public Month(YearMonth yearMonth, Amount premium, MonthState monthState) {
         this.yearMonth = yearMonth;
+        this.premium = premium;
         this.monthState = monthState;
-        this.componentPremiums = componentPremiums;
     }
 
-    public Month createNextMonth(List<ComponentPremium> componentPremiums) {
-        return monthState.createNextMonth(componentPremiums);
+    public static Month init(YearMonth yearMonth, Amount premium) {
+        return new Month(yearMonth, MonthStatus.UNPAID, premium, ZERO);
     }
 
-    public Amount pay(PositiveAmount payment, Optional<Month> nextMonth) {
-        return monthState.pay(payment, nextMonth);
+    public Amount pay(PositiveAmount payment) {
+        return monthState.pay(payment);
     }
 
-    public Amount refund(PositiveAmount refund, Optional<Month> previousMonth) {
-        return monthState.refund(refund, previousMonth);
-    }
-
-    public Amount refund() {
-        return monthState.refund();
-    }
-
-    public Amount getPaidAmount() {
-        return monthState.getPaid();
+    public Amount refund(PositiveAmount refund) {
+        return monthState.refund(refund);
     }
 
     public YearMonth getYearMonth() {
         return yearMonth;
     }
 
-    public Amount getPremium() {
-        return componentPremiums.stream()
-                .map(ComponentPremium::getPremium)
-                .reduce(Amount.ZERO, Amount::add);
-    }
-
-    public Map<AggregateId, Amount> getPremiumComponents() {
-        return componentPremiums.stream()
-                .collect(Collectors.toMap(
-                        ComponentPremium::getComponentId,
-                        ComponentPremium::getPremium));
-    }
-
     public Month createCopy() { // todo: tak średnio to wygląda
-        Month monthCopy = new Month(yearMonth, monthState, getComponentPremiums());
+        Month monthCopy = new Month(yearMonth, premium, monthState);
         MonthState monthStateCopy = MonthStateFactory.createState(monthCopy, monthState.getStatus(),
-                monthState.underpayment, monthState.underpayment);
+                monthState.paid);
         monthCopy.changeState(monthStateCopy);
         return monthCopy;
+    }
+
+    public boolean canPaidBy(Amount payment) {
+        return monthState.canPaidBy(payment);
     }
 
     public void changeState(MonthState monthState) {
@@ -100,16 +81,12 @@ public class Month extends BaseEntity {
         return monthState.isPaid();
     }
 
-    public boolean isPartlyPaid() {
-        return monthState.isPaid();
+    public boolean hasPayment() {
+        return monthState.hasPayment();
     }
 
-    public boolean isNotPaid() {
-        return monthState.isNotPaid();
-    }
-
-    public boolean canBeDeleted() {
-        return getPaidAmount() == Amount.ZERO;
+    public boolean isUnpaid() {
+        return monthState.isUnpaid();
     }
 
     public int compareAscending(Month month) {
@@ -120,14 +97,13 @@ public class Month extends BaseEntity {
         return month.getYearMonth().compareTo(this.yearMonth);
     }
 
-    private List<ComponentPremium> getComponentPremiums() {
-        return new ArrayList<>(componentPremiums);
+    public Amount getPaid() {
+        return monthState.getPaid();
     }
 
     @Override
     public String toString() {
         return yearMonth +
-                ", " + getPremium() +
                 ", " + monthState.getStatus();
     }
 
@@ -143,7 +119,7 @@ public class Month extends BaseEntity {
         return compareAscending(month) == 0;
     }
 
-    public boolean canPaidBy(Amount payment) {
-        return monthState.canPaidBy(payment);
+    public Amount getPremium() {
+        return premium;
     }
 }

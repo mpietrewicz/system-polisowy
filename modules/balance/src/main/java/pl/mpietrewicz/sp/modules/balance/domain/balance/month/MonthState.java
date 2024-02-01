@@ -6,10 +6,8 @@ import pl.mpietrewicz.sp.ddd.annotations.domain.DomainEntity;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Unpaid;
 
 import javax.persistence.AttributeOverride;
-import javax.persistence.AttributeOverrides;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
@@ -18,16 +16,8 @@ import javax.persistence.Enumerated;
 import javax.persistence.Inheritance;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
-import java.time.YearMonth;
-import java.util.List;
-import java.util.Optional;
 
 import static javax.persistence.InheritanceType.SINGLE_TABLE;
-import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.OVERPAID;
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.PAID;
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.UNDERPAID;
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.UNPAID;
 
 @DomainEntity
 @Entity
@@ -44,80 +34,49 @@ public abstract class MonthState extends BaseEntity {
     private MonthStatus status;
 
     @Embedded
-    @AttributeOverrides({@AttributeOverride(name = "value", column = @Column(name = "underpayment"))})
-    protected Amount underpayment = Amount.ZERO; // todo: wydaje mi sie, że te wartosci mogę spokojnie przenieść do konkretnych implementacji, a entity sobie poradzi
+    @AttributeOverride(name = "value", column = @Column(name = "paid"))
+    protected Amount paid;
 
-    @Embedded
-    @AttributeOverrides({@AttributeOverride(name = "value", column = @Column(name = "overpayment"))})
-    protected Amount overpayment = Amount.ZERO;
-
-    public MonthState(Month month, MonthStatus status, Amount underpayment, Amount overpayment) {
+    public MonthState(Month month, MonthStatus status, Amount paid) {
         this.month = month;
         this.status = status;
-        this.underpayment = underpayment;
-        this.overpayment = overpayment;
+        this.paid = paid;
     }
 
-    public abstract Amount pay(PositiveAmount payment, Optional<Month> nextMonth); // todo: tak naprawdę potrzebuję tylko wiedzieć czy istniej następny okres!
-
-    public abstract Amount refund(PositiveAmount refund, Optional<Month> previousMonth);
-
-    public Amount refund() {
-        month.changeState(new Unpaid(month));
-        return getPaid();
+    public MonthState(Month month, MonthStatus status) {
+        this.month = month;
+        this.status = status;
+        this.paid = getPremium();
     }
+
+    public abstract Amount pay(PositiveAmount payment);
+
+    public abstract Amount refund(PositiveAmount refund);
 
     public abstract boolean canPaidBy(Amount payment);
 
-    public abstract Month createNextMonth(List<ComponentPremium> componentPremiums);
+    public Amount getPaid() {
+        return paid;
+    }
 
-    public abstract Amount getPaid();
-
-    public abstract MonthState getCopy();
+    public Amount getPremium() {
+        return month.getPremium();
+    }
 
     public boolean isPaid() {
         return status.isPaid();
     }
 
-    public boolean isNotPaid() {
-        return status.isNotPaid();
+    public boolean hasPayment() {
+        return status.hasPayment();
+    }
+
+    public boolean isUnpaid() {
+        return status.isUnpaid();
     }
 
     public MonthStatus getStatus() {
         return status;
     }
-
-    protected Month createUnpaid(YearMonth yearMonth, List<ComponentPremium> componentPremiums) {
-        return new Month(yearMonth, UNPAID, ZERO, ZERO, componentPremiums);
-    }
-
-    protected Month createUnderpaid(YearMonth yearMonth, Amount underpayment, List<ComponentPremium> componentPremiums) {
-        return new Month(yearMonth, UNDERPAID, underpayment, ZERO, componentPremiums);
-    }
-
-    protected Month createPaid(YearMonth yearMonth, List<ComponentPremium> componentPremiums) {
-        return new Month(yearMonth, PAID, ZERO, ZERO, componentPremiums);
-    }
-
-    protected Month createOverpaid(YearMonth yearMonth, Amount overpayment, List<ComponentPremium> componentPremiums) {
-        return new Month(yearMonth, OVERPAID, ZERO, overpayment, componentPremiums);
-    }
-
-    protected Amount getPremium() {
-        return month.getPremium();
-    }
-
-    protected boolean paidIsLessThan(Amount amount) {
-        return getPaid().isLessThan(amount);
-    }
-
-    protected boolean paidEquals(Amount amount) {
-        return getPaid().equals(amount);
-    }
-
-    protected boolean paidIsHigherThan(Amount amount) {
-        return getPaid().isHigherThan(amount);
-    }
-
 
 }

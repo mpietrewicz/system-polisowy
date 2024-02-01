@@ -43,7 +43,7 @@ public abstract class GenericJpaRepository<A extends BaseAggregateRoot> {
         if (aggregate.isRemoved())
         	throw new RuntimeException("Aggragate + " + id + " is removed.");
         
-        spring.autowireBean(aggregate);
+        spring.autowireBean(aggregate); // todo: albo ładować wszystko przez load albo bezpośrednio do repository dodać tą linijkę
         
         return aggregate;
     }

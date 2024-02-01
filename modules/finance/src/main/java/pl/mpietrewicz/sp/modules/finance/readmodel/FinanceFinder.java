@@ -14,7 +14,7 @@ import java.util.List;
 public interface FinanceFinder extends JpaRepository<RegisterPayment, BaseAggregateRoot> {
 
     @Query("SELECT new pl.mpietrewicz.sp.modules.finance.readmodel.dto.WplataDto(p.aggregateId.aggregateId, p.date, p.register, " +
-            "p.amount, p.contractData.aggregateId.aggregateId) " +
+            "p.amount.value, p.contractData.aggregateId.aggregateId) " +
             "FROM RegisterPayment p " +
             "WHERE p.contractData.aggregateId.aggregateId = :contractId")
     List<WplataDto> findPayments(@Param("contractId") String contractId);

@@ -36,7 +36,7 @@ public class Contract extends BaseAggregateRoot {
 	}
 
 	public Contract(AggregateId aggregateId, LocalDate startDate, Frequency frequency,
-                    PaymentPolicyEnum paymentPolicyEnum, YearMonth accountingMonth) {
+					PaymentPolicyEnum paymentPolicyEnum, YearMonth accountingMonth) {
 		this.aggregateId = aggregateId;
 		this.startDate = startDate;
 		this.frequency = frequency;

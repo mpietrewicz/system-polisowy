@@ -2,8 +2,12 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance;
 
 import org.junit.Test;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.ChangePremiumSnapshot;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.ComponentPremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -14,6 +18,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum.CONTINUATION;
 import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum.NO_RENEWAL;
@@ -28,13 +33,26 @@ public class TestBalance {
 
         Balance balance = new Balance(AggregateId.generate(), contractData);
 
-        balance.startCalculating(contractStart, Amount.TEN, contractData.getAggregateId());
+        balance.startCalculating(contractStart, createPremiumSnapshot(contractStart, PositiveAmount.TEN));
         balance.addPayment(date("2023-02-10"), amount("30"), CONTINUATION);
         balance.addRefund(date("2023-03-10"), amount("20"));
         balance.addPayment(date("2023-05-20"), amount("60"), CONTINUATION);
-        balance.changePremium(LocalDate.parse("2023-02-01"), new Amount("100"), contractData.getAggregateId());
+        balance.changePremium(LocalDate.parse("2023-02-01"), createPremiumSnapshot(contractStart, new PositiveAmount("100")));
 
         System.out.println("koniec");
+    }
+
+    private PremiumSnapshot createPremiumSnapshot(LocalDate date, PositiveAmount amount) {
+        return PremiumSnapshot.builder()
+                .componentPremiumSnapshots(Stream.of(
+                        ComponentPremiumSnapshot.builder()
+                                .changes(List.of(ChangePremiumSnapshot.builder()
+                                        .date(date)
+                                        .amount(amount)
+                                        .build()))
+                                .build()
+                ).collect(Collectors.toList()))
+                .build();
     }
 
     @Test
@@ -44,7 +62,7 @@ public class TestBalance {
 
         Balance balance = new Balance(AggregateId.generate(), contractData);
 
-        balance.startCalculating(contractStart, new Amount("11.78"), contractData.getAggregateId());
+        balance.startCalculating(contractStart, createPremiumSnapshot(contractStart, PositiveAmount.TEN));
         balance.addPayment(date("2022-02-25"), amount("35.34"), CONTINUATION);
         balance.addPayment(date("2022-06-27"), amount("35.34"), CONTINUATION);
         balance.addPayment(date("2022-09-14"), amount("35.34"), CONTINUATION);
@@ -63,7 +81,7 @@ public class TestBalance {
 
         Balance balance = new Balance(AggregateId.generate(), contractData);
 
-        balance.startCalculating(contractStart, Amount.TEN, contractData.getAggregateId());
+        balance.startCalculating(contractStart, createPremiumSnapshot(contractStart, PositiveAmount.TEN));
         balance.addPayment(date("2023-02-10"), amount("30"), NO_RENEWAL);
         balance.addRefund(date("2023-03-10"), amount("20"));
         balance.addPayment(date("2023-05-20"), amount("60"), NO_RENEWAL);
@@ -78,7 +96,7 @@ public class TestBalance {
 
         Balance balance = new Balance(AggregateId.generate(), contractData);
 
-        balance.startCalculating(contractStart, Amount.TEN, contractData.getAggregateId());
+        balance.startCalculating(contractStart, createPremiumSnapshot(contractStart, PositiveAmount.TEN));
         balance.addPayment(date("2023-02-10"), amount("30"), NO_RENEWAL);
         balance.addRefund(date("2023-03-10"), amount("20"));
         balance.addPayment(date("2023-10-20"), amount("60"), RENEWAL);
@@ -126,11 +144,13 @@ public class TestBalance {
 
     private void runBalanceMethod(Balance balance, ContractData contractData, OperationToTestData operationToTestData) {
         if (operationToTestData.getOperationEnum() == OperationEnum.START_CONTRACT) {
-            balance.startCalculating(operationToTestData.getDate(), new Amount(operationToTestData.getAmount()), contractData.getAggregateId());
+            balance.startCalculating(operationToTestData.getDate(), createPremiumSnapshot(operationToTestData.getDate(),
+                    new PositiveAmount(operationToTestData.getAmount())));
         } else if (operationToTestData.getOperationEnum() == OperationEnum.PAYMENT) {
             balance.addPayment(operationToTestData.getDate(), new Amount(operationToTestData.getAmount()), RENEWAL);
         } else if (operationToTestData.getOperationEnum() == OperationEnum.INCREASE_INSURANCE_SUM) {
-            balance.changePremium(operationToTestData.getDate(), new Amount(operationToTestData.getAmount()), contractData.getAggregateId());
+            balance.changePremium(operationToTestData.getDate(), createPremiumSnapshot(operationToTestData.getDate(),
+                    new PositiveAmount(operationToTestData.getAmount())));
         } else {
             throw new IllegalArgumentException();
         }
@@ -148,7 +168,10 @@ public class TestBalance {
         Balance balance = new Balance(AggregateId.generate(), contractData);
 
 
-        List<ContractOperation> sortedOperations = daneDoTestow.get(3)
+        List<ContractOperation> sortedOperations = daneDoTestow.stream()
+                .filter(nowyPakiet -> nowyPakiet.getIdUmowy().equals("0353/D2W/87"))
+                .findAny()
+                .get()
                 .getNoweSkladniki().stream()
                 .map(NowySkladnik::getContractOperations)
                 .flatMap(Collection::stream)
@@ -165,23 +188,28 @@ public class TestBalance {
     }
 
     private void newRunBalanceMethod(Balance balance, ContractOperation contractOperation) {
+        LocalDate dataZmiany = convertToLocalDate(contractOperation.getDATA_ZMIANY());
+        PositiveAmount kwota = new PositiveAmount(contractOperation.getKTOWA().replace(",", "."));
         if (contractOperation.getOPERACJA().equals("ZUM")) {
             balance.startCalculating(
-                    convertToLocalDate(contractOperation.getDATA_ZMIANY()),
-                    new Amount(contractOperation.getKTOWA().replace(",", ".")),
-                    new AggregateId(contractOperation.getNR_SKLADNIKA())
+                    dataZmiany,
+                    createPremiumSnapshot(dataZmiany, kwota)
             );
         } else if (contractOperation.getOPERACJA().equals("Wplata")) {
             balance.addPayment(
-                    convertToLocalDate(contractOperation.getDATA_ZMIANY()),
-                    new Amount(contractOperation.getKTOWA().replace(",", ".")),
+                    dataZmiany,
+                    kwota,
                     RENEWAL
             );
-        } else if (List.of("PSU", "DSK").contains(contractOperation.getOPERACJA())) {
+        } else if (List.of("PSU").contains(contractOperation.getOPERACJA())) {
             balance.changePremium(
-                    convertToLocalDate(contractOperation.getDATA_ZMIANY()),
-                    new Amount(contractOperation.getKTOWA().replace(",", ".")),
-                    new AggregateId(contractOperation.getNR_SKLADNIKA())
+                    dataZmiany,
+                    createPremiumSnapshot(dataZmiany, kwota)
+            );
+        } else if (List.of("DSK").contains(contractOperation.getOPERACJA())) {
+            balance.changePremium(
+                    dataZmiany,
+                    createPremiumSnapshot(dataZmiany, kwota)
             );
         } else {
             throw new IllegalArgumentException();

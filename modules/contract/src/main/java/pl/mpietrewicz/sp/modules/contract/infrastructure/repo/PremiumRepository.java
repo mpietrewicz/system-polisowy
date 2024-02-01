@@ -7,9 +7,12 @@ import pl.mpietrewicz.sp.modules.contract.domain.premium.Premium;
 @DomainRepository
 public interface PremiumRepository {
 
-    Premium load(AggregateId balanceId);
+    Premium load(AggregateId premiumId);
 
-    void save(Premium balance);
+    void save(Premium premium);
+
+    Premium findByContractId(AggregateId contractId);
 
     Premium findByComponentId(AggregateId componentId);
+
 }

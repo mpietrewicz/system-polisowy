@@ -3,6 +3,7 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
@@ -38,10 +39,10 @@ public class AddPayment extends Operation {
     }
 
     @Override
-    public void execute() {
+    public void execute(PremiumSnapshot premiumSnapshot) {
         PaymentData paymentData = new PaymentData(date, amount);
-        PaymentPolicy paymentPolicy = PaymentPolicyFactory.create(paymentPolicyEnum, premium);
-        period.tryPay(paymentPolicy, paymentData);
+        PaymentPolicy paymentPolicy = PaymentPolicyFactory.create(paymentPolicyEnum, premiumSnapshot);
+        period.tryPay(paymentPolicy, paymentData, premiumSnapshot);
     }
 
 }

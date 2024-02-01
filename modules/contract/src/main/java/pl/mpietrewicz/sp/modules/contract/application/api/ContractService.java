@@ -14,7 +14,7 @@ import java.time.YearMonth;
 
 public interface ContractService {
 
-	Contract createContract(LocalDate registerDate, Amount premiumAmount, Frequency frequency, PaymentPolicyEnum paymentPolicyEnum);
+	Contract createContract(String number, LocalDate registerDate, Amount premiumAmount, Frequency frequency, PaymentPolicyEnum paymentPolicyEnum);
 
 	void shiftAccountingMonth(AggregateId contractId);
 

@@ -24,7 +24,9 @@ public class RegisterContractCommandHandler implements CommandHandler<RegisterCo
         Amount premium = command.getPremium();
         Frequency frequency = command.getFrequency();
         PaymentPolicyEnum paymentPolicyEnum = command.getPaymentPolicyEnum();
-        contractService.createContract(registerDate, premium, frequency, paymentPolicyEnum);
+        String number = "todo"; // todo: uzupełnić w przyszłości
+
+        contractService.createContract(number, registerDate, premium, frequency, paymentPolicyEnum);
         return null;
     }
 }

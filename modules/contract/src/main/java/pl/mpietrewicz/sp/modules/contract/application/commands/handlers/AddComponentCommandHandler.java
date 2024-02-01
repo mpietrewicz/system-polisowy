@@ -21,8 +21,9 @@ public class AddComponentCommandHandler implements CommandHandler<AddComponentCo
         AggregateId contractId = command.getContractId();
         LocalDate registerDate = command.getRegisterDate();
         Amount premium = command.getPremium();
+        String number = "todo"; // todo: uzupełnić w przyszłości
 
-        componentService.addComponent(contractId, registerDate, premium);
+        componentService.addComponent(contractId, number, registerDate, premium);
         return null;
     }
 }

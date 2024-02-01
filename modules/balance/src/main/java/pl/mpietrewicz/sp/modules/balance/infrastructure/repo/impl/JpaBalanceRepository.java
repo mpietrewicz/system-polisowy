@@ -6,8 +6,6 @@ import pl.mpietrewicz.sp.modules.balance.ddd.support.infrastructure.repository.j
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
 import pl.mpietrewicz.sp.modules.balance.infrastructure.repo.BalanceRepository;
 
-import java.util.stream.Stream;
-
 @DomainRepositoryImpl
 public class JpaBalanceRepository extends GenericJpaRepository<Balance> implements BalanceRepository {
 
@@ -17,14 +15,6 @@ public class JpaBalanceRepository extends GenericJpaRepository<Balance> implemen
         return load(entityManager.createQuery(query, AggregateId.class)
                 .setParameter("contractId", contractId)
                 .getSingleResult());
-    }
-
-    @Override
-    public Stream<Balance> findAll() {
-        String query = "SELECT b.aggregateId FROM Balance";
-        return entityManager.createQuery(query, AggregateId.class)
-                .getResultStream()
-                .map(this::load);
     }
 
 }

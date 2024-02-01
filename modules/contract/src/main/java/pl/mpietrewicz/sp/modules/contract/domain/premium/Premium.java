@@ -3,62 +3,131 @@ package pl.mpietrewicz.sp.modules.contract.domain.premium;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.events.PremiumChangedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ComponentData;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.ComponentPremiumSnapshot;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.contract.ddd.support.domain.BaseAggregateRoot;
-import pl.mpietrewicz.sp.modules.contract.domain.contract.ChangePremiumException;
 
+import javax.inject.Inject;
 import javax.persistence.CascadeType;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
+import javax.persistence.Transient;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
+import static java.util.stream.Collectors.toList;
 
 @Entity
 @AggregateRoot
 public class Premium extends BaseAggregateRoot {
 
     @Embedded
-    private ComponentData componentData;
+    private ContractData contractData;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "premium_id")
     @Fetch(FetchMode.JOIN)
-    private List<PremiumHistory> premiumHistory = new ArrayList<>();
+    private final List<ComponentPremium> componentPremiums = new ArrayList<>();
+
+    @Transient
+    @Inject
+    protected DomainEventPublisher eventPublisher;
+
+    private boolean dailyChanges = false; // todo: zrobić z tego politykę, czy rozliczanie co do dnia
 
     public Premium() {
     }
 
-    public Premium(AggregateId aggregateId, ComponentData componentData, PremiumHistory premiumHistory) {
+    public Premium(AggregateId aggregateId, ContractData contractData) {
         this.aggregateId = aggregateId;
-        this.componentData = componentData;
-        this.premiumHistory.add(premiumHistory);
+        this.contractData = contractData;
     }
 
-    public void changePremium(Amount premium, LocalDate since) {
-        if (isPremiumAfter(since)) {
-            throw new ChangePremiumException("Nie można zmienić składki - istnieją późniejsze zmiany");
-        } else {
-            add(since, premium);
-        }
+    public void add(ComponentData componentData, LocalDate date, Amount amount) {
+        LocalDateTime now = LocalDateTime.now();
+
+        ComponentPremium componentPremium = getComponentPremium(componentData)
+                .orElseGet(() -> {
+                    ComponentPremium addedComponentPremium = new ComponentPremium(componentData);
+                    componentPremiums.add(addedComponentPremium);
+                    return addedComponentPremium;
+                });
+
+        if (!dailyChanges) date = YearMonth.from(date).atDay(1); // todo: w przyszłości to jakoś ładniej roziwzać
+        componentPremium.addPremium(date, amount, now);
+
+        sentEvent(date, now);
     }
 
-    private boolean isPremiumAfter(LocalDate since) {
-        return premiumHistory.stream()
-                .map(PremiumHistory::getSince)
-                .anyMatch(s -> s.isAfter(since));
+    public void cancel(ComponentData componentData) {
+        LocalDateTime now = LocalDateTime.now();
+        ComponentPremium componentPremium = getComponentPremium(componentData)
+                .orElseThrow(() -> new IllegalStateException("No component found for premium change"));
+
+        LocalDate canceledAddDate = componentPremium.cancel(now);
+
+        sentEvent(canceledAddDate, now);
     }
 
-    private void add(LocalDate startDate, Amount premium) {
-        premiumHistory.add(new PremiumHistory(startDate, premium));
+    public void change(ComponentData componentData, LocalDate date, Amount amount) {
+        LocalDateTime now = LocalDateTime.now();
+        ComponentPremium componentPremium = getComponentPremium(componentData)
+                .orElseThrow(() -> new IllegalStateException("No component found for premium change"));
+
+        if (!dailyChanges) date = YearMonth.from(date).atDay(1); // todo: w przyszłości to jakoś ładniej roziwzać
+        componentPremium.changePremium(date, amount, now);
+
+        sentEvent(date, now);
     }
 
-    public ComponentData getComponentData() {
-        return componentData;
+    public void delete(ComponentData componentData, LocalDate date) {
+        LocalDateTime now = LocalDateTime.now();
+        ComponentPremium componentPremium = getComponentPremium(componentData)
+                .orElseThrow(() -> new IllegalStateException("No component found for premium delete"));
+
+        if (!dailyChanges) date = YearMonth.from(date).atEndOfMonth(); // todo: w przyszłości to jakoś ładniej roziwzać
+        componentPremium.deletePremium(date, now);
+
+        sentEvent(date, now);
+    }
+
+    private Optional<ComponentPremium> getComponentPremium(ComponentData componentData) {
+        return componentPremiums.stream()
+                .filter(cp -> cp.applay(componentData))
+                .findAny();
+    }
+
+    public PremiumSnapshot generateSnapshot(LocalDateTime timestamp) {
+        List<ComponentPremiumSnapshot> componentPremiumSnapshots = componentPremiums.stream()
+                .map(cp -> cp.generateSnapshot(timestamp))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(toList());
+
+        return PremiumSnapshot.builder()
+                .premiumId(aggregateId)
+                .timestamp(timestamp)
+                .contractData(contractData)
+                .componentPremiumSnapshots(componentPremiumSnapshots)
+                .build();
+    }
+
+    private void sentEvent(LocalDate date, LocalDateTime timestamp) {
+        PremiumSnapshot premiumSnapshot = generateSnapshot(timestamp);
+        PremiumChangedEvent event = new PremiumChangedEvent(date, premiumSnapshot);
+        eventPublisher.publish(event);
     }
 }

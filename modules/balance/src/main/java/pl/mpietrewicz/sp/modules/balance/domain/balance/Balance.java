@@ -3,18 +3,19 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseAggregateRoot;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ComponentPremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddPayment;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddRefund;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.ChangePremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
+import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
 
 import javax.inject.Inject;
 import javax.persistence.CascadeType;
@@ -23,8 +24,10 @@ import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
 import javax.persistence.Transient;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -47,14 +50,18 @@ public class Balance extends BaseAggregateRoot {
     @Inject
     protected DomainEventPublisher eventPublisher;
 
+    @Transient
+    @Inject
+    protected PremiumService premiumService;
+
     public Balance(AggregateId aggregateId, ContractData contractData) {
         this.aggregateId = aggregateId;
         this.contractData = contractData;
     }
 
-    public void startCalculating(LocalDate date, Amount premium, AggregateId componentId) {
-        ComponentPremium componentPremium = new ComponentPremium(componentId, premium);
-        StartCalculating startCalculating = new StartCalculating(YearMonth.from(date), componentPremium);
+    public void startCalculating(LocalDate date, PremiumSnapshot premiumSnapshot) {
+        PositiveAmount premium = premiumSnapshot.getAmountAt(date);
+        StartCalculating startCalculating = new StartCalculating(YearMonth.from(date), premium.getAmount());
         commit(startCalculating);
     }
 
@@ -68,36 +75,47 @@ public class Balance extends BaseAggregateRoot {
         commit(addRefund);
     }
 
-    public void changePremium(LocalDate start, Amount premium, AggregateId componentId) {
-        ComponentPremium componentPremium = new ComponentPremium(componentId, premium);
-        ChangePremium changePremium = new ChangePremium(start, componentPremium);
+    public void changePremium(LocalDate start, PremiumSnapshot premiumSnapshot) {
+        PositiveAmount premium = premiumSnapshot.getAmountAt(start);
+        ChangePremium changePremium = new ChangePremium(start, premium.getAmount());
         commit(changePremium);
     }
 
     private void commit(StartCalculating operation) {
-        operation.execute(grace);
-
+        operation.execute();
         operations.add(operation);
-        publishUpdatedBalance();
+
+        publishUpdatedBalanceAfter(operation);
     }
 
     private void commit(Operation operation) {
-        calculate(operation);
-        recalculateAfter(operation);
+        AggregateId contractId = contractData.getAggregateId();
+        LocalDateTime registration = operation.getRegistration();
+        PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, registration);
 
+        calculate(operation, premiumSnapshot);
         operations.add(operation);
-        publishUpdatedBalance();
+        Operation lastRecalculated = recalculateAfter(operation, premiumSnapshot);
+
+        publishUpdatedBalanceAfter(lastRecalculated);
     }
 
-    private void calculate(Operation operation) {
+    private void calculate(Operation operation, PremiumSnapshot premiumSnapshot) {
         Operation previousOperation = getPreviousOperation(operation);
-        operation.execute(previousOperation, grace);
+        operation.execute(previousOperation, premiumSnapshot);
     }
 
-    private void recalculateAfter(Operation operation) {
-        for (Operation nextOperation : getNextOperationsAfter(operation)) {
-            calculate(nextOperation);
+    private Operation recalculateAfter(Operation operation, PremiumSnapshot premiumSnapshot) {
+        List<Operation> nextOperations = getNextOperationsAfter(operation);
+
+        Iterator<Operation> operationIterator = nextOperations.iterator();
+        while (operationIterator.hasNext()) {
+            Operation nextOperation = operationIterator.next();
+            calculate(nextOperation, premiumSnapshot);
+            if (!operationIterator.hasNext()) return nextOperation;
         }
+
+        return operation;
     }
 
     private List<Operation> getExecutedOperations() {
@@ -106,8 +124,12 @@ public class Balance extends BaseAggregateRoot {
                 .collect(Collectors.toList());
     }
 
-    private void publishUpdatedBalance() {
-        List<MonthlyBalance> monthlyBalances = getLastOperation().getMonthlyBalances();
+    private void publishUpdatedBalanceAfter(Operation operation) {
+        AggregateId contractId = contractData.getAggregateId();
+//        PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, operation.getRegistration());
+        // todo: mogę sobie rozksiegowac na aktualnie przekazanej liście składek (Premium)
+
+//        List<MonthlyBalance> monthlyBalances = getLastOperation().getMonthlyBalances(premiumSnapshot);
 //        eventPublisher.publish(new BalanceUpdatedEvent(contractData, monthlyBalances));
     }
 

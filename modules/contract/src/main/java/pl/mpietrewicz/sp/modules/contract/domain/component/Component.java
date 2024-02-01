@@ -24,6 +24,8 @@ public class Component extends BaseAggregateRoot {
     @Embedded
     private ContractData contractData;
 
+    private String number;
+
     private LocalDate startDate;
 
     @Enumerated(EnumType.STRING)
@@ -39,10 +41,11 @@ public class Component extends BaseAggregateRoot {
     public Component() {
     }
 
-    public Component(AggregateId aggregateId, ContractData contractData, LocalDate startDate, ComponentType componentType,
-                     Liability liability) {
+    public Component(AggregateId aggregateId, ContractData contractData, String number, LocalDate startDate,
+                     ComponentType componentType, Liability liability) {
         this.aggregateId = aggregateId;
         this.contractData = contractData;
+        this.number = number;
         this.startDate = startDate;
         this.componentStatus = ComponentStatus.OPEN; // todo: do obsłużenia
         this.componentType = componentType;
@@ -51,9 +54,6 @@ public class Component extends BaseAggregateRoot {
 
     public void terminate(LocalDate terminatedDate) {
         liability.end(terminatedDate);
-//        if (isBeforeCurrentAccountingMonth(terminatedDate)) { // todo: zaimplementować to jakoś inaczej?
-//            changeComponentStatus(ComponentStatus.CLOSE);
-//        }
     }
 
     public ComponentData generateSnapshot() {

@@ -6,12 +6,12 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
-import pl.mpietrewicz.sp.ddd.annotations.event.EventListener;
-import pl.mpietrewicz.sp.app.system.infrastructure.events.SimpleEventPublisher;
+import pl.mpietrewicz.sp.app.system.infrastructure.events.TransactionalAspectEventPublisher;
 import pl.mpietrewicz.sp.app.system.infrastructure.events.impl.handlers.AsynchronousEventHandler;
 import pl.mpietrewicz.sp.app.system.infrastructure.events.impl.handlers.EventHandler;
 import pl.mpietrewicz.sp.app.system.infrastructure.events.impl.handlers.SpringEventHandler;
 import pl.mpietrewicz.sp.app.system.saga.SagaInstance;
+import pl.mpietrewicz.sp.ddd.annotations.event.EventListener;
 
 import java.lang.reflect.Method;
 
@@ -23,7 +23,7 @@ import java.lang.reflect.Method;
 public class EventListenerBeanPostProcessor implements BeanPostProcessor, BeanFactoryAware {
 
     private BeanFactory beanFactory;
-    private SimpleEventPublisher eventPublisher;
+    private TransactionalAspectEventPublisher eventPublisher;
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
@@ -61,6 +61,6 @@ public class EventListenerBeanPostProcessor implements BeanPostProcessor, BeanFa
     @Override
     public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
         this.beanFactory = beanFactory;
-        eventPublisher = beanFactory.getBean(SimpleEventPublisher.class);
+        eventPublisher = beanFactory.getBean(TransactionalAspectEventPublisher.class);
     }
 }
