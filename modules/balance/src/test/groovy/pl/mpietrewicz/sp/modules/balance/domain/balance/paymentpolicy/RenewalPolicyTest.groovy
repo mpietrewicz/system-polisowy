@@ -1,9 +1,11 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy
 
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot
-
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Period
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthAssembler
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus
+import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.renewal.RenewalPolicy
+import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.renewal.WithoutUnderpaymentPolicy
 import spock.lang.Specification
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.TestUtils.data
@@ -21,7 +23,7 @@ class RenewalPolicyTest extends Specification {
     def setup() {
         def premiumSnapshot = PremiumSnapshot.builder().build()
 
-        renewalPolicy = new RenewalPolicy(paymentPolicyMock, premiumSnapshot)
+        renewalPolicy = new WithoutUnderpaymentPolicy(paymentPolicyMock, premiumSnapshot)
     }
 
     def "should use continuation policy if payment is in period"() {

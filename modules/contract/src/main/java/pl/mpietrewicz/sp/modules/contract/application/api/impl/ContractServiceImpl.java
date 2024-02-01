@@ -55,7 +55,7 @@ public class ContractServiceImpl implements ContractService {
         premiumRepository.save(premium);
 
         PremiumSnapshot premiumSnapshot = premium.generateSnapshot(LocalDateTime.now());
-        ContractCreatedEvent event = new ContractCreatedEvent(contractData, premiumSnapshot); // todo: wysyłam dwa komunikaty, add premium i create balance
+        ContractCreatedEvent event = new ContractCreatedEvent(contractData, premiumSnapshot); // todo: przenieść ten event do createContract (żeby najpierw był komunikat create contract, a później premium)
         eventPublisher.publish(event);
 
         return contract;

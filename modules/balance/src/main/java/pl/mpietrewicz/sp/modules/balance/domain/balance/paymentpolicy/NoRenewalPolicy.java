@@ -2,7 +2,8 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy;
 
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainPolicyImpl;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.MonthToPay;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
 
 import java.time.YearMonth;
@@ -11,10 +12,10 @@ import java.time.YearMonth;
 @RequiredArgsConstructor
 public class NoRenewalPolicy implements PaymentPolicy {
 
-    private final PaymentPolicy continuationPolicy;
+    private final ContinuationPolicy continuationPolicy;
 
     @Override
-    public Month getMonthToPay(Period period, PaymentData paymentData) {
+    public MonthToPay getMonthToPay(Period period, PaymentData paymentData) {
         if (period.getMonthOf(YearMonth.from(paymentData.getDate())).isPresent()) {
             return continuationPolicy.getMonthToPay(period, paymentData);
         } else {

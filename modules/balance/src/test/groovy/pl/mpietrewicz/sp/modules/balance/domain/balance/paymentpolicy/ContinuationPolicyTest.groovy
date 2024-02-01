@@ -1,7 +1,7 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy
 
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot
-
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Period
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthAssembler
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus
 import spock.lang.Specification

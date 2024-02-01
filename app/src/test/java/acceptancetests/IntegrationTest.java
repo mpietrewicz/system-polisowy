@@ -72,7 +72,7 @@ public class IntegrationTest {
 
 
         List<ContractOperation> sortedOperations = daneDoTestow.stream()
-                .filter(nowyPakiet -> nowyPakiet.getIdUmowy().equals("0353/P/3080"))
+                .filter(nowyPakiet -> nowyPakiet.getIdUmowy().equals("0353/D4/142"))
                 .findAny()
                 .get()
                 .getNoweSkladniki().stream()

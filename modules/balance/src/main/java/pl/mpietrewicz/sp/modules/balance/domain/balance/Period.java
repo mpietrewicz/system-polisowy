@@ -1,4 +1,4 @@
-package pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy;
+package pl.mpietrewicz.sp.modules.balance.domain.balance;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainEntity;
@@ -8,6 +8,7 @@ import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicy;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Embeddable;
@@ -38,15 +39,16 @@ public class Period {
     }
 
     public void tryPay(PaymentPolicy paymentPolicy, PaymentData paymentData, PremiumSnapshot premiumSnapshot) {
-        Month month = paymentPolicy.getMonthToPay(this, paymentData);
-        Amount payment = paymentData.getAmount();
+        MonthToPay monthToPay = paymentPolicy.getMonthToPay(this, paymentData);
+        Month month = monthToPay.getMonth();
+        Amount amount = monthToPay.getAmount();
 
         do {
-            payment = month.pay(payment.castToPositive());
-            if (month.isPaid() && payment.isPositive()) {
+            amount = month.pay(amount.castToPositive());
+            if (month.isPaid() && amount.isPositive()) {
                 month = createNextMonth(month, premiumSnapshot);
             }
-        } while (payment.isPositive());
+        } while (amount.isPositive());
     }
 
     public void tryRefund(Amount refund) {
@@ -108,7 +110,7 @@ public class Period {
         return Month.init(yearMonth, premium);
     }
 
-    protected void addNewMonth(Month newMonth) {
+    public void addNewMonth(Month newMonth) {
         if (months.stream().anyMatch(month -> month.getYearMonth().equals(newMonth.getYearMonth()))) {
             throw new IllegalStateException();
         }
@@ -138,7 +140,7 @@ public class Period {
                 .min(Month::compareAscending);
     }
 
-    protected Optional<Month> getMonthOf(YearMonth month) {
+    public Optional<Month> getMonthOf(YearMonth month) {
         return months.stream()
                 .filter(m -> m.getYearMonth().equals(month))
                 .findAny();
@@ -162,6 +164,12 @@ public class Period {
         return getLastPaidMonth()
                 .map(Month::getYearMonth)
                 .orElse(YearMonth.from(start).minusMonths(1));
+    }
+
+    public Amount getLastUnderpayment() {
+        return getLastMonth()
+                .map(Month::getPaid)
+                .orElse(ZERO);
     }
 
 }

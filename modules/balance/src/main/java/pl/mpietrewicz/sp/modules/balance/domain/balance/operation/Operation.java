@@ -6,7 +6,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.Period;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 
 import javax.persistence.DiscriminatorColumn;
 import javax.persistence.DiscriminatorType;
