@@ -2,11 +2,11 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy
 
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthAssembler
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus
 import spock.lang.Specification
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.TestUtils.data
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.*
+import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus.*
 
 class NoRenewalPolicyTest extends Specification {
 
@@ -68,7 +68,7 @@ class NoRenewalPolicyTest extends Specification {
         ]
     }
 
-    def month(String yearMonth, MonthStatus status) {
+    def month(String yearMonth, PaidStatus status) {
 
         monthAssembler.builder()
                 .withYearMonth(yearMonth)

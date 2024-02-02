@@ -3,14 +3,14 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthAssembler
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus
 import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.renewal.RenewalPolicy
 import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.renewal.WithoutUnderpaymentPolicy
 import spock.lang.Specification
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.TestUtils.data
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.TestUtils.yearMonth
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthStatus.*
+import static pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus.*
 
 class RenewalPolicyTest extends Specification {
 
@@ -96,7 +96,7 @@ class RenewalPolicyTest extends Specification {
         ]
     }
 
-    def month(String yearMonth, MonthStatus status) {
+    def month(String yearMonth, PaidStatus status) {
         monthAssembler.builder()
                 .withYearMonth(yearMonth)
                 .withMonthStatus(status)
