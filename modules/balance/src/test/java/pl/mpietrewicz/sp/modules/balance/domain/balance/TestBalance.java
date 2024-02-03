@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 
 import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum.CONTINUATION;
 import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum.NO_RENEWAL;
-import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum.RENEWAL;
+import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum.RENEWAL_WITH_UNDERPAYMENT;
 
 public class TestBalance {
 
@@ -90,21 +90,6 @@ public class TestBalance {
     }
 
     @Test
-    public void testRenewalPolicy() { // todo: jest błąd, bo ostani okres jest UNDERPAID, a powinien być UNPAID
-        LocalDate contractStart = LocalDate.parse("2023-01-01");
-        ContractData contractData = contractDate(contractStart);
-
-        Balance balance = new Balance(AggregateId.generate(), contractData);
-
-        balance.startCalculating(contractStart, createPremiumSnapshot(contractStart, PositiveAmount.TEN));
-        balance.addPayment(date("2023-02-10"), amount("30"), NO_RENEWAL);
-        balance.addRefund(date("2023-03-10"), amount("20"));
-        balance.addPayment(date("2023-10-20"), amount("60"), RENEWAL);
-
-        System.out.println("koniec");
-    }
-
-    @Test
     public void productionTest() throws IOException {
 
         JsonReader jsonReader = new JsonReader();
@@ -147,7 +132,7 @@ public class TestBalance {
             balance.startCalculating(operationToTestData.getDate(), createPremiumSnapshot(operationToTestData.getDate(),
                     new PositiveAmount(operationToTestData.getAmount())));
         } else if (operationToTestData.getOperationEnum() == OperationEnum.PAYMENT) {
-            balance.addPayment(operationToTestData.getDate(), new Amount(operationToTestData.getAmount()), RENEWAL);
+            balance.addPayment(operationToTestData.getDate(), new Amount(operationToTestData.getAmount()), RENEWAL_WITH_UNDERPAYMENT);
         } else if (operationToTestData.getOperationEnum() == OperationEnum.INCREASE_INSURANCE_SUM) {
             balance.changePremium(operationToTestData.getDate(), createPremiumSnapshot(operationToTestData.getDate(),
                     new PositiveAmount(operationToTestData.getAmount())));
@@ -199,7 +184,7 @@ public class TestBalance {
             balance.addPayment(
                     dataZmiany,
                     kwota,
-                    RENEWAL
+                    RENEWAL_WITH_UNDERPAYMENT
             );
         } else if (List.of("PSU").contains(contractOperation.getOPERACJA())) {
             balance.changePremium(

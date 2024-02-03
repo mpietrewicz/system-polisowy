@@ -21,7 +21,8 @@ public class PaymentDomainService {
         RegisterPayment registerPayment = paymentFactory.createPayment(contractData, amount, paymentDate);
         PaymentPolicyEnum paymentPolicyEnum = contractData.getPaymentPolicyEnum();
 
-        domainEventPublisher.publish(new PaymentAddedEvent(registerPayment.generateSnapshot(), paymentPolicyEnum));
+        PaymentAddedEvent event = new PaymentAddedEvent(registerPayment.generateSnapshot(), paymentPolicyEnum);
+        domainEventPublisher.publish(event, "PaymentServiceImpl");
         return registerPayment;
     }
 

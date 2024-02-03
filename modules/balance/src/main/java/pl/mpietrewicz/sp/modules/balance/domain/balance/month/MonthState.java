@@ -2,6 +2,7 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Unpaid;
 
 public interface MonthState {
 
@@ -19,4 +20,10 @@ public interface MonthState {
 
     boolean hasPayment();
 
+    default Amount refund(Month month) {
+        Amount refunded = getPaid();
+        month.changeState(new Unpaid());
+        return refunded;
+    }
+    
 }

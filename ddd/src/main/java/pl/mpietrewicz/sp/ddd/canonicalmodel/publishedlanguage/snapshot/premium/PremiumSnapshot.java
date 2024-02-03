@@ -11,11 +11,11 @@ import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 
 import javax.persistence.AttributeOverride;
-import javax.persistence.AttributeOverrides;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.OneToMany;
+import javax.persistence.Transient;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,8 +30,7 @@ import static pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount.ZERO;
 public class PremiumSnapshot {
 
 	@Embedded
-	@AttributeOverrides({
-			@AttributeOverride(name = "aggregateId", column = @Column(name = "premiumId", nullable = false))})
+	@AttributeOverride(name = "aggregateId", column = @Column(name = "premiumId", nullable = false))
 	private AggregateId premiumId;
 
 	private LocalDateTime timestamp;

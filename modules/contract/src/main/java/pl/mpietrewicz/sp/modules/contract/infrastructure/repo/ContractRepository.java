@@ -16,6 +16,4 @@ public interface ContractRepository {
 
 	List<Contract> findAll();
 
-	Contract findByComponentId(AggregateId componentId);
-
 }

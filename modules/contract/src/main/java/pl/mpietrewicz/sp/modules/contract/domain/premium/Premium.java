@@ -6,12 +6,12 @@ import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.PremiumChangedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ComponentData;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.ComponentPremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.ComponentPremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
-import pl.mpietrewicz.sp.modules.contract.ddd.support.domain.BaseAggregateRoot;
 
 import javax.inject.Inject;
 import javax.persistence.CascadeType;
@@ -51,9 +51,10 @@ public class Premium extends BaseAggregateRoot {
     public Premium() {
     }
 
-    public Premium(AggregateId aggregateId, ContractData contractData) {
+    public Premium(AggregateId aggregateId, ContractData contractData, ComponentPremium basicComponentPremium) {
         this.aggregateId = aggregateId;
         this.contractData = contractData;
+        this.componentPremiums.add(basicComponentPremium);
     }
 
     public void add(ComponentData componentData, LocalDate date, Amount amount) {
@@ -69,7 +70,7 @@ public class Premium extends BaseAggregateRoot {
         if (!dailyChanges) date = YearMonth.from(date).atDay(1); // todo: w przyszłości to jakoś ładniej roziwzać
         componentPremium.addPremium(date, amount, now);
 
-        sentEvent(date, now);
+        sentEvent(date, now, "ComponentServiceImpl");
     }
 
     public void cancel(ComponentData componentData) {
@@ -79,7 +80,7 @@ public class Premium extends BaseAggregateRoot {
 
         LocalDate canceledAddDate = componentPremium.cancel(now);
 
-        sentEvent(canceledAddDate, now);
+        sentEvent(canceledAddDate, now, "PremiumServiceImpl");
     }
 
     public void change(ComponentData componentData, LocalDate date, Amount amount) {
@@ -90,7 +91,7 @@ public class Premium extends BaseAggregateRoot {
         if (!dailyChanges) date = YearMonth.from(date).atDay(1); // todo: w przyszłości to jakoś ładniej roziwzać
         componentPremium.changePremium(date, amount, now);
 
-        sentEvent(date, now);
+        sentEvent(date, now, "PremiumServiceImpl");
     }
 
     public void delete(ComponentData componentData, LocalDate date) {
@@ -101,7 +102,7 @@ public class Premium extends BaseAggregateRoot {
         if (!dailyChanges) date = YearMonth.from(date).atEndOfMonth(); // todo: w przyszłości to jakoś ładniej roziwzać
         componentPremium.deletePremium(date, now);
 
-        sentEvent(date, now);
+        sentEvent(date, now, "ComponentServiceImpl");
     }
 
     private Optional<ComponentPremium> getComponentPremium(ComponentData componentData) {
@@ -125,9 +126,10 @@ public class Premium extends BaseAggregateRoot {
                 .build();
     }
 
-    private void sentEvent(LocalDate date, LocalDateTime timestamp) {
+    private void sentEvent(LocalDate date, LocalDateTime timestamp, String serviceName) {
         PremiumSnapshot premiumSnapshot = generateSnapshot(timestamp);
         PremiumChangedEvent event = new PremiumChangedEvent(date, premiumSnapshot);
-        eventPublisher.publish(event);
+        eventPublisher.publish(event, serviceName);
     }
+
 }

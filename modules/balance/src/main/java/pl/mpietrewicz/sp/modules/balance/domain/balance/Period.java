@@ -6,13 +6,12 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
+import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicy;
+import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
 
 import javax.persistence.CascadeType;
-import javax.persistence.ElementCollection;
-import javax.persistence.Embeddable;
+import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
 import java.time.LocalDate;
@@ -24,24 +23,24 @@ import java.util.stream.Collectors;
 import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 
 @DomainEntity
-@Embeddable
+@Entity
 @NoArgsConstructor
-public class Period {
+public class Period extends BaseEntity {
 
-    @ElementCollection
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "operation_id")
+    @JoinColumn(name = "period_id")
     public List<Month> months;
 
     private LocalDate start;
+
+    private boolean isCurrent = true;
 
     public Period(LocalDate start, List<Month> months) {
         this.start = start;
         this.months = months;
     }
 
-    public void tryPay(PaymentPolicy paymentPolicy, PaymentData paymentData, PremiumSnapshot premiumSnapshot) {
-        MonthToPay monthToPay = paymentPolicy.getMonthToPay(this, paymentData);
+    public void tryPay(MonthToPay monthToPay, PremiumSnapshot premiumSnapshot) {
         Month month = monthToPay.getMonth();
         Amount amount = monthToPay.getAmount();
 
@@ -53,34 +52,35 @@ public class Period {
         } while (amount.isPositive());
     }
 
-    public void tryRefund(Amount refund) {
+    public void tryRefund(Amount refund) throws RefundException {
         if (refund.isPositive()) {
             refund = refund.castToPositive();
         } else {
             return;
         }
-        Month month = getLastMonthWithPayment() // todo: tutaj zwracam od paid lub unpaid
-                .orElseThrow(() -> new IllegalStateException("Nie można zwrócić, bo nie ma opłaconych miesięcy"));
+        Month month = getLastMonthWithPayment()
+                .orElseThrow(() -> new RefundException("No enough amount to refund"));
 
         do {
             refund = month.refund(refund.castToPositive());
-            if (!month.isPaid()) { // todo: dla umowy bez okresu prolongaty to będzie tylko pierwszy warunek
+            if (!month.isPaid()) {
                 months.remove(month);
                 month = getPreviousMonth(month)
-                        .orElseThrow(() -> new IllegalStateException("Nie można zwrócić, bo nie ma opłaconych miesięcy"));
+                        .orElseThrow(() -> new RefundException("No enough amount to refund"));
             }
         } while (refund.isPositive());
 
     }
 
     public Amount tryRefundUpTo(YearMonth yearMonth) {
-        Amount amountToRefund = months.stream()
+        return months.stream()
                 .filter(month -> month.getYearMonth().compareTo(yearMonth) >= 0)
-                .map(Month::getPaid)
-                .reduce(ZERO, Amount::add);
-
-        tryRefund(amountToRefund);
-        return amountToRefund;
+                .sorted(Month::compareDescending)
+                .map(month -> {
+                    Amount refunded = month.refund();
+                    months.remove(month);
+                    return refunded;
+                }).reduce(ZERO, Amount::add);
     }
 
     private Month createNextMonth(Month month, PremiumSnapshot premiumSnapshot) {
@@ -136,12 +136,6 @@ public class Period {
                 .max(Month::compareAscending);
     }
 
-    public Optional<Month> getNextMonth(Month month) {
-        return months.stream()
-                .filter(m -> m.isAfter(month))
-                .min(Month::compareAscending);
-    }
-
     public Optional<Month> getMonthOf(YearMonth month) {
         return months.stream()
                 .filter(m -> m.getYearMonth().equals(month))
@@ -154,28 +148,27 @@ public class Period {
                 .max(Month::compareAscending);
     }
 
-    public boolean isLastPaidMonthBefore(LocalDate date) {
-        return months.stream()
-                .filter(Month::isPaid)
-                .max(Month::compareAscending)
-                .map(lastPaid -> lastPaid.getYearMonth().isBefore(YearMonth.from(date)))
-                .orElse(false);
-    }
-
     public YearMonth getLastPaidYearMonth() {
         return getLastPaidMonth()
                 .map(Month::getYearMonth)
                 .orElse(YearMonth.from(start).minusMonths(1));
     }
 
-    public Amount getLastUnderpayment() {
+    public Amount refundUnderpayment() {
         return getLastMonth()
-                .map(Month::getPaid)
-                .orElse(ZERO);
+                .map(month -> {
+                    Amount refunded = month.refund();
+                    months.remove(month);
+                    return refunded;
+                }).orElse(ZERO);
     }
 
-    public void clear() {
-        if (months != null) months.clear();
+    public boolean isCurrent() {
+        return isCurrent;
+    }
+
+    public void markAsFormer() {
+        this.isCurrent = false;
     }
 
 }

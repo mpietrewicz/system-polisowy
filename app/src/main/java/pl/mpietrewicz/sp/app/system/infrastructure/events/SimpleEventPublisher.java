@@ -25,7 +25,7 @@ public class SimpleEventPublisher implements DomainEventPublisher {
     }
 
     @Override
-    public void publish(Serializable event) {
+    public void publish(Serializable event, String serviceName) {
         doPublish(event);
     }
 

@@ -2,7 +2,7 @@ package pl.mpietrewicz.sp.modules.contract.domain.premium;
 
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.ChangePremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.modules.contract.ddd.support.domain.BaseEntity;
+import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.Column;

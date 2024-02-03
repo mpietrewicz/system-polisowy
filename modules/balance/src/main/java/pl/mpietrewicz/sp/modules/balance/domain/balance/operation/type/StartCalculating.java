@@ -4,8 +4,10 @@ import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
+import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
+import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.Column;
@@ -31,12 +33,10 @@ public class StartCalculating extends Operation {
         super(start.atDay(1));
         this.type = START_CALCULATING;
         this.premium = premium;
-        this.pending = false;
     }
 
     public void execute() {
-        this.period = new Period(date, new ArrayList<>());
-        this.pending = false;
+        periods.add(new Period(date, new ArrayList<>()));
     }
 
     @Override
@@ -45,7 +45,17 @@ public class StartCalculating extends Operation {
     }
 
     @Override
-    protected void execute(PremiumSnapshot premiumSnapshot) {
+    public void handle(ReexecutionException e, DomainEventPublisher eventPublisher) {
+        throw new UnsupportedOperationException("Metoda nie obsługiwana w StartCalculating Operation");
+    }
+
+    @Override
+    protected void execute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
+        throw new UnsupportedOperationException("Metoda nie obsługiwana w StartCalculating Operation");
+    }
+
+    @Override
+    protected void reexecute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
         throw new UnsupportedOperationException("Metoda nie obsługiwana w StartCalculating Operation");
     }
 

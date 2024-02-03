@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 
 import static java.util.function.Predicate.not;
 import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum.CONTINUATION;
-import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum.RENEWAL;
+import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum.RENEWAL_WITH_UNDERPAYMENT;
 
 @SpringBootTest
 @ContextConfiguration(classes = {SpringbootApplication.class} )
@@ -101,12 +101,12 @@ public class IntegrationTest {
                 : new PositiveAmount(contractOperation.getKTOWA().replace(",", "."));
         if (contractOperation.getOPERACJA().equals("ZUM")) {
             String number = contractOperation.getNR_SKLADNIKA();
-            Contract contract = contractService.createContract(number, dataZmiany, kwota, Frequency.QUARTERLY, RENEWAL);
+            Contract contract = contractService.createContract(number, dataZmiany, kwota, Frequency.QUARTERLY, RENEWAL_WITH_UNDERPAYMENT);
             contractData = contract.generateSnapshot();
         } else if (List.of("Wplata").contains(contractOperation.getOPERACJA())) {
             balanceService.addPayment(
                     new PaymentData(AggregateId.generate(), contractData.getAggregateId(), dataZmiany, kwota.getAmount()),
-                    RENEWAL
+                    RENEWAL_WITH_UNDERPAYMENT
             );
         } else if (List.of("Dofinansowanie").contains(contractOperation.getOPERACJA())) {
             balanceService.addPayment(

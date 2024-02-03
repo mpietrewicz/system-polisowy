@@ -2,19 +2,25 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.events.AddPaymentFailedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.MonthToPay;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicy;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicyFactory;
+import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.RenewalException;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.Column;
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
+import javax.persistence.RollbackException;
 import java.time.LocalDate;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_PAYMENT;
@@ -39,10 +45,42 @@ public class AddPayment extends Operation {
     }
 
     @Override
-    public void execute(PremiumSnapshot premiumSnapshot) {
+    public void execute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
+        try {
+            tryExecute(premiumSnapshot);
+        } catch (RenewalException e) {
+            publishFailedEvent(e, eventPublisher);
+            throw new RollbackException(e);
+        }
+    }
+
+    @Override
+    protected void reexecute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher)
+            throws ReexecutionException {
+        try {
+            tryExecute(premiumSnapshot);
+        } catch (RenewalException e) {
+            throw new ReexecutionException("Add payment failed!", e);
+        }
+    }
+
+    @Override
+    public void handle(ReexecutionException e, DomainEventPublisher eventPublisher) {
+        publishFailedEvent(e, eventPublisher);
+    }
+
+    private void tryExecute(PremiumSnapshot premiumSnapshot) throws RenewalException {
         PaymentData paymentData = new PaymentData(date, amount);
         PaymentPolicy paymentPolicy = PaymentPolicyFactory.create(paymentPolicyEnum, premiumSnapshot);
-        period.tryPay(paymentPolicy, paymentData, premiumSnapshot);
+
+        MonthToPay monthToPay = paymentPolicy.getMonthToPay(getCurrentPeriod(), paymentData);
+
+        getCurrentPeriod().tryPay(monthToPay, premiumSnapshot);
+    }
+
+    private void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
+        AddPaymentFailedEvent event = new AddPaymentFailedEvent(date, amount, e);
+        eventPublisher.publish(event, "BalanceServiceImpl");
     }
 
 }

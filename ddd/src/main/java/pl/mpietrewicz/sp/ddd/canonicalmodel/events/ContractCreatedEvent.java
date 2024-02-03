@@ -15,6 +15,6 @@ import java.io.Serializable;
 public class ContractCreatedEvent implements Serializable {
 
     private final transient ContractData contractData;
-    private final PremiumSnapshot premiumSnapshot;
+    private final transient PremiumSnapshot premiumSnapshot;
 
 }

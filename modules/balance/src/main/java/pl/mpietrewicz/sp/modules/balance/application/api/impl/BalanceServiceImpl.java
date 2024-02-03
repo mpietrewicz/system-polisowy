@@ -6,14 +6,13 @@ import org.springframework.transaction.annotation.Transactional;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundData;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.balance.application.api.BalanceService;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.BalanceFactory;
 import pl.mpietrewicz.sp.modules.balance.infrastructure.repo.BalanceRepository;
-import pl.mpietrewicz.sp.modules.contract.domain.premium.Premium;
 
 import java.time.LocalDate;
 
@@ -45,8 +44,6 @@ public class BalanceServiceImpl implements BalanceService {
         Balance balance = balanceRepository.findByContractId(refundData.getContractId());
         LocalDate date = refundData.getDate();
         Amount refund = refundData.getAmount();
-
-        Premium premium = null; // todo: pobrać premium data
 
         balance.addRefund(date, refund);
     }
