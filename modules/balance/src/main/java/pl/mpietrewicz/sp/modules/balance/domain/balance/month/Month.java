@@ -3,7 +3,7 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainEntity;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
-import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
+import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.Column;
@@ -63,6 +63,10 @@ public class Month extends BaseEntity {
         return currentState.refund(this, refund);
     }
 
+    public Amount refund() {
+        return currentState.refund(this);
+    }
+
     public YearMonth getYearMonth() {
         return yearMonth;
     }
@@ -91,6 +95,10 @@ public class Month extends BaseEntity {
 
     public int compareAscending(Month month) {
         return this.yearMonth.compareTo(month.getYearMonth());
+    }
+
+    public int compareDescending(Month month) {
+        return month.getYearMonth().compareTo(this.yearMonth);
     }
 
     public Amount getPaid() {

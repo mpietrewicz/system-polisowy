@@ -1,7 +1,7 @@
 package pl.mpietrewicz.sp.modules.accounting.domain.subledger;
 
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
-import pl.mpietrewicz.sp.modules.accounting.ddd.support.domain.BaseAggregateRoot;
+import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 
 import javax.persistence.Entity;
 import java.time.LocalDate;

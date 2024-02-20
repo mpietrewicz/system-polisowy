@@ -4,7 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import pl.mpietrewicz.sp.ddd.annotations.application.Finder;
-import pl.mpietrewicz.sp.modules.finance.ddd.support.domain.BaseAggregateRoot;
+import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 import pl.mpietrewicz.sp.modules.finance.domain.payment.RegisterPayment;
 import pl.mpietrewicz.sp.modules.finance.readmodel.dto.WplataDto;
 

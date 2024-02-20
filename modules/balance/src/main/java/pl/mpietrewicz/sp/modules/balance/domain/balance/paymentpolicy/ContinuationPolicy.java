@@ -21,7 +21,7 @@ public class ContinuationPolicy implements PaymentPolicy {
     public MonthToPay getMonthToPay(Period period, PaymentData paymentData) {
         YearMonth lastPaidMonth = period.getLastPaidYearMonth();
         YearMonth nextYearMonth = lastPaidMonth.plusMonths(1);
-        Month nextMonth = period.getMonthOf(nextYearMonth) // todo: bo może być unpaid -> troche to nieczytalne, czy można to jakoś udoskonalić ?
+        Month nextMonth = period.getMonthOf(nextYearMonth)
                 .orElseGet(() -> {
                     PositiveAmount premium = premiumSnapshot.getAmountAt(nextYearMonth.atDay(1));
                     Month month = Period.createMonth(nextYearMonth, premium);

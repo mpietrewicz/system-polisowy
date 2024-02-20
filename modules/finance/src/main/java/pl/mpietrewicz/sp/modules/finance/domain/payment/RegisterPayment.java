@@ -6,7 +6,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.modules.finance.ddd.support.domain.BaseAggregateRoot;
+import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.Column;

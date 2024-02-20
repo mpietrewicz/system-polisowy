@@ -4,7 +4,7 @@ import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.modules.accounting.ddd.support.domain.BaseEntity;
+import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.Column;

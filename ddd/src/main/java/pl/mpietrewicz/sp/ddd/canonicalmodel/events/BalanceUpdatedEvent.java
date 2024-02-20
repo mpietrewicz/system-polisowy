@@ -16,6 +16,6 @@ import java.util.List;
 public class BalanceUpdatedEvent implements Serializable {
 
     private final transient ContractData contractData;
-    private final List<MonthlyBalance> monthlyBalances;
+    private final transient List<MonthlyBalance> monthlyBalances;
 
 }

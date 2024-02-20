@@ -1,7 +1,7 @@
 package pl.mpietrewicz.sp.modules.contract.domain.component;
 
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
-import pl.mpietrewicz.sp.modules.contract.ddd.support.domain.BaseEntity;
+import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;

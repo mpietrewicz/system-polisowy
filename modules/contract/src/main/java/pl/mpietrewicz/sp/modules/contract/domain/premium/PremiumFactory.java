@@ -9,7 +9,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractD
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 
 import javax.inject.Inject;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @DomainFactory
 public class PremiumFactory {
@@ -17,12 +17,12 @@ public class PremiumFactory {
     @Inject
     private AutowireCapableBeanFactory spring;
 
-    public Premium create(ContractData contractData, ComponentData componentData, Amount premiumAmount) {
+    public Premium create(ContractData contractData, ComponentData basicComponentData, Amount premiumAmount) {
         AggregateId aggregateId = AggregateId.generate();
-        Premium premium = new Premium(aggregateId, contractData);
+        ComponentPremium basicComponentPremium = new ComponentPremium(basicComponentData);
+        basicComponentPremium.addPremium(basicComponentData.getStartDate(), premiumAmount, LocalDateTime.now());
+        Premium premium = new Premium(aggregateId, contractData, basicComponentPremium);
         spring.autowireBean(premium);
-        LocalDate componentStart = componentData.getStartDate();
-        premium.add(componentData, componentStart, premiumAmount);
 
         return premium;
     }

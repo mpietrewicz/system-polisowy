@@ -4,21 +4,26 @@ import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainEntity;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
-import pl.mpietrewicz.sp.modules.balance.ddd.support.domain.BaseEntity;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
+import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
+import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
+import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 
+import javax.persistence.CascadeType;
 import javax.persistence.DiscriminatorColumn;
 import javax.persistence.DiscriminatorType;
-import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 
 @DomainEntity
@@ -32,33 +37,43 @@ public abstract class Operation extends BaseEntity {
 
     private final LocalDateTime registration = LocalDateTime.now();
 
-    @Embedded
-    protected Period period;
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "operation_id")
+    protected List<Period> periods = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     protected OperationType type;
-
-    protected boolean pending = true;
 
     protected Operation(LocalDate date) {
         this.date = date;
     }
 
-    public void execute(Operation previousOperation, PremiumSnapshot premiumSnapshot) {
-        if (period != null) {
-            period.clear(); // todo: jeśli coś jest to znaczy że ponwonie przeliczam, wiec mogę gdzieś odłożyć sobię historią, albo wydzielić do dwóch metod execute i reexecute
-            period.months.addAll(previousOperation.getPeriodCopy().months);
-        } else {
-            period = previousOperation.getPeriodCopy();
-        }
-        execute(premiumSnapshot);
-        this.pending = false;
+    public void reexecute(Operation previousOperation, PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher)
+            throws ReexecutionException {
+        getCurrentPeriod().markAsFormer();
+        periods.add(previousOperation.getPeriodCopy());
+        reexecute(premiumSnapshot, eventPublisher);
     }
 
-    protected abstract void execute(PremiumSnapshot premiumSnapshot);
+    public void execute(Operation previousOperation, PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
+        periods.add(previousOperation.getPeriodCopy());
+        execute(premiumSnapshot, eventPublisher);
+    }
+
+    protected abstract void execute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher);
+
+    protected abstract void reexecute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher)
+            throws ReexecutionException;
 
     public Period getPeriodCopy() {
-        return period.createCopy();
+        return getCurrentPeriod().createCopy();
+    }
+
+    protected Period getCurrentPeriod() {
+        return periods.stream()
+                .filter(Period::isCurrent)
+                .findFirst()
+                .orElseThrow();
     }
 
     public int orderComparator(Operation operation) {
@@ -98,14 +113,13 @@ public abstract class Operation extends BaseEntity {
     }
 
     public List<MonthlyBalance> getMonthlyBalances(PremiumSnapshot premiumSnapshot) {
-        return period.getMonthlyBalances(premiumSnapshot);
-    }
-
-    public boolean isPending() {
-        return pending;
+        return getCurrentPeriod().getMonthlyBalances(premiumSnapshot);
     }
 
     public LocalDateTime getRegistration() {
         return registration;
     }
+
+    public abstract void handle(ReexecutionException e, DomainEventPublisher eventPublisher);
+
 }
