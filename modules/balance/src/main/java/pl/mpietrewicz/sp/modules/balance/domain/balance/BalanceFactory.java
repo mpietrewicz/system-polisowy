@@ -8,6 +8,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.P
 
 import javax.inject.Inject;
 import java.time.LocalDate;
+import java.util.ArrayList;
 
 @DomainFactory
 public class BalanceFactory {
@@ -16,7 +17,7 @@ public class BalanceFactory {
     private AutowireCapableBeanFactory spring;
 
     public Balance create(ContractData contractData, PremiumSnapshot premiumSnapshot) {
-        Balance balance = new Balance(AggregateId.generate(), contractData);
+        Balance balance = new Balance(AggregateId.generate(), 0L, contractData.getAggregateId(), new ArrayList<>());
         spring.autowireBean(balance);
 
         LocalDate start = contractData.getContractStartDate();

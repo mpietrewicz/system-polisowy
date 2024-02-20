@@ -1,56 +1,49 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
 
-import lombok.NoArgsConstructor;
-import pl.mpietrewicz.sp.ddd.annotations.domain.DomainEntity;
+import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
-import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 
-import javax.persistence.CascadeType;
-import javax.persistence.DiscriminatorColumn;
-import javax.persistence.DiscriminatorType;
-import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
-import javax.persistence.Inheritance;
-import javax.persistence.InheritanceType;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToMany;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 
-@DomainEntity
-@Entity
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "operation_type", discriminatorType = DiscriminatorType.STRING)
-@NoArgsConstructor
-public abstract class Operation extends BaseEntity {
+@Getter
+public abstract class Operation {
 
-    protected LocalDate date;
+    private Long id;
+
+    protected final LocalDate date;
 
     private final LocalDateTime registration = LocalDateTime.now();
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "operation_id")
-    protected List<Period> periods = new ArrayList<>();
+    protected final List<Period> periods;
 
     @Enumerated(EnumType.STRING)
     protected OperationType type;
 
     protected Operation(LocalDate date) {
         this.date = date;
+        this.periods = new ArrayList<>();
+    }
+
+    protected Operation(Long id, LocalDate date, List<Period> periods) {
+        this.id = id;
+        this.date = date;
+        this.periods = periods;
     }
 
     public void reexecute(Operation previousOperation, PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher)
             throws ReexecutionException {
-        getCurrentPeriod().markAsFormer();
+        getPeriod().markAsInvalid();
         periods.add(previousOperation.getPeriodCopy());
         reexecute(premiumSnapshot, eventPublisher);
     }
@@ -66,10 +59,10 @@ public abstract class Operation extends BaseEntity {
             throws ReexecutionException;
 
     public Period getPeriodCopy() {
-        return getCurrentPeriod().createCopy();
+        return getPeriod().createCopy();
     }
 
-    protected Period getCurrentPeriod() {
+    protected Period getPeriod() {
         return periods.stream()
                 .filter(Period::isCurrent)
                 .findFirst()
@@ -85,7 +78,15 @@ public abstract class Operation extends BaseEntity {
         } else {
             int priorityComparator = this.getPriority().compareTo(operation.getPriority());
             if (priorityComparator == 0) {
-                return this.registration.compareTo(operation.registration);
+                int registrationComparator = this.registration.compareTo(operation.registration);
+                if (registrationComparator == 0) {
+                    if (this == operation) return 0;
+                    if (this.id == null) return 1;
+                    if (operation.id == null) return -1;
+                    return this.id.compareTo(operation.id);
+                } else {
+                    return registrationComparator;
+                }
             } else {
                 return priorityComparator;
             }
@@ -113,7 +114,7 @@ public abstract class Operation extends BaseEntity {
     }
 
     public List<MonthlyBalance> getMonthlyBalances(PremiumSnapshot premiumSnapshot) {
-        return getCurrentPeriod().getMonthlyBalances(premiumSnapshot);
+        return getPeriod().getMonthlyBalances(premiumSnapshot);
     }
 
     public LocalDateTime getRegistration() {

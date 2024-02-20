@@ -54,4 +54,5 @@ public class AggregateId implements Serializable {
 	public String toString() {
 		return aggregateId;
 	}
+
 }

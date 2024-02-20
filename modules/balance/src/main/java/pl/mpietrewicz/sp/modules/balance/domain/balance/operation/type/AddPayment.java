@@ -1,13 +1,13 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
-import lombok.NoArgsConstructor;
-import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
+import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.AddPaymentFailedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.MonthToPay;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicy;
@@ -15,30 +15,28 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPol
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RenewalException;
 
-import javax.persistence.AttributeOverride;
-import javax.persistence.Column;
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Embedded;
-import javax.persistence.Entity;
 import javax.persistence.RollbackException;
 import java.time.LocalDate;
+import java.util.List;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_PAYMENT;
 
-@ValueObject
-@Entity
-@DiscriminatorValue("ADD_PAYMENT")
-@NoArgsConstructor
+@Getter
 public class AddPayment extends Operation {
 
-    @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "amount"))
-    private Amount amount;
+    private final Amount amount;
 
-    private PaymentPolicyEnum paymentPolicyEnum;
+    private final PaymentPolicyEnum paymentPolicyEnum;
 
     public AddPayment(LocalDate date, Amount amount, PaymentPolicyEnum paymentPolicyEnum) {
         super(date);
+        this.amount = amount;
+        this.paymentPolicyEnum = paymentPolicyEnum;
+        this.type = ADD_PAYMENT;
+    }
+
+    public AddPayment(Long id, LocalDate date, Amount amount, PaymentPolicyEnum paymentPolicyEnum, List<Period> periods) {
+        super(id, date, periods);
         this.amount = amount;
         this.paymentPolicyEnum = paymentPolicyEnum;
         this.type = ADD_PAYMENT;
@@ -73,9 +71,9 @@ public class AddPayment extends Operation {
         PaymentData paymentData = new PaymentData(date, amount);
         PaymentPolicy paymentPolicy = PaymentPolicyFactory.create(paymentPolicyEnum, premiumSnapshot);
 
-        MonthToPay monthToPay = paymentPolicy.getMonthToPay(getCurrentPeriod(), paymentData);
+        MonthToPay monthToPay = paymentPolicy.getMonthToPay(getPeriod(), paymentData);
 
-        getCurrentPeriod().tryPay(monthToPay, premiumSnapshot);
+        getPeriod().tryPay(monthToPay, premiumSnapshot);
     }
 
     private void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {

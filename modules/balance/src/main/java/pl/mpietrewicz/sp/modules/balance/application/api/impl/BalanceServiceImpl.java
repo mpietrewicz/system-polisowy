@@ -3,7 +3,6 @@ package pl.mpietrewicz.sp.modules.balance.application.api.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
@@ -33,36 +32,31 @@ public class BalanceServiceImpl implements BalanceService {
 
     @Override
     public void addPayment(PaymentData paymentData, PaymentPolicyEnum paymentPolicyEnum) {
-        Balance balance = balanceRepository.findByContractId(paymentData.getContractId());
+        Balance balance = balanceRepository.findByContractIdNew(paymentData.getContractId());
         LocalDate date = paymentData.getDate();
         Amount payment = paymentData.getAmount();
 
         balance.addPayment(date, payment, paymentPolicyEnum);
+        balanceRepository.merge(balance);
     }
 
     @Override
     public void addRefund(RefundData refundData) {
-        Balance balance = balanceRepository.findByContractId(refundData.getContractId());
+        Balance balance = balanceRepository.findByContractIdNew(refundData.getContractId());
         LocalDate date = refundData.getDate();
         Amount refund = refundData.getAmount();
 
         balance.addRefund(date, refund);
+        balanceRepository.merge(balance);
     }
 
     @Override
     public void changePremium(LocalDate date, PremiumSnapshot premiumSnapshot) {
         ContractData contractData = premiumSnapshot.getContractData();
-        Balance balance = balanceRepository.findByContractId(contractData.getAggregateId());
+        Balance balance = balanceRepository.findByContractIdNew(contractData.getAggregateId());
 
         balance.changePremium(date, premiumSnapshot);
-    }
-
-    @Override
-    public void test() {
-        Balance balance = new Balance(AggregateId.generate(), new ContractData(AggregateId.generate()));
-        balance.testAddState();
-        balanceRepository.save(balance);
-        balance.changeState();
+        balanceRepository.merge(balance);
     }
 
 }

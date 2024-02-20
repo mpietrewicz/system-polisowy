@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
@@ -61,15 +62,12 @@ public class IntegrationTest {
 
     @Test
     public void productionTestNew() throws IOException {
-
         JsonReader jsonReader = new JsonReader();
         List<NowyPakiet> daneDoTestow = jsonReader.read();
 
         LocalDate contractStart = LocalDate.parse("2023-01-01");
         ContractData contractData = contractDate(contractStart);
-
-        Balance balance = new Balance(AggregateId.generate(), contractData);
-
+        Balance balance = new Balance(AggregateId.generate(), 0L, contractData.getAggregateId(), new ArrayList<>());
 
         List<ContractOperation> sortedOperations = daneDoTestow.stream()
                 .filter(nowyPakiet -> nowyPakiet.getIdUmowy().equals("0353/D4/142"))
@@ -88,11 +86,6 @@ public class IntegrationTest {
         }
 
         System.out.println("koniec");
-    }
-
-    @Test
-    public void monthContextTest() throws IOException {
-        balanceService.test();
     }
 
     private ContractData contractDate(LocalDate start) {
@@ -137,6 +130,5 @@ public class IntegrationTest {
     private LocalDate convertToLocalDate(Date date) {
         return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
     }
-
 
 }

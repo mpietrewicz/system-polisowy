@@ -3,7 +3,6 @@ package pl.mpietrewicz.sp.ddd.support.infrastructure.repo;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.sharedkernel.exceptions.DomainOperationException;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.AttributeOverrides;
@@ -29,10 +28,10 @@ public abstract class BaseAggregateRoot {
 	@EmbeddedId
 	@AttributeOverrides({
 		  @AttributeOverride(name = "idValue", column = @Column(name = "aggregateId", nullable = false))})
-	protected AggregateId aggregateId;
+	public AggregateId aggregateId;
 
 	@Version
-	private Long version;
+	public Long version;
 
 	@Enumerated(EnumType.ORDINAL)
 	private AggregateStatus aggregateStatus = AggregateStatus.ACTIVE;
@@ -45,12 +44,12 @@ public abstract class BaseAggregateRoot {
 		return aggregateId;
 	}
 
+	public Long getVersion() {
+		return version;
+	}
+
 	public boolean isRemoved() {
 		return aggregateStatus == AggregateStatus.ARCHIVE;
-	}
-	
-	protected void domainError(String message) {
-		throw new DomainOperationException(aggregateId, message);
 	}
 	
 	@Override

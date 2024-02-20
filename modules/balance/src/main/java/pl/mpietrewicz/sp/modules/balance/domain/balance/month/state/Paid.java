@@ -1,6 +1,5 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month.state;
 
-import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
@@ -8,20 +7,11 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus;
 
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-
 import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 
 @ValueObject
-@Entity
-@DiscriminatorValue("PAID")
-@NoArgsConstructor
 public class Paid extends MonthState {
 
-    @Enumerated(EnumType.STRING)
     public static final PaidStatus paidStatus = PaidStatus.PAID;
 
     public Paid(Month month, Amount paid) {
@@ -35,13 +25,13 @@ public class Paid extends MonthState {
 
     @Override
     public Amount refund(PositiveAmount refund) {
-        if (month.paid.isLessThan(refund)) {
+        if (month.getPaid().isLessThan(refund)) {
             month.changeState(new Unpaid(month));
-            return refund.subtract(month.paid);
-        } else if (month.paid.equals(refund)) {
+            return refund.subtract(month.getPaid());
+        } else if (month.getPaid().equals(refund)) {
             month.changeState(new Unpaid(month));
-        } else if (month.paid.isHigherThan(refund)) {
-            month.changeState(new Underpaid(month, month.paid.subtract(refund)));
+        } else if (month.getPaid().isHigherThan(refund)) {
+            month.changeState(new Underpaid(month, month.getPaid().subtract(refund)));
         }
 
         return ZERO;
@@ -66,5 +56,6 @@ public class Paid extends MonthState {
     public boolean hasPayment() {
         return true;
     }
+
 
 }

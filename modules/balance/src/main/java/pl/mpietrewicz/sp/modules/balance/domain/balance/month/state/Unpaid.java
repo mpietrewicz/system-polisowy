@@ -1,6 +1,5 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month.state;
 
-import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
@@ -8,20 +7,11 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus;
 
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-
 import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 
 @ValueObject
-@Entity
-@DiscriminatorValue("UNPAID")
-@NoArgsConstructor
 public class Unpaid extends MonthState {
 
-    @Enumerated(EnumType.STRING)
     private static final PaidStatus paidStatus = PaidStatus.UNPAID;
 
     public Unpaid(Month month) {
@@ -30,11 +20,11 @@ public class Unpaid extends MonthState {
 
     @Override
     public Amount pay(PositiveAmount payment) {
-        if (payment.isHigherThan(month.premium)) {
-            month.changeState(new Paid(month, month.premium));
-            return payment.subtract(month.premium);
-        } else if (payment.equals(month.premium)) {
-            month.changeState(new Paid(month, month.premium));
+        if (payment.isHigherThan(month.getPremium())) {
+            month.changeState(new Paid(month, month.getPremium()));
+            return payment.subtract(month.getPremium());
+        } else if (payment.equals(month.getPremium())) {
+            month.changeState(new Paid(month, month.getPremium()));
         } else {
             month.changeState(new Underpaid(month, payment));
         }
@@ -48,7 +38,7 @@ public class Unpaid extends MonthState {
 
     @Override
     public boolean canPaidBy(Amount payment) {
-        Amount premium = month.premium;
+        Amount premium = month.getPremium();
         return payment.isHigherThan(premium) || payment.equals(premium);
     }
 

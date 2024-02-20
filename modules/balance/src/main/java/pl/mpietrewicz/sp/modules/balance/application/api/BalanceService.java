@@ -18,5 +18,4 @@ public interface BalanceService {
 
     void changePremium(LocalDate date, PremiumSnapshot premiumSnapshot);
 
-    void test();
 }

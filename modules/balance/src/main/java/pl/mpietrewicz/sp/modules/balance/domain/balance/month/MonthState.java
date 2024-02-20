@@ -1,6 +1,6 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 
-import lombok.NoArgsConstructor;
+import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Overpaid;
@@ -8,35 +8,18 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Paid;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Underpaid;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Unpaid;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Inheritance;
-import javax.persistence.InheritanceType;
-import javax.persistence.OneToOne;
-
-@Entity
-@Inheritance(strategy = InheritanceType.JOINED)
-@NoArgsConstructor
+@ValueObject
 public abstract class MonthState {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private final PaidStatus status;
 
-    @Enumerated(EnumType.STRING)
-    private PaidStatus status;
+    protected final Month month;
 
-    @OneToOne(mappedBy = "monthState", cascade = CascadeType.ALL, orphanRemoval = true)
-    protected Month month;
+    private final Amount paid;
 
-    public MonthState(Month month, Amount paid, PaidStatus status) {
+    protected MonthState(Month month, Amount paid, PaidStatus status) {
         this.month = month;
-        this.month.paid = paid;
+        this.paid = paid;
         this.status = status;
     }
 
@@ -52,7 +35,7 @@ public abstract class MonthState {
 
     public abstract boolean hasPayment();
 
-    public MonthState createCopy(Month month, Amount paid) {
+    public MonthState createCopy(Month month) {
         switch (status) {
             case OVERPAID:
                 return new Overpaid(month, paid);
@@ -65,6 +48,10 @@ public abstract class MonthState {
             default:
                 throw new IllegalStateException();
         }
+    }
+
+    public Amount getPaid() {
+        return paid;
     }
 
 }

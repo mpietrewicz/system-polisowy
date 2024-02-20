@@ -1,51 +1,32 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 
-import lombok.NoArgsConstructor;
-import pl.mpietrewicz.sp.ddd.annotations.domain.DomainEntity;
+import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
-import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Unpaid;
 
-import javax.persistence.AttributeOverride;
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Embedded;
-import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
 import java.time.YearMonth;
 
-@DomainEntity
-@Entity
-@NoArgsConstructor
-public class Month extends BaseEntity {
+@Getter
+public class Month {
 
-    public YearMonth yearMonth;
+    private Long id;
 
-    @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "premium"))
-    public Amount premium;
+    private final YearMonth yearMonth;
 
-    @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "paid"))
-    public Amount paid;
-
-    @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "month_state_id")
     private MonthState monthState;
 
-    public Month(YearMonth yearMonth, Amount premium, Amount paid, MonthState monthState) {
+    private final Amount premium;
+
+    public Month(Long id, YearMonth yearMonth, Amount premium) {
+        this.id = id;
         this.yearMonth = yearMonth;
         this.premium = premium;
-        this.paid = paid;
-        this.monthState = monthState;
     }
 
     public Month(YearMonth yearMonth, Amount premium) {
         this.yearMonth = yearMonth;
         this.premium = premium;
-        this.paid = Amount.ZERO;
         this.monthState = new Unpaid(this);
     }
 
@@ -77,14 +58,18 @@ public class Month extends BaseEntity {
         return monthState.hasPayment();
     }
 
+    public Amount getPaid() {
+        return monthState.getPaid();
+    }
+
     public Month createCopy() {
         Month month = new Month(yearMonth, premium);
-        month.changeState(monthState.createCopy(month, paid));
+        month.changeState(this.monthState.createCopy(month));
         return month;
     }
 
     public Amount refund() {
-        Amount refunded = paid;
+        Amount refunded = getPaid();
         changeState(new Unpaid(this));
         return refunded;
     }

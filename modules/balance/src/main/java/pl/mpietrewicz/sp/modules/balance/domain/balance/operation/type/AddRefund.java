@@ -1,37 +1,34 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
-import lombok.NoArgsConstructor;
-import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
+import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.AddRefundFailedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
 
-import javax.persistence.AttributeOverride;
-import javax.persistence.Column;
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Embedded;
-import javax.persistence.Entity;
 import javax.persistence.RollbackException;
 import java.time.LocalDate;
+import java.util.List;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_REFUND;
 
-@ValueObject
-@Entity
-@DiscriminatorValue("ADD_REFUND")
-@NoArgsConstructor
+@Getter
 public class AddRefund extends Operation {
 
-    @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "amount"))
-    private Amount refund;
+    private final Amount refund;
 
     public AddRefund(LocalDate date, Amount refund) {
         super(date);
+        this.refund = refund;
+        this.type = ADD_REFUND;
+    }
+
+    public AddRefund(Long id, LocalDate date, Amount refund, List<Period> periods) {
+        super(id, date, periods);
         this.refund = refund;
         this.type = ADD_REFUND;
     }
@@ -45,7 +42,6 @@ public class AddRefund extends Operation {
             throw new RollbackException(e);
         }
     }
-
 
     @Override
     protected void reexecute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher)
@@ -63,7 +59,7 @@ public class AddRefund extends Operation {
     }
 
     private void tryExecute() throws RefundException {
-        getCurrentPeriod().tryRefund(refund);
+        getPeriod().tryRefund(refund);
     }
 
     private void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
