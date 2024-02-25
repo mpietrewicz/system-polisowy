@@ -1,96 +1,96 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 
+import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainEntity;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Unpaid;
 
 import javax.persistence.AttributeOverride;
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.PostLoad;
-import javax.persistence.Transient;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import java.time.YearMonth;
 
 @DomainEntity
 @Entity
+@NoArgsConstructor
 public class Month extends BaseEntity {
 
-    private YearMonth yearMonth;
-
-    @Transient
-    private MonthState currentState;
+    public YearMonth yearMonth;
 
     @Embedded
     @AttributeOverride(name = "value", column = @Column(name = "premium"))
-    protected Amount premium;
-
-    @Enumerated(EnumType.STRING)
-    public PaidStatus paidStatus;
+    public Amount premium;
 
     @Embedded
     @AttributeOverride(name = "value", column = @Column(name = "paid"))
     public Amount paid;
 
-    public Month() {
-    }
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "month_state_id")
+    private MonthState monthState;
 
-    public Month(YearMonth yearMonth, Amount premium, PaidStatus paidStatus, Amount paid) {
+    public Month(YearMonth yearMonth, Amount premium, Amount paid, MonthState monthState) {
         this.yearMonth = yearMonth;
         this.premium = premium;
-        this.currentState = MonthStateFactory.createState(paidStatus, paid);
-        this.paidStatus = currentState.getPaidStatus();
-        this.paid = currentState.getPaid();
+        this.paid = paid;
+        this.monthState = monthState;
     }
 
-    @PostLoad
-    private void postLoad() {
-        this.currentState = MonthStateFactory.createState(paidStatus, paid);
+    public Month(YearMonth yearMonth, Amount premium) {
+        this.yearMonth = yearMonth;
+        this.premium = premium;
+        this.paid = Amount.ZERO;
+        this.monthState = new Unpaid(this);
     }
 
-    public static Month init(YearMonth yearMonth, Amount premium) {
-        return new Month(yearMonth, premium, PaidStatus.UNPAID, Amount.ZERO);
+    public void changeState(MonthState monthState) {
+        this.monthState = monthState;
     }
 
     public Amount pay(PositiveAmount payment) {
-        return currentState.pay(this, payment);
+        return monthState.pay(payment);
     }
 
     public Amount refund(PositiveAmount refund) {
-        return currentState.refund(this, refund);
+        return monthState.refund(refund);
+    }
+
+    public boolean canPaidBy(Amount payment) {
+        return monthState.canPaidBy(payment);
+    }
+
+    public PaidStatus getPaidStatus() {
+        return monthState.getPaidStatus();
+    }
+
+    public boolean isPaid() {
+        return monthState.isPaid();
+    }
+
+    public boolean hasPayment() {
+        return monthState.hasPayment();
+    }
+
+    public Month createCopy() {
+        Month month = new Month(yearMonth, premium);
+        month.changeState(monthState.createCopy(month, paid));
+        return month;
     }
 
     public Amount refund() {
-        return currentState.refund(this);
+        Amount refunded = paid;
+        changeState(new Unpaid(this));
+        return refunded;
     }
 
     public YearMonth getYearMonth() {
         return yearMonth;
-    }
-
-    public Month createCopy() {
-        return new Month(yearMonth, premium, paidStatus, paid);
-    }
-
-    public boolean canPaidBy(Amount payment) {
-        return currentState.canPaidBy(this, payment);
-    }
-
-    public void changeState(MonthState monthState) {
-        this.currentState = monthState;
-        this.paidStatus = monthState.getPaidStatus();
-        this.paid = monthState.getPaid();
-    }
-
-    public boolean isPaid() {
-        return currentState.isPaid();
-    }
-
-    public boolean hasPayment() {
-        return currentState.hasPayment();
     }
 
     public int compareAscending(Month month) {
@@ -99,15 +99,6 @@ public class Month extends BaseEntity {
 
     public int compareDescending(Month month) {
         return month.getYearMonth().compareTo(this.yearMonth);
-    }
-
-    public Amount getPaid() {
-        return currentState.getPaid();
-    }
-
-    @Override
-    public String toString() {
-        return yearMonth + ", " + currentState.getPaidStatus();
     }
 
     public boolean isAfter(Month month) {
@@ -121,4 +112,10 @@ public class Month extends BaseEntity {
     public Amount getPremium() {
         return premium;
     }
+
+    @Override
+    public String toString() {
+        return yearMonth + ", " + getPaidStatus();
+    }
+
 }

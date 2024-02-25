@@ -9,7 +9,6 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.MonthToPay;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicy;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RenewalException;
 
 import java.time.YearMonth;
@@ -40,7 +39,7 @@ public abstract class RenewalPolicy implements PaymentPolicy {
         YearMonth paymentMonth = YearMonth.from(paymentData.getDate());
         PositiveAmount premium = premiumSnapshot.getAmountAt(paymentData.getDate());
         Amount amountToRenew = getAmountToRenew(period, paymentData);
-        Month renewalMonth = Period.createMonth(paymentMonth, premium);
+        Month renewalMonth = period.createMonth(paymentMonth, premium);
 
         if (renewalMonth.canPaidBy(amountToRenew)) {
             period.addNewMonth(renewalMonth);

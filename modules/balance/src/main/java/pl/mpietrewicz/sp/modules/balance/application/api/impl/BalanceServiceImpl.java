@@ -3,6 +3,7 @@ package pl.mpietrewicz.sp.modules.balance.application.api.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
@@ -54,6 +55,14 @@ public class BalanceServiceImpl implements BalanceService {
         Balance balance = balanceRepository.findByContractId(contractData.getAggregateId());
 
         balance.changePremium(date, premiumSnapshot);
+    }
+
+    @Override
+    public void test() {
+        Balance balance = new Balance(AggregateId.generate(), new ContractData(AggregateId.generate()));
+        balance.testAddState();
+        balanceRepository.save(balance);
+        balance.changeState();
     }
 
 }

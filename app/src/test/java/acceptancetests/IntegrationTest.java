@@ -90,6 +90,11 @@ public class IntegrationTest {
         System.out.println("koniec");
     }
 
+    @Test
+    public void monthContextTest() throws IOException {
+        balanceService.test();
+    }
+
     private ContractData contractDate(LocalDate start) {
         return new ContractData(AggregateId.generate(), start, null, CONTINUATION, YearMonth.from(start));
     }

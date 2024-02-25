@@ -37,7 +37,7 @@ class MonthAssembler {
     }
 
     Month build() {
-        new Month(yearMonth, Amount.ZERO, new Unpaid())
+        new Unpaid(null, null)
     }
 
 }
