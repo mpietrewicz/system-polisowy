@@ -16,6 +16,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddPaymen
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddRefund;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.ChangePremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.state.NewMonth;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
 
@@ -54,6 +55,10 @@ public class Balance extends BaseAggregateRoot {
     @Transient
     @Inject
     protected PremiumService premiumService;
+
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "balance_id")
+    private final List<NewPeriod> newPeriods = new ArrayList<>();
 
     public Balance(AggregateId aggregateId, ContractData contractData) {
         this.aggregateId = aggregateId;
@@ -170,4 +175,16 @@ public class Balance extends BaseAggregateRoot {
                 .orElseThrow();
     }
 
+    public void testAddState() {
+        NewPeriod newPeriod = new NewPeriod();
+        NewMonth newMonth = new NewMonth();
+        newPeriod.addNewMonth(newMonth);
+        newPeriods.add(newPeriod);
+    }
+
+    public void changeState() {
+        newPeriods.get(0)
+                .getNewMonths().get(0)
+                .pay();
+    }
 }

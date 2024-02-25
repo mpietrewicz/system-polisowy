@@ -16,6 +16,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -92,10 +93,12 @@ public class Period extends BaseEntity {
     }
 
     public Period createCopy() {
+        Period period = new Period(LocalDate.from(start), new ArrayList<>());
         List<Month> copiedMonths = months.stream()
-                .map(Month::createCopy)
+                .map(month -> month.createCopy())
                 .collect(Collectors.toList());
-        return new Period(LocalDate.from(start), copiedMonths);
+        period.months.addAll(copiedMonths);
+        return period;
     }
 
     public List<MonthlyBalance> getMonthlyBalances(PremiumSnapshot premiumSnapshot) {
@@ -108,8 +111,8 @@ public class Period extends BaseEntity {
                 .collect(Collectors.toList());
     }
 
-    public static Month createMonth(YearMonth yearMonth, Amount premium) {
-        return Month.init(yearMonth, premium);
+    public Month createMonth(YearMonth yearMonth, Amount premium) {
+        return new Month(yearMonth, premium);
     }
 
     public void addNewMonth(Month newMonth) {

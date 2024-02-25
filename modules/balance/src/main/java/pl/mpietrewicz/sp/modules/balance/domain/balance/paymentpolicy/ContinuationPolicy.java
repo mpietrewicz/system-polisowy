@@ -24,7 +24,7 @@ public class ContinuationPolicy implements PaymentPolicy {
         Month nextMonth = period.getMonthOf(nextYearMonth)
                 .orElseGet(() -> {
                     PositiveAmount premium = premiumSnapshot.getAmountAt(nextYearMonth.atDay(1));
-                    Month month = Period.createMonth(nextYearMonth, premium);
+                    Month month = period.createMonth(nextYearMonth, premium);
                     period.addNewMonth(month);
                     return month;
                 });

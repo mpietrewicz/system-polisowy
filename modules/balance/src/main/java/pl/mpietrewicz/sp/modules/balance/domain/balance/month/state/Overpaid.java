@@ -1,68 +1,64 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month.state;
 
+import lombok.NoArgsConstructor;
+import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus;
 
-import javax.persistence.Embeddable;
+import javax.persistence.DiscriminatorValue;
+import javax.persistence.Entity;
 
 import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 
-@Embeddable
-public class Overpaid implements MonthState {
+@ValueObject
+@Entity
+@DiscriminatorValue("OVERPAID")
+@NoArgsConstructor
+public class Overpaid extends MonthState {
 
     public static final PaidStatus paidStatus = PaidStatus.OVERPAID;
 
-    private Amount paid;
-
-    public Overpaid() {}
-
-    public Overpaid(Amount paid) {
-        this.paid = paid;
+    public Overpaid(Month month, Amount paid) {
+        super(month, paid, paidStatus);
     }
 
-    public Amount pay(Month month, PositiveAmount payment) {
-        paid = paid.add(payment);
-        month.changeState(new Overpaid(paid));
+    public Amount pay(PositiveAmount payment) {
+        month.changeState(new Overpaid(month, month.paid.add(payment)));
         return ZERO;
     }
 
-    public Amount refund(Month month, PositiveAmount refund) {
-        if (refund.isHigherThan(paid)) {
-            month.changeState(new Unpaid());
-            return refund.subtract(paid);
-        } else if (refund.equals(paid)) {
-            month.changeState(new Unpaid());
+    public Amount refund(PositiveAmount refund) {
+        if (refund.isHigherThan(month.paid)) {
+            month.changeState(new Unpaid(month));
+            return refund.subtract(month.paid);
+        } else if (refund.equals(month.paid)) {
+            month.changeState(new Unpaid(month));
             return ZERO;
         } else {
-            Amount premium = month.getPremium();
-            Amount overpayment = paid.subtract(premium);
+            Amount premium = month.premium;
+            Amount overpayment = month.paid.subtract(premium);
             if (overpayment.isHigherThan(refund)) {
-                month.changeState(new Overpaid(paid.subtract(refund)));
+                month.changeState(new Overpaid(month, month.paid.subtract(refund)));
             } else if (refund.equals(overpayment)) {
-                month.changeState(new Paid(premium));
+                month.changeState(new Paid(month, month.premium));
             } else {
-                month.changeState(new Underpaid(paid.subtract(refund)));
+                month.changeState(new Underpaid(month, month.paid.subtract(refund)));
             }
             return ZERO;
         }
     }
 
     @Override
-    public boolean canPaidBy(Month month, Amount payment) {
+    public boolean canPaidBy(Amount payment) {
         return true;
     }
 
     @Override
     public PaidStatus getPaidStatus() {
         return paidStatus;
-    }
-
-    @Override
-    public Amount getPaid() {
-        return paid;
     }
 
     @Override

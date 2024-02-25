@@ -1,71 +1,70 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month.state;
 
+import lombok.NoArgsConstructor;
+import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus;
 
-import javax.persistence.Embeddable;
+import javax.persistence.DiscriminatorValue;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 
 import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 
-@Embeddable
-public class Underpaid implements MonthState {
+@ValueObject
+@Entity
+@DiscriminatorValue("UNDERPAID")
+@NoArgsConstructor
+public class Underpaid extends MonthState {
 
+    @Enumerated(EnumType.STRING)
     private static final PaidStatus paidStatus = PaidStatus.UNDERPAID;
 
-    private Amount paid;
-
-    public Underpaid() {}
-
-    public Underpaid(Amount paid) {
-        this.paid = paid;
+    public Underpaid(Month month, Amount paid) {
+        super(month, paid, paidStatus);
     }
 
     @Override
-    public Amount pay(Month month, PositiveAmount payment) {
-        Amount premium = month.getPremium();
-        Amount underpayment = premium.subtract(paid);
+    public Amount pay(PositiveAmount payment) {
+        Amount underpayment = month.premium.subtract(month.paid);
 
         if (payment.isHigherThan(underpayment)) {
-            month.changeState(new Paid(premium));
+            month.changeState(new Paid(month, month.premium));
             return payment.subtract(underpayment);
         } else if (payment.equals(underpayment)) {
-            month.changeState(new Paid(premium));
+            month.changeState(new Paid(month, month.premium));
         } else {
-            month.changeState(new Underpaid(paid.add(payment)));
+            month.changeState(new Underpaid(month, month.paid.add(payment)));
         }
         return ZERO;
     }
 
     @Override
-    public Amount refund(Month month, PositiveAmount refund) {
-        if (refund.isHigherThan(paid)) {
-            month.changeState(new Unpaid());
-            return refund.subtract(paid);
-        } else if (refund.equals(paid)) {
-            month.changeState(new Unpaid());
+    public Amount refund(PositiveAmount refund) {
+        if (refund.isHigherThan(month.paid)) {
+            month.changeState(new Unpaid(month));
+            return refund.subtract(month.paid);
+        } else if (refund.equals(month.paid)) {
+            month.changeState(new Unpaid(month));
         } else {
-            month.changeState(new Underpaid(paid.subtract(refund)));
+            month.changeState(new Underpaid(month, month.paid.subtract(refund)));
         }
         return ZERO;
     }
 
     @Override
-    public boolean canPaidBy(Month month, Amount payment) {
-        Amount underpayment = month.getPremium().subtract(paid);
+    public boolean canPaidBy(Amount payment) {
+        Amount underpayment = month.premium.subtract(month.paid);
         return payment.isHigherThan(underpayment) || payment.equals(underpayment);
     }
 
     @Override
     public PaidStatus getPaidStatus() {
         return paidStatus;
-    }
-
-    @Override
-    public Amount getPaid() {
-        return paid;
     }
 
     @Override
