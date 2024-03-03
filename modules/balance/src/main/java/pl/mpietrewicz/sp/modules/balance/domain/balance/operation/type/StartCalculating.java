@@ -7,6 +7,7 @@ import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -25,6 +26,13 @@ public class StartCalculating extends Operation {
         this.premium = premium;
     }
 
+    public StartCalculating(YearMonth start, Amount premium, Period period) {
+        super(start.atDay(1));
+        this.type = START_CALCULATING;
+        this.premium = premium;
+        this.periods.add(period);
+    }
+
     public StartCalculating(Long id, YearMonth start, Amount premium, List<Period> periods) {
         super(id, start.atDay(1), periods);
         this.type = START_CALCULATING;
@@ -32,16 +40,17 @@ public class StartCalculating extends Operation {
     }
 
     public void execute() {
+        periods.clear();
         periods.add(new Period(date, new ArrayList<>(), true));
     }
 
     @Override
-    public int orderComparator(Operation operation) {
-        return -1;
+    public void handle(ReexecutionException e, DomainEventPublisher eventPublisher) {
+        throw new UnsupportedOperationException("Metoda nie obsługiwana w StartCalculating Operation");
     }
 
     @Override
-    public void handle(ReexecutionException e, DomainEventPublisher eventPublisher) {
+    public void handle(UnavailabilityException e, DomainEventPublisher eventPublisher) {
         throw new UnsupportedOperationException("Metoda nie obsługiwana w StartCalculating Operation");
     }
 
@@ -53,6 +62,13 @@ public class StartCalculating extends Operation {
     @Override
     protected void reexecute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
         throw new UnsupportedOperationException("Metoda nie obsługiwana w StartCalculating Operation");
+    }
+
+    @Override
+    public int orderComparator(Operation operation) {
+        return this == operation
+                ? 0
+                : -1;
     }
 
 }

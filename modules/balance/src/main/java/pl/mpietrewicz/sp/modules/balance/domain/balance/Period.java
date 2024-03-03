@@ -122,7 +122,7 @@ public class Period {
         months.add(newMonth);
     }
 
-    protected Optional<Month> getLastPaidMonth() {
+    public Optional<Month> getLastPaidMonth() {
         return months.stream()
                 .filter(Month::isPaid)
                 .max(Month::compareAscending);

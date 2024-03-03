@@ -121,6 +121,10 @@ public class IntegrationTest {
         } else if (List.of("ZOU").contains(contractOperation.getOPERACJA())) {
             String number = contractOperation.getNR_SKLADNIKA();
             componentService.terminate(number, dataZmiany);
+        } else if (List.of("ZOU_P").contains(contractOperation.getOPERACJA())) {
+            String number = contractOperation.getNR_SKLADNIKA();
+            LocalDate dataRejestracji = convertToLocalDate(contractOperation.getDATA_REJESTRACJI());
+            balanceService.stopCalculating(dataRejestracji, dataZmiany, contractData);
         } else if (List.of("USK").contains(contractOperation.getOPERACJA())) {
             String number = contractOperation.getNR_SKLADNIKA();
             premiumService.cancel(number);

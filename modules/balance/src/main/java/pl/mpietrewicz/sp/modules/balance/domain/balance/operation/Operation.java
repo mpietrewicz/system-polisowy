@@ -6,7 +6,9 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.P
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
@@ -15,6 +17,7 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Getter
 public abstract class Operation {
@@ -70,7 +73,12 @@ public abstract class Operation {
     }
 
     public int orderComparator(Operation operation) {
-        if (operation instanceof StartCalculating) return 1;
+        if (operation instanceof StartCalculating) {
+            return - operation.orderComparator(this);
+        }
+        if (operation instanceof StopCalculating) {
+            return - operation.orderComparator(this);
+        }
 
         int dateComparator = this.date.compareTo(operation.date);
         if (dateComparator != 0) {
@@ -101,6 +109,12 @@ public abstract class Operation {
         return orderComparator(operation) > 0;
     }
 
+    public boolean isAfter(Optional<Operation> operation) {
+        return operation.isPresent()
+                ? orderComparator(operation.get()) > 0
+                : false;
+    }
+
     public boolean isBefore(Operation operation) {
         return orderComparator(operation) < 0;
     }
@@ -122,5 +136,7 @@ public abstract class Operation {
     }
 
     public abstract void handle(ReexecutionException e, DomainEventPublisher eventPublisher);
+
+    public abstract void handle(UnavailabilityException e, DomainEventPublisher eventPublisher);
 
 }

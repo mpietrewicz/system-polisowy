@@ -8,10 +8,14 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 
 @ValueObject
 @Getter
-@RequiredArgsConstructor
 public class MonthToPay {
 
-    private final Month month;
+    public MonthToPay(Month month, Amount amount) {
+        this.month = month;
+        this.amount = amount;
+    }
+
+    private final Month month; // todo: to powinien być miesiąc do spłaty, czyli tylko Unpaid lub Underpaid
     private final Amount amount;
 
 }
