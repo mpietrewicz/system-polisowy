@@ -1,6 +1,5 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy;
 
-import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainPolicyImpl;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
@@ -16,12 +15,17 @@ import java.time.YearMonth;
 import static pl.mpietrewicz.sp.DateUtils.getMonthsBetween;
 
 @DomainPolicyImpl
-@RequiredArgsConstructor
 public abstract class RenewalPolicy implements PaymentPolicy {
 
     private final PaymentPolicy continuationPolicy;
     private final PremiumSnapshot premiumSnapshot;
     private final int graceMonths;
+
+    public RenewalPolicy(PaymentPolicy continuationPolicy, PremiumSnapshot premiumSnapshot, int graceMonths) {
+        this.continuationPolicy = continuationPolicy;
+        this.premiumSnapshot = premiumSnapshot;
+        this.graceMonths = graceMonths;
+    }
 
     @Override
     public MonthToPay getMonthToPay(Period period, PaymentData paymentData) throws RenewalException {

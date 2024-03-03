@@ -1,19 +1,13 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance;
 
-import lombok.NoArgsConstructor;
-import pl.mpietrewicz.sp.ddd.annotations.domain.DomainEntity;
+import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
-import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToMany;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -23,22 +17,28 @@ import java.util.stream.Collectors;
 
 import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 
-@DomainEntity
-@Entity
-@NoArgsConstructor
-public class Period extends BaseEntity {
+@Getter
+public class Period {
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "period_id")
-    public List<Month> months;
+    private Long id;
 
-    private LocalDate start;
+    private final List<Month> months;
 
-    private boolean isCurrent = true;
+    private final LocalDate start;
 
-    public Period(LocalDate start, List<Month> months) {
+    private boolean isCurrent;
+
+    public Period(LocalDate start, List<Month> months, boolean isCurrent) {
         this.start = start;
         this.months = months;
+        this.isCurrent = isCurrent;
+    }
+
+    public Period(Long id, LocalDate start, List<Month> months, boolean isCurrent) {
+        this.id = id;
+        this.start = start;
+        this.months = months;
+        this.isCurrent = isCurrent;
     }
 
     public void tryPay(MonthToPay monthToPay, PremiumSnapshot premiumSnapshot) {
@@ -93,9 +93,9 @@ public class Period extends BaseEntity {
     }
 
     public Period createCopy() {
-        Period period = new Period(LocalDate.from(start), new ArrayList<>());
+        Period period = new Period(LocalDate.from(start), new ArrayList<>(), true);
         List<Month> copiedMonths = months.stream()
-                .map(month -> month.createCopy())
+                .map(Month::createCopy)
                 .collect(Collectors.toList());
         period.months.addAll(copiedMonths);
         return period;
@@ -170,7 +170,7 @@ public class Period extends BaseEntity {
         return isCurrent;
     }
 
-    public void markAsFormer() {
+    public void markAsInvalid() {
         this.isCurrent = false;
     }
 

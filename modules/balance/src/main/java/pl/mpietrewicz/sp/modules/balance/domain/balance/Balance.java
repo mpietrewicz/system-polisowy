@@ -1,68 +1,54 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance;
 
-import lombok.NoArgsConstructor;
+import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
-import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddPayment;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddRefund;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.ChangePremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.state.NewMonth;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
 
 import javax.inject.Inject;
-import javax.persistence.CascadeType;
-import javax.persistence.Embedded;
-import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToMany;
 import javax.persistence.RollbackException;
-import javax.persistence.Transient;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @AggregateRoot
-@Entity
-@NoArgsConstructor
-public class Balance extends BaseAggregateRoot {
+@Getter
+public class Balance {
 
-    @Embedded
-    private ContractData contractData;
+    private final AggregateId aggregateId;
 
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "balance_id")
-    private final List<Operation> operations = new ArrayList<>();
+    private final Long version;
 
-    @Transient
+    private final AggregateId contractId;
+
+    private final List<Operation> operations;
+
     @Inject
     protected DomainEventPublisher eventPublisher;
 
-    @Transient
     @Inject
     protected PremiumService premiumService;
 
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "balance_id")
-    private final List<NewPeriod> newPeriods = new ArrayList<>();
-
-    public Balance(AggregateId aggregateId, ContractData contractData) {
+    public Balance(AggregateId aggregateId, Long version, AggregateId contractId, List<Operation> operations) {
         this.aggregateId = aggregateId;
-        this.contractData = contractData;
+        this.version = version;
+        this.contractId = contractId;
+        this.operations = operations;
     }
 
     public void startCalculating(LocalDate date, PremiumSnapshot premiumSnapshot) {
@@ -85,6 +71,7 @@ public class Balance extends BaseAggregateRoot {
         PositiveAmount premium = premiumSnapshot.getAmountAt(date);
         AggregateId premiumId = premiumSnapshot.getPremiumId();
         LocalDateTime timestamp = premiumSnapshot.getTimestamp();
+
         ChangePremium changePremium = new ChangePremium(date, premium.getAmount(), premiumId, timestamp);
         commit(changePremium);
     }
@@ -97,11 +84,9 @@ public class Balance extends BaseAggregateRoot {
     }
 
     private void commit(Operation operation) {
-        AggregateId contractId = contractData.getAggregateId();
-        LocalDateTime registration = operation.getRegistration();
-        PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, registration);
-
+        PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, operation.getRegistration());
         calculate(operation, premiumSnapshot);
+
         operations.add(operation);
         Operation lastRecalculated = recalculateAfter(operation, premiumSnapshot);
 
@@ -141,7 +126,6 @@ public class Balance extends BaseAggregateRoot {
     }
 
     private void publishUpdatedBalanceAfter(Operation operation) {
-        AggregateId contractId = contractData.getAggregateId();
         PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, operation.getRegistration());
 
         List<MonthlyBalance> monthlyBalances = getLastOperation().getMonthlyBalances(premiumSnapshot);
@@ -175,16 +159,4 @@ public class Balance extends BaseAggregateRoot {
                 .orElseThrow();
     }
 
-    public void testAddState() {
-        NewPeriod newPeriod = new NewPeriod();
-        NewMonth newMonth = new NewMonth();
-        newPeriod.addNewMonth(newMonth);
-        newPeriods.add(newPeriod);
-    }
-
-    public void changeState() {
-        newPeriods.get(0)
-                .getNewMonths().get(0)
-                .pay();
-    }
 }

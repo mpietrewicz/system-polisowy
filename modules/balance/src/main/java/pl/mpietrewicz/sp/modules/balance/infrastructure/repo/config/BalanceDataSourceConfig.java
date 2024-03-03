@@ -45,7 +45,7 @@ public class BalanceDataSourceConfig {
             EntityManagerFactoryBuilder builder) {
         return builder
                 .dataSource(dataSource)
-                .packages("pl.mpietrewicz.sp.modules.balance.domain")
+                .packages("pl.mpietrewicz.sp.modules.balance.infrastructure.repo")
                 .persistenceUnit("balance")
                 .build();
     }

@@ -1,6 +1,5 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy;
 
-import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainPolicyImpl;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
@@ -12,10 +11,13 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
 import java.time.YearMonth;
 
 @DomainPolicyImpl
-@RequiredArgsConstructor
 public class ContinuationPolicy implements PaymentPolicy {
 
     private final PremiumSnapshot premiumSnapshot;
+
+    public ContinuationPolicy(PremiumSnapshot premiumSnapshot) {
+        this.premiumSnapshot = premiumSnapshot;
+    }
 
     @Override
     public MonthToPay getMonthToPay(Period period, PaymentData paymentData) {
