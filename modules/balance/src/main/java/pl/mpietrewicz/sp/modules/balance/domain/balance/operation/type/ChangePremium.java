@@ -12,6 +12,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.ContinuationPolicy;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -69,8 +70,9 @@ public class ChangePremium extends Operation {
         publishFailedEvent(e, eventPublisher);
     }
 
-    protected void execute() {
-        throw new UnsupportedOperationException("Metoda nie obsługiwana w StartCalculating Operation");
+    @Override
+    public void handle(UnavailabilityException e, DomainEventPublisher eventPublisher) {
+        publishFailedEvent(e, eventPublisher);
     }
 
     private void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {

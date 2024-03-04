@@ -18,4 +18,6 @@ public interface BalanceService {
 
     void changePremium(LocalDate date, PremiumSnapshot premiumSnapshot);
 
+    void stopCalculating(LocalDate date, LocalDate end, ContractData contractData);
+
 }

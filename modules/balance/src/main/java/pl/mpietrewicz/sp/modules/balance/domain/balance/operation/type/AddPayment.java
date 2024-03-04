@@ -14,6 +14,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPol
 import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicyFactory;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RenewalException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 
 import javax.persistence.RollbackException;
 import java.time.LocalDate;
@@ -64,6 +65,11 @@ public class AddPayment extends Operation {
 
     @Override
     public void handle(ReexecutionException e, DomainEventPublisher eventPublisher) {
+        publishFailedEvent(e, eventPublisher);
+    }
+
+    @Override
+    public void handle(UnavailabilityException e, DomainEventPublisher eventPublisher) {
         publishFailedEvent(e, eventPublisher);
     }
 

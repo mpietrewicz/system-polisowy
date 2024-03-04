@@ -30,19 +30,19 @@ spring:
       ddl-auto: create-drop
     properties:
       hibernate:
-        show_sql: true
-        use_sql_comments: true
-        format_sql: true
-        type: trace
+#         show_sql: true
+#         use_sql_comments: true
+#         format_sql: true
+#         type: trace
   sql:
     init.mode: always
 
 cors-origin: http://localhost:4200
 
-logging:
-  level:
-    org:
-      springframework: DEBUG
-      hibernate:
-        SQL: TRACE
-        type: TRACE
+# logging:
+#   level:
+#     org:
+#       springframework: DEBUG
+#       hibernate:
+#         SQL: TRACE
+#         type: TRACE

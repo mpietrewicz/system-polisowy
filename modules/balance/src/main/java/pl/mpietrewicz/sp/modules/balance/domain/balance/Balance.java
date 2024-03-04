@@ -14,17 +14,19 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddPaymen
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddRefund;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.ChangePremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
 
 import javax.inject.Inject;
 import javax.persistence.RollbackException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.YearMonth;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @AggregateRoot
 @Getter
@@ -51,20 +53,26 @@ public class Balance {
         this.operations = operations;
     }
 
-    public void startCalculating(LocalDate date, PremiumSnapshot premiumSnapshot) {
-        PositiveAmount premium = premiumSnapshot.getAmountAt(date);
-        StartCalculating startCalculating = new StartCalculating(YearMonth.from(date), premium.getAmount());
-        commit(startCalculating);
+    public Balance(AggregateId aggregateId, Long version, AggregateId contractId, StartCalculating startCalculating) {
+        this.aggregateId = aggregateId;
+        this.version = version;
+        this.contractId = contractId;
+        this.operations = Stream.of(startCalculating).collect(Collectors.toList());
     }
 
     public void addPayment(LocalDate date, Amount payment, PaymentPolicyEnum paymentPolicyEnum) {
         AddPayment addPayment = new AddPayment(date, payment, paymentPolicyEnum);
-        commit(addPayment);
+        tryCommit(addPayment);
     }
 
     public void addRefund(LocalDate date, Amount refund) {
         AddRefund addRefund = new AddRefund(date, refund);
-        commit(addRefund);
+        tryCommit(addRefund);
+    }
+
+    public void stopCalculating(LocalDate date, LocalDate end) {
+        StopCalculating stopCalculating = new StopCalculating(date, end);
+        tryCommit(stopCalculating);
     }
 
     public void changePremium(LocalDate date, PremiumSnapshot premiumSnapshot) {
@@ -73,24 +81,30 @@ public class Balance {
         LocalDateTime timestamp = premiumSnapshot.getTimestamp();
 
         ChangePremium changePremium = new ChangePremium(date, premium.getAmount(), premiumId, timestamp);
-        commit(changePremium);
+        tryCommit(changePremium);
     }
 
-    private void commit(StartCalculating operation) {
-        operation.execute();
-        operations.add(operation);
-
-        publishUpdatedBalanceAfter(operation);
+    private void tryCommit(Operation operation) {
+        try {
+            commit(operation);
+        } catch (UnavailabilityException e) {
+            operation.handle(e, eventPublisher);
+            throw new RollbackException(e);
+        }
     }
 
-    private void commit(Operation operation) {
+    private void commit(Operation operation) throws UnavailabilityException {
+        if (operation.isAfter(getStopCalculating())) {
+            throw new UnavailabilityException("Operation is after stop calculating");
+        }
+
         PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, operation.getRegistration());
         calculate(operation, premiumSnapshot);
 
         operations.add(operation);
-        Operation lastRecalculated = recalculateAfter(operation, premiumSnapshot);
+        recalculateAfter(operation, premiumSnapshot);
 
-        publishUpdatedBalanceAfter(lastRecalculated);
+        publishUpdatedBalanceAfter();
     }
 
     private void calculate(Operation operation, PremiumSnapshot premiumSnapshot) {
@@ -98,26 +112,20 @@ public class Balance {
         operation.execute(previousOperation, premiumSnapshot, eventPublisher);
     }
 
-    private Operation recalculateAfter(Operation operation, PremiumSnapshot premiumSnapshot) {
+    private void recalculateAfter(Operation operation, PremiumSnapshot premiumSnapshot) {
         try {
-            return tryRecalculateAfter(operation, premiumSnapshot);
+            tryRecalculateAfter(operation, premiumSnapshot);
         } catch (ReexecutionException e) {
             operation.handle(e, eventPublisher);
             throw new RollbackException(e);
         }
     }
 
-    private Operation tryRecalculateAfter(Operation operation, PremiumSnapshot premiumSnapshot) throws ReexecutionException {
+    private void tryRecalculateAfter(Operation operation, PremiumSnapshot premiumSnapshot) throws ReexecutionException {
         List<Operation> nextOperations = getNextOperationsAfter(operation);
-
-        Iterator<Operation> operationIterator = nextOperations.iterator();
-        while (operationIterator.hasNext()) {
-            Operation nextOperation = operationIterator.next();
+        for (Operation nextOperation : nextOperations) {
             recalculate(nextOperation, premiumSnapshot);
-            if (!operationIterator.hasNext()) return nextOperation;
         }
-
-        return operation;
     }
 
     private void recalculate(Operation operation, PremiumSnapshot premiumSnapshot) throws ReexecutionException {
@@ -125,8 +133,9 @@ public class Balance {
         operation.reexecute(previousOperation, premiumSnapshot, eventPublisher);
     }
 
-    private void publishUpdatedBalanceAfter(Operation operation) {
-        PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, operation.getRegistration());
+    private void publishUpdatedBalanceAfter() {
+        Operation lastOperation = getLastOperation();
+        PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, lastOperation.getRegistration());
 
         List<MonthlyBalance> monthlyBalances = getLastOperation().getMonthlyBalances(premiumSnapshot);
 //        eventPublisher.publish(new BalanceUpdatedEvent(contractData, monthlyBalances), "BalanceServiceImpl");
@@ -152,11 +161,17 @@ public class Balance {
                 .orElseThrow();
     }
 
-    private StartCalculating getStartCalculating() {
+    private Operation getStartCalculating() {
         return operations.stream()
-                .map(StartCalculating.class::cast)
+                .filter(StartCalculating.class::isInstance)
                 .findAny()
                 .orElseThrow();
+    }
+
+    private Optional<Operation> getStopCalculating() {
+        return operations.stream()
+                .filter(StopCalculating.class::isInstance)
+                .findAny();
     }
 
 }

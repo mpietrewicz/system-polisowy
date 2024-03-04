@@ -59,4 +59,12 @@ public class BalanceServiceImpl implements BalanceService {
         balanceRepository.merge(balance);
     }
 
+    @Override
+    public void stopCalculating(LocalDate date, LocalDate end, ContractData contractData) {
+        Balance balance = balanceRepository.findByContractIdNew(contractData.getAggregateId());
+
+        balance.stopCalculating(date, end);
+        balanceRepository.merge(balance);
+    }
+
 }

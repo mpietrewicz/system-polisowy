@@ -2990,6 +2990,19 @@
         "ID_WZNOWIENIA": null
     },
     {
+        "ID_UMOWY": "0353/D4/142",
+        "NR_SKLADNIKA": "D4/142",
+        "RODZAJ_SKL": "PODST",
+        "ID_OPERACJI": "0353/2023/4702",
+        "OPERACJA": "ZOU_P",
+        "DATA_REJESTRACJI": "2024-05-19 01:04:19",
+        "DATA_ZMIANY": "2023-01-01",
+        "KTOWA": "0",
+        "WPLACONO_DO": "2024-01-31",
+        "NADWYZKA": "0",
+        "ID_WZNOWIENIA": null
+    },
+    {
         "ID_UMOWY": "0353/P/2955",
         "NR_SKLADNIKA": "P/2955",
         "RODZAJ_SKL": "PODST",

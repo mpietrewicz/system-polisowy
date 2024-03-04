@@ -8,6 +8,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddPaymen
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddRefund;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.ChangePremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
 import pl.mpietrewicz.sp.modules.balance.infrastructure.repo.entity.OperationEntity;
 import pl.mpietrewicz.sp.modules.balance.infrastructure.repo.entity.PeriodEntity;
 
@@ -20,6 +21,7 @@ import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operati
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_REFUND;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.CHANGE_PREMIUM;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.START_CALCULATING;
+import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.STOP_CALCULATING;
 
 @Component
 public class OperationConverter {
@@ -44,6 +46,8 @@ public class OperationConverter {
                 return new AddRefund(entity.getEntityId(), entity.getDate(), new Amount(entity.getAmount()), periods);
             case CHANGE_PREMIUM:
                 return new ChangePremium(entity.getEntityId(), entity.getDate(), new Amount(entity.getAmount()), entity.getPremiumId(), entity.getTimestamp(), periods);
+            case STOP_CALCULATING:
+                return new StopCalculating(entity.getEntityId(), entity.getDate(), entity.getEnd(), new Amount(entity.getAmount()), periods);
             default:
                 throw new IllegalStateException();
         }
@@ -62,6 +66,8 @@ public class OperationConverter {
             return convert((AddRefund) model, periods);
         } else if (model instanceof ChangePremium) {
             return convert((ChangePremium) model, periods);
+        } else if (model instanceof StopCalculating) {
+            return convert((StopCalculating) model, periods);
         } else {
             throw new IllegalStateException();
         }
@@ -69,22 +75,27 @@ public class OperationConverter {
 
     public OperationEntity convert(StartCalculating model, List<PeriodEntity> periods) {
         return new OperationEntity(model.getId(), model.getDate(), model.getRegistration(), periods, START_CALCULATING,
-                model.getPremium().getBigDecimal(), null, null, null);
+                model.getPremium().getBigDecimal(), null, null, null, null);
     }
 
     public OperationEntity convert(AddPayment model, List<PeriodEntity> periods) {
         return new OperationEntity(model.getId(), model.getDate(), model.getRegistration(), periods, ADD_PAYMENT,
-                model.getAmount().getBigDecimal(), model.getPaymentPolicyEnum(), null, null);
+                model.getAmount().getBigDecimal(), model.getPaymentPolicyEnum(), null, null, null);
     }
 
     public OperationEntity convert(AddRefund model, List<PeriodEntity> periods) {
         return new OperationEntity(model.getId(), model.getDate(), model.getRegistration(), periods, ADD_REFUND,
-                model.getRefund().getBigDecimal(), null, null, null);
+                model.getRefund().getBigDecimal(), null, null, null, null);
     }
 
     public OperationEntity convert(ChangePremium model, List<PeriodEntity> periods) {
         return new OperationEntity(model.getId(), model.getDate(), model.getRegistration(), periods, CHANGE_PREMIUM,
-                model.getPremium().getBigDecimal(), null, model.getPremiumId(), model.getTimestamp());
+                model.getPremium().getBigDecimal(), null, model.getPremiumId(), model.getTimestamp(), null);
+    }
+
+    public OperationEntity convert(StopCalculating model, List<PeriodEntity> periods) {
+        return new OperationEntity(model.getId(), model.getDate(), model.getRegistration(), periods, STOP_CALCULATING,
+                model.getExcess().getBigDecimal(), null, null, null, model.getEnd());
     }
 
 }

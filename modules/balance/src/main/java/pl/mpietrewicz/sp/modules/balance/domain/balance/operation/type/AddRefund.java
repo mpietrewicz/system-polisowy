@@ -9,6 +9,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 
 import javax.persistence.RollbackException;
 import java.time.LocalDate;
@@ -55,6 +56,11 @@ public class AddRefund extends Operation {
 
     @Override
     public void handle(ReexecutionException e, DomainEventPublisher eventPublisher) {
+        publishFailedEvent(e, eventPublisher);
+    }
+
+    @Override
+    public void handle(UnavailabilityException e, DomainEventPublisher eventPublisher) {
         publishFailedEvent(e, eventPublisher);
     }
 

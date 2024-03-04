@@ -47,9 +47,11 @@ public class OperationEntity extends BaseEntity {
 
     private LocalDateTime timestamp;
 
+    protected LocalDate end;
+
     public OperationEntity(Long entityId, LocalDate date, LocalDateTime registration, List<PeriodEntity> periods,
                            OperationType type, BigDecimal amount, PaymentPolicyEnum paymentPolicyEnum,
-                           AggregateId premiumId, LocalDateTime timestamp) {
+                           AggregateId premiumId, LocalDateTime timestamp, LocalDate end) {
         this.entityId = entityId;
         this.date = date;
         this.registration = registration;
@@ -59,6 +61,7 @@ public class OperationEntity extends BaseEntity {
         this.paymentPolicyEnum = paymentPolicyEnum;
         this.premiumId = premiumId;
         this.timestamp = timestamp;
+        this.end = end;
     }
 
 }
