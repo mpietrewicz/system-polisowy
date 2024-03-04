@@ -3,7 +3,6 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance;
 import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
@@ -15,12 +14,12 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddRefund
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.ChangePremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.publisherpolicy.PublishPolicy;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
 
 import javax.inject.Inject;
-import javax.persistence.RollbackException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,6 +31,15 @@ import java.util.stream.Stream;
 @Getter
 public class Balance {
 
+    @Inject
+    protected DomainEventPublisher eventPublisher;
+
+    @Inject
+    protected PremiumService premiumService;
+
+    @Inject
+    protected List<PublishPolicy> publishPolicies;
+
     private final AggregateId aggregateId;
 
     private final Long version;
@@ -39,12 +47,6 @@ public class Balance {
     private final AggregateId contractId;
 
     private final List<Operation> operations;
-
-    @Inject
-    protected DomainEventPublisher eventPublisher;
-
-    @Inject
-    protected PremiumService premiumService;
 
     public Balance(AggregateId aggregateId, Long version, AggregateId contractId, List<Operation> operations) {
         this.aggregateId = aggregateId;
@@ -89,7 +91,6 @@ public class Balance {
             commit(operation);
         } catch (UnavailabilityException e) {
             operation.handle(e, eventPublisher);
-            throw new RollbackException(e);
         }
     }
 
@@ -98,13 +99,16 @@ public class Balance {
             throw new UnavailabilityException("Operation is after stop calculating");
         }
 
+        PeriodProvider before = getLastOperation().getPeriod();
+
         PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, operation.getRegistration());
         calculate(operation, premiumSnapshot);
 
         operations.add(operation);
         recalculateAfter(operation, premiumSnapshot);
 
-        publishUpdatedBalanceAfter();
+        PeriodProvider after = operation.getPeriod();
+        publishUpdatedBalanceResult(before, after);
     }
 
     private void calculate(Operation operation, PremiumSnapshot premiumSnapshot) {
@@ -117,7 +121,6 @@ public class Balance {
             tryRecalculateAfter(operation, premiumSnapshot);
         } catch (ReexecutionException e) {
             operation.handle(e, eventPublisher);
-            throw new RollbackException(e);
         }
     }
 
@@ -133,12 +136,10 @@ public class Balance {
         operation.reexecute(previousOperation, premiumSnapshot, eventPublisher);
     }
 
-    private void publishUpdatedBalanceAfter() {
-        Operation lastOperation = getLastOperation();
-        PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, lastOperation.getRegistration());
-
-        List<MonthlyBalance> monthlyBalances = getLastOperation().getMonthlyBalances(premiumSnapshot);
-//        eventPublisher.publish(new BalanceUpdatedEvent(contractData, monthlyBalances), "BalanceServiceImpl");
+    private void publishUpdatedBalanceResult(PeriodProvider before, PeriodProvider after) {
+        for (PublishPolicy publishPolicy : publishPolicies) {
+            publishPolicy.doPublish(contractId, before, after);
+        }
     }
 
     private Operation getPreviousOperation(Operation operation) {
@@ -159,6 +160,12 @@ public class Balance {
         return operations.stream()
                 .max(Operation::orderComparator)
                 .orElseThrow();
+    }
+
+    private Optional<Operation> getLastOperationWithout(Operation operation) {
+        return operations.stream()
+                .filter(o -> o != operation)
+                .max(Operation::orderComparator);
     }
 
     private Operation getStartCalculating() {

@@ -11,8 +11,6 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.ContinuationPolicy;
-import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
-import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -66,16 +64,7 @@ public class ChangePremium extends Operation {
     }
 
     @Override
-    public void handle(ReexecutionException e, DomainEventPublisher eventPublisher) {
-        publishFailedEvent(e, eventPublisher);
-    }
-
-    @Override
-    public void handle(UnavailabilityException e, DomainEventPublisher eventPublisher) {
-        publishFailedEvent(e, eventPublisher);
-    }
-
-    private void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
+    protected void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
         ChangePremiumFailedEvent event = new ChangePremiumFailedEvent(premiumId, timestamp, premium, date, e);
         eventPublisher.publish(event, "BalanceServiceImpl");
     }

@@ -15,8 +15,9 @@ import java.util.stream.Collectors;
 @DomainFactory
 public class AllocationFactory {
 
-    public static Allocation create(ContractData contractData, List<MonthlyBalance> monthlyBalances, List<RiskDefinition> riskDefinitions) {
+    public static Allocation create(AggregateId contractId, List<MonthlyBalance> monthlyBalances, List<RiskDefinition> riskDefinitions) {
         List<Month> months = createMonths(monthlyBalances, riskDefinitions);
+        ContractData contractData = new ContractData(contractId);
         return new Allocation(contractData, months);
     }
 

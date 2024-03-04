@@ -15,7 +15,7 @@ import pl.mpietrewicz.sp.modules.balance.infrastructure.repo.entity.MonthEntity;
 public class MonthConverter {
 
     public Month convert(MonthEntity entity) {
-        Month month = new Month(entity.getEntityId(), entity.getYearMonth(), new Amount(entity.getPremium()));
+        Month month = new Month(entity.getEntityId(), entity.getYearMonth(), new Amount(entity.getPremium()), entity.isRenewal());
         MonthState monthState = createMonthState(entity.getPaidStatus(), month, new Amount(entity.getPaid()));
         month.changeState(monthState);
         return month;
@@ -38,7 +38,7 @@ public class MonthConverter {
 
     public MonthEntity convert(Month model) {
         return new MonthEntity(model.getId(), model.getYearMonth(), model.getPremium().getBigDecimal(),
-                model.getPaidStatus(), model.getPaid().getBigDecimal());
+                model.getPaidStatus(), model.getPaid().getBigDecimal(), model.isRenewal());
     }
 
 }

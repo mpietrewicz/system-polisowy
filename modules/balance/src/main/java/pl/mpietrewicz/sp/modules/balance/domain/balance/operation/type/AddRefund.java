@@ -9,9 +9,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
-import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 
-import javax.persistence.RollbackException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -39,8 +37,7 @@ public class AddRefund extends Operation {
         try {
             tryExecute();
         } catch (RefundException e) {
-            publishFailedEvent(e, eventPublisher);
-            throw new RollbackException(e);
+            handle(e, eventPublisher);
         }
     }
 
@@ -55,22 +52,13 @@ public class AddRefund extends Operation {
     }
 
     @Override
-    public void handle(ReexecutionException e, DomainEventPublisher eventPublisher) {
-        publishFailedEvent(e, eventPublisher);
-    }
-
-    @Override
-    public void handle(UnavailabilityException e, DomainEventPublisher eventPublisher) {
-        publishFailedEvent(e, eventPublisher);
+    protected void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
+        AddRefundFailedEvent event = new AddRefundFailedEvent(refund, date, e);
+        eventPublisher.publish(event, "BalanceServiceImpl");
     }
 
     private void tryExecute() throws RefundException {
         getPeriod().tryRefund(refund);
-    }
-
-    private void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
-        AddRefundFailedEvent event = new AddRefundFailedEvent(refund, date, e);
-        eventPublisher.publish(event, "BalanceServiceImpl");
     }
 
 }

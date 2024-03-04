@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.event.EventListener;
 import pl.mpietrewicz.sp.ddd.annotations.event.EventListeners;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.BalanceUpdatedEvent;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.modules.accounting.application.api.AllocationService;
@@ -18,10 +19,10 @@ public class BalanceUpdatedListener {
 
     @EventListener
     public void handle(BalanceUpdatedEvent event) {
-        ContractData contractData = event.getContractData();
+        AggregateId contractId = event.getContractId();
         List<MonthlyBalance> monthlyBalances = event.getMonthlyBalances();
 
-        allocationService.update(contractData, monthlyBalances);
+        allocationService.update(contractId, monthlyBalances);
     }
 
 }

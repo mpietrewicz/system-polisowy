@@ -43,7 +43,7 @@ public abstract class RenewalPolicy implements PaymentPolicy {
         YearMonth paymentMonth = YearMonth.from(paymentData.getDate());
         PositiveAmount premium = premiumSnapshot.getAmountAt(paymentData.getDate());
         Amount amountToRenew = getAmountToRenew(period, paymentData);
-        Month renewalMonth = period.createMonth(paymentMonth, premium);
+        Month renewalMonth = period.createRenewalMonth(paymentMonth, premium);
 
         if (renewalMonth.canPaidBy(amountToRenew)) {
             period.addNewMonth(renewalMonth);

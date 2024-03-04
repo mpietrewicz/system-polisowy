@@ -3,9 +3,9 @@ package pl.mpietrewicz.sp.modules.accounting.application.api.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.modules.accounting.application.api.AllocationService;
 import pl.mpietrewicz.sp.modules.accounting.domain.allocation.Allocation;
 import pl.mpietrewicz.sp.modules.accounting.domain.allocation.AllocationFactory;
@@ -23,19 +23,19 @@ public class AllocationServiceImpl implements AllocationService {
     private final AllocationFactory allocationFactory;
 
     @Override
-    public void update(ContractData contractData, List<MonthlyBalance> monthlyBalances) {
-        List<RiskDefinition> riskDefinitions = allocationRepository.findRiskDefinitions(contractData.getAggregateId());
-        Allocation allocation = getAllocation(contractData, monthlyBalances, riskDefinitions);
+    public void update(AggregateId contractId, List<MonthlyBalance> monthlyBalances) {
+        List<RiskDefinition> riskDefinitions = allocationRepository.findRiskDefinitions(contractId);
+        Allocation allocation = getAllocation(contractId, monthlyBalances, riskDefinitions);
 
         allocation.update(monthlyBalances, riskDefinitions);
     }
 
-    private Allocation getAllocation(ContractData contractData, List<MonthlyBalance> monthlyBalances,
+    private Allocation getAllocation(AggregateId contractId, List<MonthlyBalance> monthlyBalances,
                                      List<RiskDefinition> riskDefinitions) {
         try {
-            return allocationRepository.findByContractId(contractData.getAggregateId());
+            return allocationRepository.findByContractId(contractId);
         } catch (NoResultException e) {
-            return allocationFactory.create(contractData, monthlyBalances, riskDefinitions);
+            return allocationFactory.create(contractId, monthlyBalances, riskDefinitions);
         }
     }
 

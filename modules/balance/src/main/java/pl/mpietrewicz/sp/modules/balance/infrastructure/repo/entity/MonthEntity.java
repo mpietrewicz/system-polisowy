@@ -27,12 +27,16 @@ public class MonthEntity extends BaseEntity {
 
     public BigDecimal paid;
 
-    public MonthEntity(Long entityId, YearMonth yearMonth, BigDecimal premium, PaidStatus paidStatus, BigDecimal paid) {
+    public boolean isRenewal;
+
+    public MonthEntity(Long entityId, YearMonth yearMonth, BigDecimal premium, PaidStatus paidStatus,
+                       BigDecimal paid, boolean isRenewal) {
         this.entityId = entityId;
         this.yearMonth = yearMonth;
         this.premium = premium;
         this.paidStatus = paidStatus;
         this.paid = paid;
+        this.isRenewal = isRenewal;
     }
 
 }

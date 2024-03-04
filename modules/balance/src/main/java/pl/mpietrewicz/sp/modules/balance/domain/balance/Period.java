@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 
 @Getter
-public class Period {
+public class Period implements PeriodProvider {
 
     private Long id;
 
@@ -26,19 +26,19 @@ public class Period {
 
     private final LocalDate start;
 
-    private boolean isCurrent;
+    private boolean isValid;
 
-    public Period(LocalDate start, List<Month> months, boolean isCurrent) {
+    public Period(LocalDate start, List<Month> months, boolean isValid) {
         this.start = start;
         this.months = months;
-        this.isCurrent = isCurrent;
+        this.isValid = isValid;
     }
 
-    public Period(Long id, LocalDate start, List<Month> months, boolean isCurrent) {
+    public Period(Long id, LocalDate start, List<Month> months, boolean isValid) {
         this.id = id;
         this.start = start;
         this.months = months;
-        this.isCurrent = isCurrent;
+        this.isValid = isValid;
     }
 
     public void tryPay(MonthToPay monthToPay, PremiumSnapshot premiumSnapshot) {
@@ -84,6 +84,15 @@ public class Period {
                 }).reduce(ZERO, Amount::add);
     }
 
+    public Amount refundUnderpayment() {
+        return getLastMonth()
+                .map(month -> {
+                    Amount refunded = month.refund();
+                    months.remove(month);
+                    return refunded;
+                }).orElse(ZERO);
+    }
+
     private Month createNextMonth(Month month, PremiumSnapshot premiumSnapshot) {
         YearMonth yearMonth = month.getYearMonth().plusMonths(1);
         PositiveAmount premium = premiumSnapshot.getAmountAt(yearMonth.atDay(1));
@@ -105,14 +114,18 @@ public class Period {
         return months.stream()
                 .map(month -> MonthlyBalance.builder()
                         .month(month.getYearMonth())
-                        .componentPremiums(premiumSnapshot.getDetails())
+                        .componentPremiums(premiumSnapshot.getDetails(month.getYearMonth().atDay(1)))
                         .isPaid(month.isPaid())
                         .build())
                 .collect(Collectors.toList());
     }
 
     public Month createMonth(YearMonth yearMonth, Amount premium) {
-        return new Month(yearMonth, premium);
+        return new Month(yearMonth, premium, false);
+    }
+
+    public Month createRenewalMonth(YearMonth yearMonth, Amount premium) {
+        return new Month(yearMonth, premium, true);
     }
 
     public void addNewMonth(Month newMonth) {
@@ -122,10 +135,21 @@ public class Period {
         months.add(newMonth);
     }
 
+    public void markAsInvalid() {
+        this.isValid = false;
+    }
+
     public Optional<Month> getLastPaidMonth() {
         return months.stream()
                 .filter(Month::isPaid)
                 .max(Month::compareAscending);
+    }
+
+    public List<YearMonth> getRenewalMonths() {
+        return months.stream()
+                .filter(Month::isRenewal)
+                .map(Month::getYearMonth)
+                .collect(Collectors.toList());
     }
 
     protected Optional<Month> getLastMonthWithPayment() {
@@ -157,21 +181,8 @@ public class Period {
                 .orElse(YearMonth.from(start).minusMonths(1));
     }
 
-    public Amount refundUnderpayment() {
-        return getLastMonth()
-                .map(month -> {
-                    Amount refunded = month.refund();
-                    months.remove(month);
-                    return refunded;
-                }).orElse(ZERO);
-    }
-
-    public boolean isCurrent() {
-        return isCurrent;
-    }
-
-    public void markAsInvalid() {
-        this.isCurrent = false;
+    public boolean isValid() {
+        return isValid;
     }
 
 }
