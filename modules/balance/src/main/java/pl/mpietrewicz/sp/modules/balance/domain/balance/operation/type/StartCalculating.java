@@ -6,11 +6,8 @@ import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
-import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
-import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 
 import java.time.YearMonth;
-import java.util.ArrayList;
 import java.util.List;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.START_CALCULATING;
@@ -19,12 +16,6 @@ import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operati
 public class StartCalculating extends Operation {
 
     private final Amount premium;
-
-    public StartCalculating(YearMonth start, Amount premium) {
-        super(start.atDay(1));
-        this.type = START_CALCULATING;
-        this.premium = premium;
-    }
 
     public StartCalculating(YearMonth start, Amount premium, Period period) {
         super(start.atDay(1));
@@ -39,29 +30,19 @@ public class StartCalculating extends Operation {
         this.premium = premium;
     }
 
-    public void execute() {
-        periods.clear();
-        periods.add(new Period(date, new ArrayList<>(), true));
-    }
-
-    @Override
-    public void handle(ReexecutionException e, DomainEventPublisher eventPublisher) {
-        throw new UnsupportedOperationException("Metoda nie obsługiwana w StartCalculating Operation");
-    }
-
-    @Override
-    public void handle(UnavailabilityException e, DomainEventPublisher eventPublisher) {
-        throw new UnsupportedOperationException("Metoda nie obsługiwana w StartCalculating Operation");
-    }
-
     @Override
     protected void execute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
-        throw new UnsupportedOperationException("Metoda nie obsługiwana w StartCalculating Operation");
+        throw new UnsupportedOperationException();
     }
 
     @Override
     protected void reexecute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
-        throw new UnsupportedOperationException("Metoda nie obsługiwana w StartCalculating Operation");
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

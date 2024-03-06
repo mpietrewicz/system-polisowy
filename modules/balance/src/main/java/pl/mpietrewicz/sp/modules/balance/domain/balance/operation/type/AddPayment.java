@@ -14,9 +14,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPol
 import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicyFactory;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RenewalException;
-import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 
-import javax.persistence.RollbackException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -48,8 +46,7 @@ public class AddPayment extends Operation {
         try {
             tryExecute(premiumSnapshot);
         } catch (RenewalException e) {
-            publishFailedEvent(e, eventPublisher);
-            throw new RollbackException(e);
+            handle(e, eventPublisher);
         }
     }
 
@@ -64,13 +61,9 @@ public class AddPayment extends Operation {
     }
 
     @Override
-    public void handle(ReexecutionException e, DomainEventPublisher eventPublisher) {
-        publishFailedEvent(e, eventPublisher);
-    }
-
-    @Override
-    public void handle(UnavailabilityException e, DomainEventPublisher eventPublisher) {
-        publishFailedEvent(e, eventPublisher);
+    protected void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
+        AddPaymentFailedEvent event = new AddPaymentFailedEvent(date, amount, e);
+        eventPublisher.publish(event, "BalanceServiceImpl");
     }
 
     private void tryExecute(PremiumSnapshot premiumSnapshot) throws RenewalException {
@@ -80,11 +73,6 @@ public class AddPayment extends Operation {
         MonthToPay monthToPay = paymentPolicy.getMonthToPay(getPeriod(), paymentData);
 
         getPeriod().tryPay(monthToPay, premiumSnapshot);
-    }
-
-    private void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
-        AddPaymentFailedEvent event = new AddPaymentFailedEvent(date, amount, e);
-        eventPublisher.publish(event, "BalanceServiceImpl");
     }
 
 }

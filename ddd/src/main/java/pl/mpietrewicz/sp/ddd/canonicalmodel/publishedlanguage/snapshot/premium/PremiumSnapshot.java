@@ -15,11 +15,11 @@ import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.OneToMany;
-import javax.persistence.Transient;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount.ZERO;
 
@@ -52,8 +52,9 @@ public class PremiumSnapshot {
 		}
 	}
 
-	public Map<AggregateId, Amount> getDetails() {
-		return null; // todo: to raczej będzie do wywalenia
+	public Map<AggregateId, Amount> getDetails(LocalDate date) {
+		return componentPremiumSnapshots.stream()
+				.collect(Collectors.toMap(ComponentPremiumSnapshot::getComponentId, cps -> cps.getPremiumAt(date)));
 	}
 
 }

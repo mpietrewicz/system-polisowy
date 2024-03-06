@@ -6,8 +6,6 @@ import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
-import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
-import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -51,16 +49,6 @@ public class StopCalculating extends Operation {
     }
 
     @Override
-    public void handle(ReexecutionException e, DomainEventPublisher eventPublisher) {
-        publishFailedEvent(e, eventPublisher);
-    }
-
-    @Override
-    public void handle(UnavailabilityException e, DomainEventPublisher eventPublisher) {
-        publishFailedEvent(e, eventPublisher);
-    }
-
-    @Override
     public int orderComparator(Operation operation) {
         return Stream.of(register, end)
                 .max(LocalDate::compareTo)
@@ -68,7 +56,8 @@ public class StopCalculating extends Operation {
                 .orElseThrow();
     }
 
-    private void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
+    @Override
+    protected void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
         // todo: zaimplementować
     }
 

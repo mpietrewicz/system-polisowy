@@ -7,11 +7,12 @@ import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
+import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
-import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.RollbackException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -44,6 +45,11 @@ public abstract class Operation {
         this.periods = periods;
     }
 
+    public void execute(Operation previousOperation, PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
+        periods.add(previousOperation.getPeriodCopy());
+        execute(premiumSnapshot, eventPublisher);
+    }
+
     public void reexecute(Operation previousOperation, PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher)
             throws ReexecutionException {
         getPeriod().markAsInvalid();
@@ -51,9 +57,9 @@ public abstract class Operation {
         reexecute(premiumSnapshot, eventPublisher);
     }
 
-    public void execute(Operation previousOperation, PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
-        periods.add(previousOperation.getPeriodCopy());
-        execute(premiumSnapshot, eventPublisher);
+    public void handle(BalanceException e, DomainEventPublisher eventPublisher) {
+        publishFailedEvent(e, eventPublisher);
+        throw new RollbackException(e);
     }
 
     protected abstract void execute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher);
@@ -61,13 +67,15 @@ public abstract class Operation {
     protected abstract void reexecute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher)
             throws ReexecutionException;
 
+    protected abstract void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher);
+
     public Period getPeriodCopy() {
         return getPeriod().createCopy();
     }
 
-    protected Period getPeriod() {
+    public Period getPeriod() {
         return periods.stream()
-                .filter(Period::isCurrent)
+                .filter(Period::isValid)
                 .findFirst()
                 .orElseThrow();
     }
@@ -110,9 +118,7 @@ public abstract class Operation {
     }
 
     public boolean isAfter(Optional<Operation> operation) {
-        return operation.isPresent()
-                ? orderComparator(operation.get()) > 0
-                : false;
+        return operation.isPresent() && orderComparator(operation.get()) > 0;
     }
 
     public boolean isBefore(Operation operation) {
@@ -127,16 +133,8 @@ public abstract class Operation {
         return YearMonth.from(date);
     }
 
-    public List<MonthlyBalance> getMonthlyBalances(PremiumSnapshot premiumSnapshot) {
-        return getPeriod().getMonthlyBalances(premiumSnapshot);
-    }
-
     public LocalDateTime getRegistration() {
         return registration;
     }
-
-    public abstract void handle(ReexecutionException e, DomainEventPublisher eventPublisher);
-
-    public abstract void handle(UnavailabilityException e, DomainEventPublisher eventPublisher);
 
 }

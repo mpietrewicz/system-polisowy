@@ -16,17 +16,21 @@ public class Month {
 
     private MonthState monthState;
 
-    private final Amount premium;
+    private final Amount premium; // todo: tutaj można dać obiekt Premium gdzie będzie lista komponentów i ich składek
 
-    public Month(Long id, YearMonth yearMonth, Amount premium) {
+    private final boolean isRenewal; // todo: zmienić nazwę na renewal
+
+    public Month(Long id, YearMonth yearMonth, Amount premium, boolean isRenewal) {
         this.id = id;
         this.yearMonth = yearMonth;
         this.premium = premium;
+        this.isRenewal = isRenewal;
     }
 
-    public Month(YearMonth yearMonth, Amount premium) {
+    public Month(YearMonth yearMonth, Amount premium, boolean isRenewal) {
         this.yearMonth = yearMonth;
         this.premium = premium;
+        this.isRenewal = isRenewal;
         this.monthState = new Unpaid(this);
     }
 
@@ -63,7 +67,7 @@ public class Month {
     }
 
     public Month createCopy() {
-        Month month = new Month(yearMonth, premium);
+        Month month = new Month(yearMonth, premium, isRenewal);
         month.changeState(this.monthState.createCopy(month));
         return month;
     }

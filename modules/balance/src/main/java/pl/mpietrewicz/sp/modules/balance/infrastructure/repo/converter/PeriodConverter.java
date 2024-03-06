@@ -20,7 +20,7 @@ public class PeriodConverter {
         List<Month> months = entity.getMonths().stream()
                 .map(e -> monthConverter.convert(e))
                 .collect(Collectors.toList());
-        return new Period(entity.getEntityId(), entity.getStart(), months, entity.isCurrent());
+        return new Period(entity.getEntityId(), entity.getStart(), months, entity.isValid());
     }
 
     public PeriodEntity convert(Period model) {
@@ -28,7 +28,7 @@ public class PeriodConverter {
                 .map(m -> monthConverter.convert(m))
                 .collect(Collectors.toList());
 
-        return new PeriodEntity(model.getId(), months, model.getStart(), model.isCurrent());
+        return new PeriodEntity(model.getId(), months, model.getStart(), model.isValid());
     }
 
 }

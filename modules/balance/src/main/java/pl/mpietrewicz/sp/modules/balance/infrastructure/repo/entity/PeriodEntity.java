@@ -24,13 +24,13 @@ public class PeriodEntity extends BaseEntity {
 
     private LocalDate start;
 
-    private boolean isCurrent;
+    private boolean isValid;
 
-    public PeriodEntity(Long entityId, List<MonthEntity> months, LocalDate start, boolean isCurrent) {
+    public PeriodEntity(Long entityId, List<MonthEntity> months, LocalDate start, boolean isValid) {
         this.entityId = entityId;
         this.months = months;
         this.start = start;
-        this.isCurrent = isCurrent;
+        this.isValid = isValid;
     }
 
 }
