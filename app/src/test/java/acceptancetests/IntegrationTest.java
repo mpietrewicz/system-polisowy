@@ -23,6 +23,7 @@ import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.ComponentRepositor
 import javax.inject.Inject;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -70,7 +71,7 @@ public class IntegrationTest {
         Balance balance = new Balance(AggregateId.generate(), 0L, contractData.getAggregateId(), new ArrayList<>());
 
         List<ContractOperation> sortedOperations = daneDoTestow.stream()
-                .filter(nowyPakiet -> nowyPakiet.getIdUmowy().equals("0353/D4/142"))
+                .filter(nowyPakiet -> nowyPakiet.getIdUmowy().equals("0350/D/204872"))
                 .findAny()
                 .get()
                 .getNoweSkladniki().stream()
@@ -97,7 +98,8 @@ public class IntegrationTest {
         PositiveAmount kwota = contractOperation.getKTOWA() == null
                 ? PositiveAmount.ZERO
                 : new PositiveAmount(contractOperation.getKTOWA().replace(",", "."));
-        if (contractOperation.getOPERACJA().equals("ZUM")) {
+        if (contractOperation.getOPERACJA().equals("ZUM")
+                || (contractOperation.getOPERACJA().equals("PUM") && contractOperation.getRODZAJ_SKL().equals("PODST"))) {
             String number = contractOperation.getNR_SKLADNIKA();
             Contract contract = contractService.createContract(number, dataZmiany, kwota, Frequency.QUARTERLY, RENEWAL_WITH_UNDERPAYMENT);
             contractData = contract.generateSnapshot();
@@ -115,16 +117,17 @@ public class IntegrationTest {
             List<Component> components = componentRepository.findByContractId(contractData.getAggregateId());
             Component basicComponent = components.stream().filter(not(Component::isAdditional)).findAny().orElseThrow();
             premiumService.change(basicComponent.getAggregateId(), dataZmiany, kwota);
-        } else if (List.of("DSK").contains(contractOperation.getOPERACJA())) {
+        } else if (List.of("DSK").contains(contractOperation.getOPERACJA())
+                || (contractOperation.getOPERACJA().equals("PUM") && contractOperation.getRODZAJ_SKL().equals("DOD"))) {
             String number = contractOperation.getNR_SKLADNIKA();
             componentService.addComponent(contractData.getAggregateId(), number, dataZmiany, kwota);
         } else if (List.of("ZOU").contains(contractOperation.getOPERACJA())) {
             String number = contractOperation.getNR_SKLADNIKA();
             componentService.terminate(number, dataZmiany);
         } else if (List.of("ZOU_P").contains(contractOperation.getOPERACJA())) {
-            String number = contractOperation.getNR_SKLADNIKA();
-            LocalDate dataRejestracji = convertToLocalDate(contractOperation.getDATA_REJESTRACJI());
-            balanceService.stopCalculating(dataRejestracji, dataZmiany, contractData);
+            balanceService.stopCalculating(dataZmiany, contractData);
+        } else if (List.of("WZOU_P").contains(contractOperation.getOPERACJA())) {
+            balanceService.cancelStopCalculating(contractData);
         } else if (List.of("USK").contains(contractOperation.getOPERACJA())) {
             String number = contractOperation.getNR_SKLADNIKA();
             premiumService.cancel(number);
@@ -133,6 +136,10 @@ public class IntegrationTest {
 
     private LocalDate convertToLocalDate(Date date) {
         return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
+    private LocalDateTime convertToLocalDateTime(Date date) {
+        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
     }
 
 }

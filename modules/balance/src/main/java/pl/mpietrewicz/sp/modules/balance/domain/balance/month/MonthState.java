@@ -3,7 +3,6 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Overpaid;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Paid;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Underpaid;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Unpaid;
@@ -37,8 +36,6 @@ public abstract class MonthState {
 
     public MonthState createCopy(Month month) {
         switch (status) {
-            case OVERPAID:
-                return new Overpaid(month, paid);
             case PAID:
                 return new Paid(month, paid);
             case UNDERPAID:

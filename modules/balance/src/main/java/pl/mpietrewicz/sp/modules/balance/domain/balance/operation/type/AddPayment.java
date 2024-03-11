@@ -16,6 +16,7 @@ import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RenewalException;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_PAYMENT;
@@ -34,8 +35,9 @@ public class AddPayment extends Operation {
         this.type = ADD_PAYMENT;
     }
 
-    public AddPayment(Long id, LocalDate date, Amount amount, PaymentPolicyEnum paymentPolicyEnum, List<Period> periods) {
-        super(id, date, periods);
+    public AddPayment(Long id, LocalDate date, LocalDateTime registration, Amount amount, PaymentPolicyEnum paymentPolicyEnum,
+                      List<Period> periods) {
+        super(id, date, registration, periods);
         this.amount = amount;
         this.paymentPolicyEnum = paymentPolicyEnum;
         this.type = ADD_PAYMENT;

@@ -11,6 +11,7 @@ import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_REFUND;
@@ -26,8 +27,8 @@ public class AddRefund extends Operation {
         this.type = ADD_REFUND;
     }
 
-    public AddRefund(Long id, LocalDate date, Amount refund, List<Period> periods) {
-        super(id, date, periods);
+    public AddRefund(Long id, LocalDate date, LocalDateTime registration, Amount refund, List<Period> periods) {
+        super(id, date, registration, periods);
         this.refund = refund;
         this.type = ADD_REFUND;
     }

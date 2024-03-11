@@ -6,6 +6,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddPayment;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddRefund;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.CancelStopCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.ChangePremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_PAYMENT;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_REFUND;
+import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.CANCEL_STOP_CALCULATING;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.CHANGE_PREMIUM;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.START_CALCULATING;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.STOP_CALCULATING;
@@ -39,15 +41,17 @@ public class OperationConverter {
     private Operation createOperation(OperationEntity entity, List<Period> periods) {
         switch (entity.getType()) {
             case START_CALCULATING:
-                return new StartCalculating(entity.getEntityId(), YearMonth.from(entity.getDate()), new Amount(entity.getAmount()), periods);
+                return new StartCalculating(entity.getEntityId(), YearMonth.from(entity.getDate()), entity.getRegistration(), new Amount(entity.getAmount()), periods);
             case ADD_PAYMENT:
-                return new AddPayment(entity.getEntityId(), entity.getDate(), new Amount(entity.getAmount()), entity.getPaymentPolicyEnum(), periods);
+                return new AddPayment(entity.getEntityId(), entity.getDate(), entity.getRegistration(), new Amount(entity.getAmount()), entity.getPaymentPolicyEnum(), periods);
             case ADD_REFUND:
-                return new AddRefund(entity.getEntityId(), entity.getDate(), new Amount(entity.getAmount()), periods);
+                return new AddRefund(entity.getEntityId(), entity.getDate(), entity.getRegistration(), new Amount(entity.getAmount()), periods);
             case CHANGE_PREMIUM:
-                return new ChangePremium(entity.getEntityId(), entity.getDate(), new Amount(entity.getAmount()), entity.getPremiumId(), entity.getTimestamp(), periods);
+                return new ChangePremium(entity.getEntityId(), entity.getDate(), entity.getRegistration(), new Amount(entity.getAmount()), entity.getPremiumId(), entity.getTimestamp(), periods);
             case STOP_CALCULATING:
-                return new StopCalculating(entity.getEntityId(), entity.getDate(), entity.getEnd(), new Amount(entity.getAmount()), periods);
+                return new StopCalculating(entity.getEntityId(), entity.getEnd(), entity.isValid(), entity.getRegistration(), new Amount(entity.getAmount()), periods);
+            case CANCEL_STOP_CALCULATING:
+                return new CancelStopCalculating(entity.getEntityId(), entity.getCanceledEnd(), entity.isValid(), entity.getRegistration(), periods);
             default:
                 throw new IllegalStateException();
         }
@@ -68,6 +72,8 @@ public class OperationConverter {
             return convert((ChangePremium) model, periods);
         } else if (model instanceof StopCalculating) {
             return convert((StopCalculating) model, periods);
+        } else if (model instanceof CancelStopCalculating) {
+            return convert((CancelStopCalculating) model, periods);
         } else {
             throw new IllegalStateException();
         }
@@ -75,27 +81,32 @@ public class OperationConverter {
 
     public OperationEntity convert(StartCalculating model, List<PeriodEntity> periods) {
         return new OperationEntity(model.getId(), model.getDate(), model.getRegistration(), periods, START_CALCULATING,
-                model.getPremium().getBigDecimal(), null, null, null, null);
+                model.getPremium().getBigDecimal(), null, null, null, null, null, true);
     }
 
     public OperationEntity convert(AddPayment model, List<PeriodEntity> periods) {
         return new OperationEntity(model.getId(), model.getDate(), model.getRegistration(), periods, ADD_PAYMENT,
-                model.getAmount().getBigDecimal(), model.getPaymentPolicyEnum(), null, null, null);
+                model.getAmount().getBigDecimal(), model.getPaymentPolicyEnum(), null, null, null, null, true);
     }
 
     public OperationEntity convert(AddRefund model, List<PeriodEntity> periods) {
         return new OperationEntity(model.getId(), model.getDate(), model.getRegistration(), periods, ADD_REFUND,
-                model.getRefund().getBigDecimal(), null, null, null, null);
+                model.getRefund().getBigDecimal(), null, null, null, null, null, true);
     }
 
     public OperationEntity convert(ChangePremium model, List<PeriodEntity> periods) {
         return new OperationEntity(model.getId(), model.getDate(), model.getRegistration(), periods, CHANGE_PREMIUM,
-                model.getPremium().getBigDecimal(), null, model.getPremiumId(), model.getTimestamp(), null);
+                model.getPremium().getBigDecimal(), null, model.getPremiumId(), model.getTimestamp(), null, null, true);
     }
 
     public OperationEntity convert(StopCalculating model, List<PeriodEntity> periods) {
         return new OperationEntity(model.getId(), model.getDate(), model.getRegistration(), periods, STOP_CALCULATING,
-                model.getExcess().getBigDecimal(), null, null, null, model.getEnd());
+                model.getExcess().getBigDecimal(), null, null, null, model.getEnd(), null, model.isValid());
+    }
+
+    public OperationEntity convert(CancelStopCalculating model, List<PeriodEntity> periods) {
+        return new OperationEntity(model.getId(), model.getDate(), model.getRegistration(), periods, CANCEL_STOP_CALCULATING,
+                null, null, null, null, null, model.getCanceledEnd(), model.isValid());
     }
 
 }

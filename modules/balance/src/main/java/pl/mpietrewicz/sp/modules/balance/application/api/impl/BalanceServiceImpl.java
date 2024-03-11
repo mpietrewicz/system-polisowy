@@ -60,10 +60,18 @@ public class BalanceServiceImpl implements BalanceService {
     }
 
     @Override
-    public void stopCalculating(LocalDate date, LocalDate end, ContractData contractData) {
+    public void stopCalculating(LocalDate end, ContractData contractData) {
         Balance balance = balanceRepository.findByContractIdNew(contractData.getAggregateId());
 
-        balance.stopCalculating(date, end);
+        balance.stopCalculating(end);
+        balanceRepository.merge(balance);
+    }
+
+    @Override
+    public void cancelStopCalculating(ContractData contractData) {
+        Balance balance = balanceRepository.findByContractIdNew(contractData.getAggregateId());
+
+        balance.cancelStopCalculating();
         balanceRepository.merge(balance);
     }
 

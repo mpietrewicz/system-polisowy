@@ -36,8 +36,9 @@ public class ChangePremium extends Operation {
         this.timestamp = timestamp;
     }
 
-    public ChangePremium(Long id, LocalDate date, Amount premium, AggregateId premiumId, LocalDateTime timestamp, List<Period> periods) {
-        super(id, date, periods);
+    public ChangePremium(Long id, LocalDate date, LocalDateTime registration, Amount premium, AggregateId premiumId,
+                         LocalDateTime timestamp, List<Period> periods) {
+        super(id, date, registration, periods);
         this.premium = premium;
         this.type = CHANGE_PREMIUM;
         this.premiumId = premiumId;

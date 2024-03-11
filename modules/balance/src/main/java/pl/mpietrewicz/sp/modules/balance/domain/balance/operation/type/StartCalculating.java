@@ -7,6 +7,7 @@ import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 
@@ -24,8 +25,8 @@ public class StartCalculating extends Operation {
         this.periods.add(period);
     }
 
-    public StartCalculating(Long id, YearMonth start, Amount premium, List<Period> periods) {
-        super(id, start.atDay(1), periods);
+    public StartCalculating(Long id, YearMonth start, LocalDateTime registration, Amount premium, List<Period> periods) {
+        super(id, start.atDay(1), registration, periods);
         this.type = START_CALCULATING;
         this.premium = premium;
     }
@@ -47,6 +48,10 @@ public class StartCalculating extends Operation {
 
     @Override
     public int orderComparator(Operation operation) {
+        return orderAlwaysFirst(operation);
+    }
+
+    private int orderAlwaysFirst(Operation operation) {
         return this == operation
                 ? 0
                 : -1;

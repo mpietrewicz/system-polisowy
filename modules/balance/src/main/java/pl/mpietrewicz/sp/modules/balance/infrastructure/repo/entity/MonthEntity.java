@@ -10,6 +10,7 @@ import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.Table;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.YearMonth;
 
 @Table(name = "Month")
@@ -18,7 +19,7 @@ import java.time.YearMonth;
 @NoArgsConstructor
 public class MonthEntity extends BaseEntity {
 
-    private YearMonth yearMonth;
+    private LocalDate yearMonth;
 
     protected BigDecimal premium;
 
@@ -32,7 +33,7 @@ public class MonthEntity extends BaseEntity {
     public MonthEntity(Long entityId, YearMonth yearMonth, BigDecimal premium, PaidStatus paidStatus,
                        BigDecimal paid, boolean isRenewal) {
         this.entityId = entityId;
-        this.yearMonth = yearMonth;
+        this.yearMonth = yearMonth.atDay(1);
         this.premium = premium;
         this.paidStatus = paidStatus;
         this.paid = paid;

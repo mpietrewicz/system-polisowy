@@ -1,10 +1,10 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
 
 import lombok.Getter;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.CancelStopCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
 import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceException;
@@ -27,7 +27,7 @@ public abstract class Operation {
 
     protected final LocalDate date;
 
-    private final LocalDateTime registration = LocalDateTime.now();
+    private final LocalDateTime registration;
 
     protected final List<Period> periods;
 
@@ -35,13 +35,21 @@ public abstract class Operation {
     protected OperationType type;
 
     protected Operation(LocalDate date) {
+        this.registration = LocalDateTime.now();
         this.date = date;
         this.periods = new ArrayList<>();
     }
 
-    protected Operation(Long id, LocalDate date, List<Period> periods) {
+    protected Operation(LocalDateTime registration) {
+        this.registration = registration;
+        this.date = registration.toLocalDate();
+        this.periods = new ArrayList<>();
+    }
+
+    protected Operation(Long id, LocalDate date, LocalDateTime registration, List<Period> periods) {
         this.id = id;
         this.date = date;
+        this.registration = registration;
         this.periods = periods;
     }
 
@@ -81,14 +89,13 @@ public abstract class Operation {
     }
 
     public int orderComparator(Operation operation) {
-        if (operation instanceof StartCalculating) {
-            return - operation.orderComparator(this);
-        }
-        if (operation instanceof StopCalculating) {
+        if (operation instanceof StartCalculating
+                || operation instanceof StopCalculating
+                || operation instanceof CancelStopCalculating) {
             return - operation.orderComparator(this);
         }
 
-        int dateComparator = this.date.compareTo(operation.date);
+        int dateComparator = date.compareTo(operation.date);
         if (dateComparator != 0) {
             return dateComparator;
         } else {
@@ -109,8 +116,8 @@ public abstract class Operation {
         }
     }
 
-    protected Integer getPriority() {
-        return 1;
+    protected Integer getPriority() { // descending
+        return 10;
     }
 
     public boolean isAfter(Operation operation) {
@@ -135,6 +142,10 @@ public abstract class Operation {
 
     public LocalDateTime getRegistration() {
         return registration;
+    }
+
+    public boolean isValid() {
+        return true;
     }
 
 }
