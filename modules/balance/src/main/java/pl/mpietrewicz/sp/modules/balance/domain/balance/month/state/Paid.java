@@ -6,6 +6,8 @@ import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus;
+import pl.mpietrewicz.sp.modules.balance.exceptions.PaymentException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
 
 import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 
@@ -19,12 +21,12 @@ public class Paid extends MonthState {
     }
 
     @Override
-    public Amount pay(PositiveAmount payment) {
-        throw new UnsupportedOperationException("Nie można ponownie opłacić opłaconego okresu!");
+    public Amount pay(PositiveAmount payment) throws PaymentException {
+        throw new PaymentException("You trying pay the paid period!");
     }
 
     @Override
-    public Amount refund(PositiveAmount refund) {
+    public Amount refund(PositiveAmount refund) throws RefundException {
         if (month.getPaid().isLessThan(refund)) {
             month.changeState(new Unpaid(month));
             return refund.subtract(month.getPaid());
@@ -33,7 +35,6 @@ public class Paid extends MonthState {
         } else if (month.getPaid().isHigherThan(refund)) {
             month.changeState(new Underpaid(month, month.getPaid().subtract(refund)));
         }
-
         return ZERO;
     }
 

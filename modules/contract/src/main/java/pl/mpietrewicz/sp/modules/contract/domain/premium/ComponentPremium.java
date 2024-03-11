@@ -58,7 +58,7 @@ public class ComponentPremium extends BaseEntity {
     }
 
     protected void deletePremium(LocalDate date, LocalDateTime timestamp) {
-        if (!hasPremiumAt(date, timestamp)) {
+        if (getValidOperations(timestamp).isEmpty()) {
             throw new IllegalStateException("Not found premium to delete at date: " + date);
         }
         operations.add(new Operation(Type.DELETE, date, Amount.ZERO, timestamp));

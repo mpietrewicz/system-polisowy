@@ -4,9 +4,7 @@ import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddPayment;
@@ -65,75 +63,69 @@ public class Balance {
     }
 
     public void addPayment(LocalDate date, Amount payment, PaymentPolicyEnum paymentPolicyEnum) {
-        AddPayment addPayment = new AddPayment(date, payment, paymentPolicyEnum);
+        AddPayment addPayment = new AddPayment(date, payment, paymentPolicyEnum, eventPublisher, premiumService);
         commit(addPayment);
     }
 
     public void addRefund(LocalDate date, Amount refund) {
-        AddRefund addRefund = new AddRefund(date, refund);
+        AddRefund addRefund = new AddRefund(date, refund, eventPublisher);
         commit(addRefund);
     }
 
-    public void changePremium(LocalDate date, PremiumSnapshot premiumSnapshot) {
-        PositiveAmount premium = premiumSnapshot.getAmountAt(date);
-        AggregateId premiumId = premiumSnapshot.getPremiumId();
-        LocalDateTime timestamp = premiumSnapshot.getTimestamp();
-
-        ChangePremium changePremium = new ChangePremium(date, premium.getAmount(), premiumId, timestamp);
+    public void changePremium(LocalDate date, LocalDateTime timestamp) {
+        ChangePremium changePremium = new ChangePremium(date, timestamp, eventPublisher, premiumService);
         commit(changePremium);
     }
 
     public void stopCalculating(LocalDate end) {
-        StopCalculating stopCalculating = new StopCalculating(end);
+        StopCalculating stopCalculating = new StopCalculating(end, eventPublisher);
         commit(stopCalculating);
     }
 
     public void cancelStopCalculating() {
         try {
             StopCalculating stopCalculating = tryGetStopCalculating();
-            CancelStopCalculating cancelStopCalculating = new CancelStopCalculating(stopCalculating);
+            CancelStopCalculating cancelStopCalculating = new CancelStopCalculating(stopCalculating, eventPublisher);
             commit(cancelStopCalculating);
         } catch (UnavailabilityException e) {
-            new CancelStopCalculating().handle(e, eventPublisher);
+            new CancelStopCalculating(eventPublisher).handle(e);
         }
     }
 
     private void commit(Operation operation) {
         PeriodProvider before = getLastOperation().getPeriod();
 
-        PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, operation.getRegistration());
-        calculate(operation, premiumSnapshot);
-
+        calculate(operation);
         operations.add(operation);
-        recalculateAfter(operation, premiumSnapshot);
+        recalculateAfter(operation);
 
         PeriodProvider after = getLastOperation().getPeriod();
         publishUpdatedBalanceResult(before, after);
     }
 
-    private void calculate(Operation operation, PremiumSnapshot premiumSnapshot) {
+    private void calculate(Operation operation) {
         Operation previousOperation = getPreviousOperation(operation);
-        operation.execute(previousOperation, premiumSnapshot, eventPublisher);
+        operation.execute(previousOperation, contractId);
     }
 
-    private void recalculateAfter(Operation operation, PremiumSnapshot premiumSnapshot) {
+    private void recalculateAfter(Operation operation) {
         try {
-            tryRecalculateAfter(operation, premiumSnapshot);
+            tryRecalculateAfter(operation);
         } catch (ReexecutionException e) {
-            operation.handle(e, eventPublisher);
+            operation.handle(e);
         }
     }
 
-    private void tryRecalculateAfter(Operation operation, PremiumSnapshot premiumSnapshot) throws ReexecutionException {
+    private void tryRecalculateAfter(Operation operation) throws ReexecutionException {
         List<Operation> nextOperations = getNextOperationsAfter(operation);
         for (Operation nextOperation : nextOperations) {
-            recalculate(nextOperation, premiumSnapshot);
+            recalculate(nextOperation, operation.getRegistration(), prepareInfo(operation));
         }
     }
 
-    private void recalculate(Operation operation, PremiumSnapshot premiumSnapshot) throws ReexecutionException {
+    private void recalculate(Operation operation, LocalDateTime registration, String info) throws ReexecutionException {
         Operation previousOperation = getPreviousOperation(operation);
-        operation.reexecute(previousOperation, premiumSnapshot, eventPublisher);
+        operation.reexecute(previousOperation, contractId, registration, info);
     }
 
     private void publishUpdatedBalanceResult(PeriodProvider before, PeriodProvider after) {
@@ -194,6 +186,10 @@ public class Balance {
         return getStopCalculating()
                 .map(StopCalculating.class::cast)
                 .orElseThrow();
+    }
+
+    private String prepareInfo(Operation operation) { // todo: do poprawy logowanie
+        return "reexecute after " + operation.getClass().getName() + " : " + operation.getDate();
     }
 
 }

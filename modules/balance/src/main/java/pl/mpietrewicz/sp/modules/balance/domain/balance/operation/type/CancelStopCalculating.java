@@ -2,10 +2,11 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
 import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.CancelStopBalanceFailedEvent;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,58 +17,62 @@ import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operati
 @Getter
 public class CancelStopCalculating extends Operation {
 
-    private StopCalculating stopCalculating;
+    private static final OperationType operationType = CANCEL_STOP_CALCULATING;
+
+    private StopCalculatingService stopCalculatingService;
 
     private LocalDate canceledEnd;
 
     private boolean valid;
 
-    public CancelStopCalculating() {
-        super(LocalDateTime.now());
+    public CancelStopCalculating(DomainEventPublisher eventPublisher) {
+        super(LocalDateTime.now(), eventPublisher);
         this.valid = false;
-        this.type = CANCEL_STOP_CALCULATING;
     }
 
-    public CancelStopCalculating(StopCalculating stopCalculating) {
-        super(LocalDateTime.now());
-        this.stopCalculating = stopCalculating; // todo: można przekazać tylko interfejs który pozlowli unieważnić tą operację
-        this.canceledEnd = stopCalculating.getEnd();
+    public CancelStopCalculating(StopCalculatingService stopCalculatingService, DomainEventPublisher eventPublisher) {
+        super(LocalDateTime.now(), eventPublisher);
+        this.stopCalculatingService = stopCalculatingService;
+        this.canceledEnd = stopCalculatingService.getEnd();
         this.valid = true;
-        this.type = CANCEL_STOP_CALCULATING;
     }
 
-    public CancelStopCalculating(Long id, LocalDate canceledEnd, boolean valid, LocalDateTime registration, List<Period> periods) {
+    public CancelStopCalculating(Long id, LocalDate canceledEnd, LocalDateTime registration, boolean valid, List<Period> periods) {
         super(id, registration.toLocalDate(), registration, periods);
         this.canceledEnd = canceledEnd;
         this.valid = valid;
-        this.type = CANCEL_STOP_CALCULATING;
     }
 
     @Override
-    public void execute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
-        stopCalculating.invalidate();
+    public void execute(AggregateId contractId) {
+        stopCalculatingService.invalidate();
         invalidate();
     }
 
     @Override
-    protected void reexecute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
+    protected void reexecute(AggregateId contractId, LocalDateTime registration) {
         throw new UnsupportedOperationException();
     }
 
     @Override
+    protected void publishFailedEvent(Exception e) {
+        CancelStopBalanceFailedEvent event = new CancelStopBalanceFailedEvent(e);
+        eventPublisher.publish(event, "BalanceServiceImpl");
+    }
+
+    @Override
+    public OperationType getOperationType() {
+        return operationType;
+    }
+
+    @Override
     public int orderComparator(Operation operation) {
-        return stopCalculating.orderComparator(operation);
+        return stopCalculatingService.orderComparator(operation);
     }
 
     @Override
     protected Integer getPriority() {
-        return stopCalculating.getPriority() - 1;
-    }
-
-    @Override
-    protected void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
-        CancelStopBalanceFailedEvent event = new CancelStopBalanceFailedEvent(e);
-        eventPublisher.publish(event, "BalanceServiceImpl");
+        return stopCalculatingService.getPriority() - 1;
     }
 
     @Override

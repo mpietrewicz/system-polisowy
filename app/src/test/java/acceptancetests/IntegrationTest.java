@@ -11,7 +11,6 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractD
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.application.api.BalanceService;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
 import pl.mpietrewicz.sp.modules.balance.infrastructure.repo.BalanceRepository;
 import pl.mpietrewicz.sp.modules.contract.application.api.ComponentService;
 import pl.mpietrewicz.sp.modules.contract.application.api.ContractService;
@@ -24,9 +23,7 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.YearMonth;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
@@ -66,12 +63,8 @@ public class IntegrationTest {
         JsonReader jsonReader = new JsonReader();
         List<NowyPakiet> daneDoTestow = jsonReader.read();
 
-        LocalDate contractStart = LocalDate.parse("2023-01-01");
-        ContractData contractData = contractDate(contractStart);
-        Balance balance = new Balance(AggregateId.generate(), 0L, contractData.getAggregateId(), new ArrayList<>());
-
         List<ContractOperation> sortedOperations = daneDoTestow.stream()
-                .filter(nowyPakiet -> nowyPakiet.getIdUmowy().equals("0350/D/204872"))
+                .filter(nowyPakiet -> nowyPakiet.getIdUmowy().equals("0353/P/1871"))
                 .findAny()
                 .get()
                 .getNoweSkladniki().stream()
@@ -83,17 +76,16 @@ public class IntegrationTest {
                 .collect(Collectors.toList());
 
         for (ContractOperation operation : sortedOperations) {
-            newRunBalanceMethod(balance, operation);
+            newRunBalanceMethod(operation);
         }
+
+        Component component = componentRepository.findByNumber("P/1871");
+        balanceService.getBalance(component.getContractData());
 
         System.out.println("koniec");
     }
 
-    private ContractData contractDate(LocalDate start) {
-        return new ContractData(AggregateId.generate(), start, null, CONTINUATION, YearMonth.from(start));
-    }
-
-    private void newRunBalanceMethod(Balance balance, ContractOperation contractOperation) {
+    private void newRunBalanceMethod(ContractOperation contractOperation) {
         LocalDate dataZmiany = convertToLocalDate(contractOperation.getDATA_ZMIANY());
         PositiveAmount kwota = contractOperation.getKTOWA() == null
                 ? PositiveAmount.ZERO

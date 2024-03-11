@@ -9,9 +9,14 @@ import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.MonthToPay;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.ContinuationPolicy;
+import pl.mpietrewicz.sp.modules.balance.exceptions.PaymentException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
+import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
 
+import javax.inject.Inject;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -22,52 +27,63 @@ import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operati
 @Getter
 public class ChangePremium extends Operation {
 
-    private final Amount premium;
+    private static final OperationType operationType = CHANGE_PREMIUM;
 
-    private final AggregateId premiumId;
+    @Inject
+    protected PremiumService premiumService;
 
-    private final LocalDateTime timestamp;
-
-    public ChangePremium(LocalDate date, Amount premium, AggregateId premiumId, LocalDateTime timestamp) {
-        super(date);
-        this.premium = premium;
-        this.type = CHANGE_PREMIUM;
-        this.premiumId = premiumId;
-        this.timestamp = timestamp;
+    public ChangePremium(LocalDate date, LocalDateTime timestamp, DomainEventPublisher eventPublisher,
+                         PremiumService premiumService) {
+        super(date, timestamp, eventPublisher);
+        this.premiumService = premiumService;
     }
 
-    public ChangePremium(Long id, LocalDate date, LocalDateTime registration, Amount premium, AggregateId premiumId,
-                         LocalDateTime timestamp, List<Period> periods) {
+    public ChangePremium(Long id, LocalDate date, LocalDateTime registration, List<Period> periods) {
         super(id, date, registration, periods);
-        this.premium = premium;
-        this.type = CHANGE_PREMIUM;
-        this.premiumId = premiumId;
-        this.timestamp = timestamp;
     }
 
     @Override
-    public void execute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
+    public void execute(AggregateId contractId) {
+        try {
+            tryExecute(contractId, getRegistration());
+        } catch (PaymentException e) {
+            handle(e);
+        }
+    }
+
+    @Override
+    protected void reexecute(AggregateId contractId, LocalDateTime registration) throws ReexecutionException {
+        try {
+            tryExecute(contractId, registration);
+        } catch (PaymentException e) {
+            throw new ReexecutionException("Add payment failed!", e);
+        }
+    }
+
+    @Override
+    protected void publishFailedEvent(Exception e) {
+        ChangePremiumFailedEvent event = new ChangePremiumFailedEvent(null, null, null, date, e); // todo: uzupełnić
+        eventPublisher.publish(event, "BalanceServiceImpl");
+    }
+
+    @Override
+    public OperationType getOperationType() {
+        return operationType;
+    }
+
+    private void tryExecute(AggregateId contractId, LocalDateTime registration) throws PaymentException {
         YearMonth monthOfChange = YearMonth.from(date);
         Amount refunded = getPeriod().tryRefundUpTo(monthOfChange);
 
         if (refunded.isPositive()) {
+            PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, registration);
+
             ContinuationPolicy continuationPolicy = new ContinuationPolicy(premiumSnapshot);
             PaymentData paymentData = new PaymentData(date, refunded);
             MonthToPay monthToPay = continuationPolicy.getMonthToPay(getPeriod(), paymentData);
 
             getPeriod().tryPay(monthToPay, premiumSnapshot);
         }
-    }
-
-    @Override
-    protected void reexecute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
-        execute(premiumSnapshot, eventPublisher);
-    }
-
-    @Override
-    protected void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
-        ChangePremiumFailedEvent event = new ChangePremiumFailedEvent(premiumId, timestamp, premium, date, e);
-        eventPublisher.publish(event, "BalanceServiceImpl");
     }
 
 }

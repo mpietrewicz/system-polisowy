@@ -5,6 +5,8 @@ import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 @ValueObject
 public enum PaidStatus {
 
-    UNPAID, UNDERPAID, PAID;
+    UNPAID,
+    UNDERPAID,
+    PAID;
 
 }

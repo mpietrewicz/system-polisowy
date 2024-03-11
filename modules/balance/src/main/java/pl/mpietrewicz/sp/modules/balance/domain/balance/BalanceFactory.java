@@ -20,8 +20,9 @@ public class BalanceFactory {
 
     public Balance create(ContractData contractData, PremiumSnapshot premiumSnapshot) {
         LocalDate start = contractData.getContractStartDate();
-        Period period = new Period(start, new ArrayList<>(), true);
+        Period period = new Period(start, new ArrayList<>(), true, "init");
         StartCalculating startCalculating = new StartCalculating(YearMonth.from(start), premiumSnapshot.getAmountAt(start), period);
+        spring.autowireBean(startCalculating);
 
         Balance balance = new Balance(AggregateId.generate(), 0L, contractData.getAggregateId(), startCalculating);
         spring.autowireBean(balance);

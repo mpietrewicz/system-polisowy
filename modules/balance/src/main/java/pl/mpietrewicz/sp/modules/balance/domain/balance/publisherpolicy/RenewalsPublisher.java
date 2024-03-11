@@ -31,10 +31,6 @@ public class RenewalsPublisher implements PublishPolicy {
         }
     }
 
-    private RenewalAddedEvent createEvent(AggregateId contractId, YearMonth renewalMonth) {
-        return new RenewalAddedEvent(contractId, renewalMonth);
-    }
-
     private List<YearMonth> getAllRenewals(PeriodProvider before, PeriodProvider after) {
         return Stream.of(before.getRenewalMonths(), after.getRenewalMonths())
                 .flatMap(Collection::stream)
@@ -45,6 +41,10 @@ public class RenewalsPublisher implements PublishPolicy {
         return allRenewals.stream()
                 .filter(renual -> Collections.frequency(allRenewals, renual) == 1)
                 .collect(Collectors.toList());
+    }
+
+    private RenewalAddedEvent createEvent(AggregateId contractId, YearMonth renewalMonth) {
+        return new RenewalAddedEvent(contractId, renewalMonth);
     }
 
 }

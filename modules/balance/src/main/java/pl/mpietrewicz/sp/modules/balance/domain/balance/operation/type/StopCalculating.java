@@ -2,11 +2,12 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
 import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.StopBalanceFailedEvent;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,7 +17,9 @@ import java.util.List;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.STOP_CALCULATING;
 
 @Getter
-public class StopCalculating extends Operation {
+public class StopCalculating extends Operation implements StopCalculatingService {
+
+    private static final OperationType operationType = STOP_CALCULATING;
 
     private Amount excess;
 
@@ -24,32 +27,29 @@ public class StopCalculating extends Operation {
 
     private boolean valid;
 
-    public StopCalculating(LocalDate end) {
-        super(LocalDateTime.now());
+    public StopCalculating(LocalDate end, DomainEventPublisher eventPublisher) {
+        super(LocalDateTime.now(), eventPublisher);
         this.end = end;
         this.valid = true;
-        this.type = STOP_CALCULATING;
     }
 
-    public StopCalculating(Long id, LocalDate end, boolean valid, LocalDateTime registration, Amount excess, List<Period> periods) {
+    public StopCalculating(Long id, LocalDate end, LocalDateTime registration, Amount excess, boolean valid, List<Period> periods) {
         super(id, registration.toLocalDate(), registration, periods);
         this.end = end;
-        this.valid = valid;
         this.excess = excess;
-        this.type = STOP_CALCULATING;
+        this.valid = valid;
     }
 
     @Override
-    public void execute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
+    public void execute(AggregateId contractId) {
         YearMonth monthOfEnd = YearMonth.from(end);
         this.excess = getPeriod().tryRefundUpTo(monthOfEnd);
-        // todo: albo liczę ile jeszcze okresów mam niedopłaty
     }
 
     @Override
-    protected void reexecute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
+    protected void reexecute(AggregateId contractId, LocalDateTime registration) {
         if (isValid()) {
-            execute(premiumSnapshot, eventPublisher);
+            execute(contractId);
         } else {
             throw new UnsupportedOperationException();
         }
@@ -61,14 +61,19 @@ public class StopCalculating extends Operation {
     }
 
     @Override
-    protected Integer getPriority() {
+    public Integer getPriority() {
         return 30;
     }
 
     @Override
-    protected void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
+    protected void publishFailedEvent(Exception e) {
         StopBalanceFailedEvent event = new StopBalanceFailedEvent(end, e);
         eventPublisher.publish(event, "BalanceServiceImpl");
+    }
+
+    @Override
+    public OperationType getOperationType() {
+        return operationType;
     }
 
     @Override
@@ -76,8 +81,14 @@ public class StopCalculating extends Operation {
         return valid;
     }
 
+    @Override
     public void invalidate() {
         this.valid = false;
+    }
+
+    @Override
+    public LocalDate getEnd() {
+        return end;
     }
 
     private int orderAlwaysLast(Operation operation) {

@@ -21,7 +21,7 @@ public abstract class RenewalPolicy implements PaymentPolicy {
     private final PremiumSnapshot premiumSnapshot;
     private final int graceMonths;
 
-    public RenewalPolicy(PaymentPolicy continuationPolicy, PremiumSnapshot premiumSnapshot, int graceMonths) {
+    protected RenewalPolicy(PaymentPolicy continuationPolicy, PremiumSnapshot premiumSnapshot, int graceMonths) {
         this.continuationPolicy = continuationPolicy;
         this.premiumSnapshot = premiumSnapshot;
         this.graceMonths = graceMonths;

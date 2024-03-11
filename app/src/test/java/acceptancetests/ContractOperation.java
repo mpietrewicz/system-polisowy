@@ -33,12 +33,18 @@ public class ContractOperation {
     private String KTOWA;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    private Date WPLACONO_DO_PO_OPER;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private String NADWYZKA_PO_OPER;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private Long ID_WZNOWIENIA;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private Date WPLACONO_DO;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private String NADWYZKA;
-
-    @JsonFormat(shape = JsonFormat.Shape.STRING)
-    private Long ID_WZNOWIENIA;
 
 }

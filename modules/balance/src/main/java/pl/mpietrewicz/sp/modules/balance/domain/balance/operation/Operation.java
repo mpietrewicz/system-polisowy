@@ -1,7 +1,7 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
 
 import lombok.Getter;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.CancelStopCalculating;
@@ -10,18 +10,20 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalcu
 import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
+import javax.inject.Inject;
 import javax.persistence.RollbackException;
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Getter
 public abstract class Operation {
+
+    @Inject
+    protected DomainEventPublisher eventPublisher;
 
     private Long id;
 
@@ -31,18 +33,24 @@ public abstract class Operation {
 
     protected final List<Period> periods;
 
-    @Enumerated(EnumType.STRING)
-    protected OperationType type;
-
-    protected Operation(LocalDate date) {
+    protected Operation(LocalDate date, DomainEventPublisher eventPublisher) {
         this.registration = LocalDateTime.now();
         this.date = date;
+        this.eventPublisher = eventPublisher;
         this.periods = new ArrayList<>();
     }
 
-    protected Operation(LocalDateTime registration) {
+    protected Operation(LocalDateTime registration, DomainEventPublisher eventPublisher) {
         this.registration = registration;
         this.date = registration.toLocalDate();
+        this.eventPublisher = eventPublisher;
+        this.periods = new ArrayList<>();
+    }
+
+    protected Operation(LocalDate date, LocalDateTime registration, DomainEventPublisher eventPublisher) {
+        this.date = date;
+        this.registration = registration;
+        this.eventPublisher = eventPublisher;
         this.periods = new ArrayList<>();
     }
 
@@ -53,32 +61,33 @@ public abstract class Operation {
         this.periods = periods;
     }
 
-    public void execute(Operation previousOperation, PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
-        periods.add(previousOperation.getPeriodCopy());
-        execute(premiumSnapshot, eventPublisher);
+    public void execute(Operation previousOperation, AggregateId contractId) {
+        periods.add(previousOperation.getPeriodCopy("execute"));
+        execute(contractId);
     }
 
-    public void reexecute(Operation previousOperation, PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher)
+    public void reexecute(Operation previousOperation, AggregateId contractId, LocalDateTime registration, String info)
             throws ReexecutionException {
         getPeriod().markAsInvalid();
-        periods.add(previousOperation.getPeriodCopy());
-        reexecute(premiumSnapshot, eventPublisher);
+        periods.add(previousOperation.getPeriodCopy(info));
+        reexecute(contractId, registration);
     }
 
-    public void handle(BalanceException e, DomainEventPublisher eventPublisher) {
-        publishFailedEvent(e, eventPublisher);
+    public void handle(BalanceException e) {
+        publishFailedEvent(e);
         throw new RollbackException(e);
     }
 
-    protected abstract void execute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher);
+    protected abstract void execute(AggregateId contractId);
 
-    protected abstract void reexecute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher)
-            throws ReexecutionException;
+    protected abstract void reexecute(AggregateId contractId, LocalDateTime registration) throws ReexecutionException;
 
-    protected abstract void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher);
+    protected abstract void publishFailedEvent(Exception e);
 
-    public Period getPeriodCopy() {
-        return getPeriod().createCopy();
+    protected abstract OperationType getOperationType();
+
+    public Period getPeriodCopy(String info) {
+        return getPeriod().createCopy(info);
     }
 
     public Period getPeriod() {
@@ -95,25 +104,12 @@ public abstract class Operation {
             return - operation.orderComparator(this);
         }
 
-        int dateComparator = date.compareTo(operation.date);
-        if (dateComparator != 0) {
-            return dateComparator;
-        } else {
-            int priorityComparator = this.getPriority().compareTo(operation.getPriority());
-            if (priorityComparator == 0) {
-                int registrationComparator = this.registration.compareTo(operation.registration);
-                if (registrationComparator == 0) {
-                    if (this == operation) return 0;
-                    if (this.id == null) return 1;
-                    if (operation.id == null) return -1;
-                    return this.id.compareTo(operation.id);
-                } else {
-                    return registrationComparator;
-                }
-            } else {
-                return priorityComparator;
-            }
-        }
+        if (dateComparator(operation) != 0) return dateComparator(operation);
+        if (priorityComparator(operation) != 0) return priorityComparator(operation);
+        if (registrationComparator(operation) != 0) return registrationComparator(operation);
+        if (idComparator(operation) != 0) return idComparator(operation);
+        if (this == operation) return 0;
+        throw new IllegalStateException("Operations cannot be uniquely sorted");
     }
 
     protected Integer getPriority() { // descending
@@ -122,10 +118,6 @@ public abstract class Operation {
 
     public boolean isAfter(Operation operation) {
         return orderComparator(operation) > 0;
-    }
-
-    public boolean isAfter(Optional<Operation> operation) {
-        return operation.isPresent() && orderComparator(operation.get()) > 0;
     }
 
     public boolean isBefore(Operation operation) {
@@ -146,6 +138,28 @@ public abstract class Operation {
 
     public boolean isValid() {
         return true;
+    }
+
+    public void publish(Serializable event) {
+        eventPublisher.publish(event, "BalanceServiceImpl");
+    }
+
+    private int dateComparator(Operation operation) {
+        return date.compareTo(operation.date);
+    }
+
+    private int priorityComparator(Operation operation) {
+        return this.getPriority().compareTo(operation.getPriority());
+    }
+
+    private int registrationComparator(Operation operation) {
+        return this.registration.compareTo(operation.registration);
+    }
+
+    private int idComparator(Operation operation) {
+        if (this.id == null) return 1;
+        if (operation.id == null) return -1;
+        return this.id.compareTo(operation.id);
     }
 
 }

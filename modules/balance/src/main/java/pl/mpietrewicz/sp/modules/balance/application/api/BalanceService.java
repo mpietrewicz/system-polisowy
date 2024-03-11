@@ -7,6 +7,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.P
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundData;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public interface BalanceService {
 
@@ -16,10 +17,12 @@ public interface BalanceService {
 
     void addRefund(RefundData refundData);
 
-    void changePremium(LocalDate date, PremiumSnapshot premiumSnapshot);
+    void changePremium(ContractData contractData, LocalDate date, LocalDateTime timestamp);
 
-    void stopCalculating(LocalDate end, ContractData contractData);
+    void stopCalculating(LocalDate end, ContractData contractData); // todo: podpiąć pod dobry event
 
-    void cancelStopCalculating(ContractData contractData);
+    void cancelStopCalculating(ContractData contractData); // todo: podpiąć pod dobry event
+
+    void getBalance(ContractData contractData); // todo: do usunięcia w przyszłości
 
 }
