@@ -3,10 +3,11 @@ package pl.mpietrewicz.sp.ddd.canonicalmodel.events;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.event.Event;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @SuppressWarnings("serial")
 @Event
@@ -14,7 +15,8 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class PremiumChangedEvent implements Serializable {
 
+    private final ContractData contractData;
     private final LocalDate date;
-    private final PremiumSnapshot premiumSnapshot;
+    private final LocalDateTime timestamp;
 
 }

@@ -4,13 +4,12 @@ import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddPayment;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddRefund;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.CancelStopCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.ChangePremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
@@ -23,6 +22,7 @@ import javax.inject.Inject;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -63,77 +63,69 @@ public class Balance {
     }
 
     public void addPayment(LocalDate date, Amount payment, PaymentPolicyEnum paymentPolicyEnum) {
-        AddPayment addPayment = new AddPayment(date, payment, paymentPolicyEnum);
-        tryCommit(addPayment);
+        AddPayment addPayment = new AddPayment(date, payment, paymentPolicyEnum, eventPublisher, premiumService);
+        commit(addPayment);
     }
 
     public void addRefund(LocalDate date, Amount refund) {
-        AddRefund addRefund = new AddRefund(date, refund);
-        tryCommit(addRefund);
+        AddRefund addRefund = new AddRefund(date, refund, eventPublisher);
+        commit(addRefund);
     }
 
-    public void stopCalculating(LocalDate date, LocalDate end) {
-        StopCalculating stopCalculating = new StopCalculating(date, end);
-        tryCommit(stopCalculating);
+    public void changePremium(LocalDate date, LocalDateTime timestamp) {
+        ChangePremium changePremium = new ChangePremium(date, timestamp, eventPublisher, premiumService);
+        commit(changePremium);
     }
 
-    public void changePremium(LocalDate date, PremiumSnapshot premiumSnapshot) {
-        PositiveAmount premium = premiumSnapshot.getAmountAt(date);
-        AggregateId premiumId = premiumSnapshot.getPremiumId();
-        LocalDateTime timestamp = premiumSnapshot.getTimestamp();
-
-        ChangePremium changePremium = new ChangePremium(date, premium.getAmount(), premiumId, timestamp);
-        tryCommit(changePremium);
+    public void stopCalculating(LocalDate end) {
+        StopCalculating stopCalculating = new StopCalculating(end, eventPublisher);
+        commit(stopCalculating);
     }
 
-    private void tryCommit(Operation operation) {
+    public void cancelStopCalculating() {
         try {
-            commit(operation);
+            StopCalculating stopCalculating = tryGetStopCalculating();
+            CancelStopCalculating cancelStopCalculating = new CancelStopCalculating(stopCalculating, eventPublisher);
+            commit(cancelStopCalculating);
         } catch (UnavailabilityException e) {
-            operation.handle(e, eventPublisher);
+            new CancelStopCalculating(eventPublisher).handle(e);
         }
     }
 
-    private void commit(Operation operation) throws UnavailabilityException {
-        if (operation.isAfter(getStopCalculating())) {
-            throw new UnavailabilityException("Operation is after stop calculating");
-        }
-
+    private void commit(Operation operation) {
         PeriodProvider before = getLastOperation().getPeriod();
 
-        PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, operation.getRegistration());
-        calculate(operation, premiumSnapshot);
-
+        calculate(operation);
         operations.add(operation);
-        recalculateAfter(operation, premiumSnapshot);
+        recalculateAfter(operation);
 
-        PeriodProvider after = operation.getPeriod();
+        PeriodProvider after = getLastOperation().getPeriod();
         publishUpdatedBalanceResult(before, after);
     }
 
-    private void calculate(Operation operation, PremiumSnapshot premiumSnapshot) {
+    private void calculate(Operation operation) {
         Operation previousOperation = getPreviousOperation(operation);
-        operation.execute(previousOperation, premiumSnapshot, eventPublisher);
+        operation.execute(previousOperation, contractId);
     }
 
-    private void recalculateAfter(Operation operation, PremiumSnapshot premiumSnapshot) {
+    private void recalculateAfter(Operation operation) {
         try {
-            tryRecalculateAfter(operation, premiumSnapshot);
+            tryRecalculateAfter(operation);
         } catch (ReexecutionException e) {
-            operation.handle(e, eventPublisher);
+            operation.handle(e);
         }
     }
 
-    private void tryRecalculateAfter(Operation operation, PremiumSnapshot premiumSnapshot) throws ReexecutionException {
+    private void tryRecalculateAfter(Operation operation) throws ReexecutionException {
         List<Operation> nextOperations = getNextOperationsAfter(operation);
         for (Operation nextOperation : nextOperations) {
-            recalculate(nextOperation, premiumSnapshot);
+            recalculate(nextOperation, operation.getRegistration(), prepareInfo(operation));
         }
     }
 
-    private void recalculate(Operation operation, PremiumSnapshot premiumSnapshot) throws ReexecutionException {
+    private void recalculate(Operation operation, LocalDateTime registration, String info) throws ReexecutionException {
         Operation previousOperation = getPreviousOperation(operation);
-        operation.reexecute(previousOperation, premiumSnapshot, eventPublisher);
+        operation.reexecute(previousOperation, contractId, registration, info);
     }
 
     private void publishUpdatedBalanceResult(PeriodProvider before, PeriodProvider after) {
@@ -142,43 +134,62 @@ public class Balance {
         }
     }
 
-    private Operation getPreviousOperation(Operation operation) {
+    private StopCalculating tryGetStopCalculating() throws UnavailabilityException {
+        try {
+            return getCastedStopCalculating();
+        } catch (NoSuchElementException e) {
+            throw new UnavailabilityException("No valid stop calculating operation to register cancel operation ");
+        }
+    }
+
+    private List<Operation> getValidOperations() {
         return operations.stream()
+                .filter(Operation::isValid)
+                .collect(Collectors.toList());
+    }
+
+    private Operation getPreviousOperation(Operation operation) {
+        return getValidOperations().stream()
                 .filter(o -> o.isBefore(operation))
                 .max(Operation::orderComparator)
                 .orElse(getStartCalculating());
     }
 
     private List<Operation> getNextOperationsAfter(Operation operation) {
-        return operations.stream()
+        return getValidOperations().stream()
                 .filter(o -> o.isAfter(operation))
                 .sorted(Operation::orderComparator)
                 .collect(Collectors.toList());
     }
 
     private Operation getLastOperation() {
-        return operations.stream()
+        return getValidOperations().stream()
                 .max(Operation::orderComparator)
                 .orElseThrow();
     }
 
-    private Optional<Operation> getLastOperationWithout(Operation operation) {
-        return operations.stream()
-                .filter(o -> o != operation)
-                .max(Operation::orderComparator);
-    }
-
     private Operation getStartCalculating() {
-        return operations.stream()
+        return getValidOperations().stream()
                 .filter(StartCalculating.class::isInstance)
                 .findAny()
                 .orElseThrow();
     }
 
     private Optional<Operation> getStopCalculating() {
-        return operations.stream()
+        return getValidOperations().stream()
                 .filter(StopCalculating.class::isInstance)
+                .filter(operation -> ((StopCalculating) operation).isValid())
                 .findAny();
+    }
+
+    private StopCalculating getCastedStopCalculating() {
+        return getStopCalculating()
+                .map(StopCalculating.class::cast)
+                .orElseThrow();
+    }
+
+    private String prepareInfo(Operation operation) { // todo: do poprawy logowanie
+        return "reexecute after " + operation.getClass().getName() + " : " + operation.getDate();
     }
 
 }

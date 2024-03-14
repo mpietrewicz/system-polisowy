@@ -4,6 +4,8 @@ import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Unpaid;
+import pl.mpietrewicz.sp.modules.balance.exceptions.PaymentException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
 
 import java.time.YearMonth;
 
@@ -18,19 +20,19 @@ public class Month {
 
     private final Amount premium; // todo: tutaj można dać obiekt Premium gdzie będzie lista komponentów i ich składek
 
-    private final boolean isRenewal; // todo: zmienić nazwę na renewal
+    private final boolean renewal;
 
-    public Month(Long id, YearMonth yearMonth, Amount premium, boolean isRenewal) {
+    public Month(Long id, YearMonth yearMonth, Amount premium, boolean renewal) {
         this.id = id;
         this.yearMonth = yearMonth;
         this.premium = premium;
-        this.isRenewal = isRenewal;
+        this.renewal = renewal;
     }
 
-    public Month(YearMonth yearMonth, Amount premium, boolean isRenewal) {
+    public Month(YearMonth yearMonth, Amount premium, boolean renewal) {
         this.yearMonth = yearMonth;
         this.premium = premium;
-        this.isRenewal = isRenewal;
+        this.renewal = renewal;
         this.monthState = new Unpaid(this);
     }
 
@@ -38,12 +40,18 @@ public class Month {
         this.monthState = monthState;
     }
 
-    public Amount pay(PositiveAmount payment) {
+    public Amount pay(PositiveAmount payment) throws PaymentException {
         return monthState.pay(payment);
     }
 
-    public Amount refund(PositiveAmount refund) {
+    public Amount refund(PositiveAmount refund) throws RefundException {
         return monthState.refund(refund);
+    }
+
+    public Amount refund() {
+        Amount refunded = getPaid();
+        changeState(new Unpaid(this));
+        return refunded;
     }
 
     public boolean canPaidBy(Amount payment) {
@@ -67,15 +75,9 @@ public class Month {
     }
 
     public Month createCopy() {
-        Month month = new Month(yearMonth, premium, isRenewal);
+        Month month = new Month(yearMonth, premium, renewal);
         month.changeState(this.monthState.createCopy(month));
         return month;
-    }
-
-    public Amount refund() {
-        Amount refunded = getPaid();
-        changeState(new Unpaid(this));
-        return refunded;
     }
 
     public YearMonth getYearMonth() {
@@ -88,10 +90,6 @@ public class Month {
 
     public int compareDescending(Month month) {
         return month.getYearMonth().compareTo(this.yearMonth);
-    }
-
-    public boolean isAfter(Month month) {
-        return compareAscending(month) > 0;
     }
 
     public boolean isBefore(Month month) {

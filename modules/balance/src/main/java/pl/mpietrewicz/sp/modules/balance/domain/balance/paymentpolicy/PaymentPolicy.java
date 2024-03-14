@@ -7,7 +7,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RenewalException;
 
 @DomainPolicy
-public interface PaymentPolicy {
+public interface PaymentPolicy { // todo: przejrzeć do refaktoru - wszystkie klasy podrzędne
 
     MonthToPay getMonthToPay(Period period, PaymentData paymentData) throws RenewalException;
 

@@ -3,10 +3,11 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Overpaid;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Paid;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Underpaid;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Unpaid;
+import pl.mpietrewicz.sp.modules.balance.exceptions.PaymentException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
 
 @ValueObject
 public abstract class MonthState {
@@ -23,9 +24,9 @@ public abstract class MonthState {
         this.status = status;
     }
 
-    public abstract Amount pay(PositiveAmount payment);
+    public abstract Amount pay(PositiveAmount payment) throws PaymentException;
 
-    public abstract Amount refund(PositiveAmount refund);
+    public abstract Amount refund(PositiveAmount refund) throws RefundException;
 
     public abstract boolean canPaidBy(Amount payment);
 
@@ -37,8 +38,6 @@ public abstract class MonthState {
 
     public MonthState createCopy(Month month) {
         switch (status) {
-            case OVERPAID:
-                return new Overpaid(month, paid);
             case PAID:
                 return new Paid(month, paid);
             case UNDERPAID:

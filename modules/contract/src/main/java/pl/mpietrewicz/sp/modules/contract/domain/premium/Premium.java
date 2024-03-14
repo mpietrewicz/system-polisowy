@@ -127,8 +127,7 @@ public class Premium extends BaseAggregateRoot {
     }
 
     private void sentEvent(LocalDate date, LocalDateTime timestamp, String serviceName) {
-        PremiumSnapshot premiumSnapshot = generateSnapshot(timestamp);
-        PremiumChangedEvent event = new PremiumChangedEvent(date, premiumSnapshot);
+        PremiumChangedEvent event = new PremiumChangedEvent(contractData, date, timestamp);
         eventPublisher.publish(event, serviceName);
     }
 

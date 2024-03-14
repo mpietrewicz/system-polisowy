@@ -1,12 +1,13 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
 import lombok.Getter;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType;
 
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 
@@ -15,38 +16,47 @@ import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operati
 @Getter
 public class StartCalculating extends Operation {
 
+    private static final OperationType operationType = START_CALCULATING;
+
     private final Amount premium;
 
     public StartCalculating(YearMonth start, Amount premium, Period period) {
-        super(start.atDay(1));
-        this.type = START_CALCULATING;
+        super(start.atDay(1), null);
         this.premium = premium;
         this.periods.add(period);
     }
 
-    public StartCalculating(Long id, YearMonth start, Amount premium, List<Period> periods) {
-        super(id, start.atDay(1), periods);
-        this.type = START_CALCULATING;
+    public StartCalculating(Long id, YearMonth start, LocalDateTime registration, Amount premium, List<Period> periods) {
+        super(id, start.atDay(1), registration, periods);
         this.premium = premium;
     }
 
     @Override
-    protected void execute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
+    protected void execute(AggregateId contractId) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    protected void reexecute(PremiumSnapshot premiumSnapshot, DomainEventPublisher eventPublisher) {
+    protected void reexecute(AggregateId contractId, LocalDateTime registration) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    protected void publishFailedEvent(Exception e, DomainEventPublisher eventPublisher) {
+    protected void publishFailedEvent(Exception e) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public OperationType getOperationType() {
+        return operationType;
     }
 
     @Override
     public int orderComparator(Operation operation) {
+        return orderAlwaysFirst(operation);
+    }
+
+    private int orderAlwaysFirst(Operation operation) {
         return this == operation
                 ? 0
                 : -1;

@@ -6,6 +6,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.P
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
+import pl.mpietrewicz.sp.modules.balance.exceptions.PaymentException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
 
 import java.time.LocalDate;
@@ -18,7 +19,7 @@ import java.util.stream.Collectors;
 import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 
 @Getter
-public class Period implements PeriodProvider {
+public class Period implements PeriodService, PeriodProvider { // todo: przejrzeć do refaktoru
 
     private Long id;
 
@@ -28,20 +29,24 @@ public class Period implements PeriodProvider {
 
     private boolean isValid;
 
-    public Period(LocalDate start, List<Month> months, boolean isValid) {
+    private final String info;
+
+    public Period(LocalDate start, List<Month> months, boolean isValid, String info) {
         this.start = start;
         this.months = months;
         this.isValid = isValid;
+        this.info = info;
     }
 
-    public Period(Long id, LocalDate start, List<Month> months, boolean isValid) {
+    public Period(Long id, LocalDate start, List<Month> months, boolean isValid, String info) {
         this.id = id;
         this.start = start;
         this.months = months;
         this.isValid = isValid;
+        this.info = info;
     }
 
-    public void tryPay(MonthToPay monthToPay, PremiumSnapshot premiumSnapshot) {
+    public void tryPay(MonthToPay monthToPay, PremiumSnapshot premiumSnapshot) throws PaymentException {
         Month month = monthToPay.getMonth();
         Amount amount = monthToPay.getAmount();
 
@@ -70,7 +75,6 @@ public class Period implements PeriodProvider {
                         .orElseThrow(() -> new RefundException("No enough amount to refund"));
             }
         } while (refund.isPositive());
-
     }
 
     public Amount tryRefundUpTo(YearMonth yearMonth) {
@@ -101,8 +105,8 @@ public class Period implements PeriodProvider {
         return nextMonth;
     }
 
-    public Period createCopy() {
-        Period period = new Period(LocalDate.from(start), new ArrayList<>(), true);
+    public Period createCopy(String info) {
+        Period period = new Period(LocalDate.from(start), new ArrayList<>(), true, info);
         List<Month> copiedMonths = months.stream()
                 .map(Month::createCopy)
                 .collect(Collectors.toList());
@@ -139,7 +143,7 @@ public class Period implements PeriodProvider {
         this.isValid = false;
     }
 
-    public Optional<Month> getLastPaidMonth() {
+    private Optional<Month> getLastPaidMonth() {
         return months.stream()
                 .filter(Month::isPaid)
                 .max(Month::compareAscending);
@@ -152,13 +156,13 @@ public class Period implements PeriodProvider {
                 .collect(Collectors.toList());
     }
 
-    protected Optional<Month> getLastMonthWithPayment() {
+    private Optional<Month> getLastMonthWithPayment() {
         return months.stream()
                 .filter(Month::hasPayment)
                 .max(Month::compareAscending);
     }
 
-    protected Optional<Month> getLastMonth() {
+    private Optional<Month> getLastMonth() {
         return months.stream()
                 .max(Month::compareAscending);
     }

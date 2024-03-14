@@ -15,6 +15,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.BalanceFactory;
 import pl.mpietrewicz.sp.modules.balance.infrastructure.repo.BalanceRepository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Component
 @Transactional(transactionManager = "balanceTransactionManager")
@@ -51,20 +52,33 @@ public class BalanceServiceImpl implements BalanceService {
     }
 
     @Override
-    public void changePremium(LocalDate date, PremiumSnapshot premiumSnapshot) {
-        ContractData contractData = premiumSnapshot.getContractData();
+    public void changePremium(ContractData contractData, LocalDate date, LocalDateTime timestamp) {
         Balance balance = balanceRepository.findByContractIdNew(contractData.getAggregateId());
 
-        balance.changePremium(date, premiumSnapshot);
+        balance.changePremium(date, timestamp);
         balanceRepository.merge(balance);
     }
 
     @Override
-    public void stopCalculating(LocalDate date, LocalDate end, ContractData contractData) {
+    public void stopCalculating(LocalDate end, ContractData contractData) {
         Balance balance = balanceRepository.findByContractIdNew(contractData.getAggregateId());
 
-        balance.stopCalculating(date, end);
+        balance.stopCalculating(end);
         balanceRepository.merge(balance);
+    }
+
+    @Override
+    public void cancelStopCalculating(ContractData contractData) {
+        Balance balance = balanceRepository.findByContractIdNew(contractData.getAggregateId());
+
+        balance.cancelStopCalculating();
+        balanceRepository.merge(balance);
+    }
+
+    @Override
+    public void getBalance(ContractData contractData) {
+        Balance balance = balanceRepository.findByContractIdNew(contractData.getAggregateId());
+        System.out.println(balance);
     }
 
 }
