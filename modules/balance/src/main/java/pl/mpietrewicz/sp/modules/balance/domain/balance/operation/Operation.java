@@ -73,8 +73,8 @@ public abstract class Operation {
         reexecute(contractId, registration);
     }
 
-    public void handle(BalanceException e) {
-        publishFailedEvent(e);
+    public void handle(AggregateId contractId, BalanceException e) {
+        publishFailedEvent(contractId, e);
         throw new RollbackException(e);
     }
 
@@ -82,7 +82,7 @@ public abstract class Operation {
 
     protected abstract void reexecute(AggregateId contractId, LocalDateTime registration) throws ReexecutionException;
 
-    protected abstract void publishFailedEvent(Exception e);
+    protected abstract void publishFailedEvent(AggregateId contractId, BalanceException e);
 
     protected abstract OperationType getOperationType();
 

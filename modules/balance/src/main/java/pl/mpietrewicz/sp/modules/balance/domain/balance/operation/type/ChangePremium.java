@@ -12,6 +12,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.ContinuationPolicy;
+import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.PaymentException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
@@ -47,7 +48,7 @@ public class ChangePremium extends Operation {
         try {
             tryExecute(contractId, getRegistration());
         } catch (PaymentException e) {
-            handle(e);
+            handle(contractId, e);
         }
     }
 
@@ -56,13 +57,14 @@ public class ChangePremium extends Operation {
         try {
             tryExecute(contractId, registration);
         } catch (PaymentException e) {
-            throw new ReexecutionException("Add payment failed!", e);
+            throw new ReexecutionException(e, "Change premium on contract ({}) balance failed during reexecution!",
+                    contractId.getId());
         }
     }
 
     @Override
-    protected void publishFailedEvent(Exception e) {
-        ChangePremiumFailedEvent event = new ChangePremiumFailedEvent(null, null, null, date, e); // todo: uzupełnić
+    protected void publishFailedEvent(AggregateId contractId, BalanceException e) {
+        ChangePremiumFailedEvent event = new ChangePremiumFailedEvent(contractId, getRegistration(), e);
         eventPublisher.publish(event, "BalanceServiceImpl");
     }
 

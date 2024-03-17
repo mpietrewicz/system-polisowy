@@ -20,14 +20,17 @@ import java.util.List;
 @NoArgsConstructor
 public class AddPaymentEntity extends OperationEntity {
 
+    private String paymentId;
+
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
     private PaymentPolicyEnum paymentPolicyEnum;
 
-    public AddPaymentEntity(Long entityId, LocalDateTime registration, OperationType type, LocalDate date,
+    public AddPaymentEntity(Long entityId, String paymentId, LocalDateTime registration, OperationType type, LocalDate date,
                             List<PeriodEntity> periods, BigDecimal amount, PaymentPolicyEnum paymentPolicyEnum) {
         this.entityId = entityId;
+        this.paymentId = paymentId;
         this.registration = registration;
         this.type = type;
         this.date = date;

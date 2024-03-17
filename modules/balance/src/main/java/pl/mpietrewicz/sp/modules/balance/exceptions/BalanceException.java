@@ -6,8 +6,12 @@ public class BalanceException extends Exception {
         super(message);
     }
 
-    public BalanceException(String message, Throwable cause) {
-        super(message, cause);
+    public BalanceException(String message, Object... args) {
+        super(String.format(message, args));
+    }
+
+    public BalanceException(Throwable cause, String message, Object... args) {
+        super(String.format(message, args), cause);
     }
 
 }

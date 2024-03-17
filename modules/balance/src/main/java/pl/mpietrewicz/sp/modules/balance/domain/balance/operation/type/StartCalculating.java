@@ -6,6 +6,7 @@ import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType;
+import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceException;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -42,7 +43,7 @@ public class StartCalculating extends Operation {
     }
 
     @Override
-    protected void publishFailedEvent(Exception e) {
+    protected void publishFailedEvent(AggregateId contractId, BalanceException e) {
         throw new UnsupportedOperationException();
     }
 

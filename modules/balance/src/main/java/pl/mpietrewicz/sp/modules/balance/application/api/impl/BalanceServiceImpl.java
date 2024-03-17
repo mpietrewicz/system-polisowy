@@ -8,7 +8,6 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractD
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.balance.application.api.BalanceService;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.BalanceFactory;
@@ -34,20 +33,16 @@ public class BalanceServiceImpl implements BalanceService {
     @Override
     public void addPayment(PaymentData paymentData, PaymentPolicyEnum paymentPolicyEnum) {
         Balance balance = balanceRepository.findByContractIdNew(paymentData.getContractId());
-        LocalDate date = paymentData.getDate();
-        Amount payment = paymentData.getAmount();
 
-        balance.addPayment(date, payment, paymentPolicyEnum);
+        balance.addPayment(paymentData, paymentPolicyEnum);
         balanceRepository.merge(balance);
     }
 
     @Override
     public void addRefund(RefundData refundData) {
         Balance balance = balanceRepository.findByContractIdNew(refundData.getContractId());
-        LocalDate date = refundData.getDate();
-        Amount refund = refundData.getAmount();
 
-        balance.addRefund(date, refund);
+        balance.addRefund(refundData);
         balanceRepository.merge(balance);
     }
 

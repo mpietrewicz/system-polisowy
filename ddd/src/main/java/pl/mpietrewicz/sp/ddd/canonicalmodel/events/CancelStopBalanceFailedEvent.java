@@ -13,6 +13,7 @@ import java.io.Serializable;
 @RequiredArgsConstructor
 public class CancelStopBalanceFailedEvent implements Serializable {
 
+    private final AggregateId contractId;
     private final Exception exception;
 
 }
