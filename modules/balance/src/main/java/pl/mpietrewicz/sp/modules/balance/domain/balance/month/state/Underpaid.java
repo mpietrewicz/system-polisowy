@@ -6,8 +6,6 @@ import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus;
-import pl.mpietrewicz.sp.modules.balance.exceptions.PaymentException;
-import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
 
 import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 
@@ -21,7 +19,7 @@ public class Underpaid extends MonthState {
     }
 
     @Override
-    public Amount pay(PositiveAmount payment) throws PaymentException {
+    public Amount pay(PositiveAmount payment) {
         Amount underpayment = month.getPremium().subtract(month.getPaid());
 
         if (payment.isHigherThan(underpayment)) {
@@ -36,7 +34,7 @@ public class Underpaid extends MonthState {
     }
 
     @Override
-    public Amount refund(PositiveAmount refund) throws RefundException {
+    public Amount refund(PositiveAmount refund) {
         if (refund.isHigherThan(month.getPaid())) {
             month.changeState(new Unpaid(month));
             return refund.subtract(month.getPaid());

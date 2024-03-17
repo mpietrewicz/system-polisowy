@@ -7,7 +7,10 @@ import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType;
+import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 
+import javax.persistence.RollbackException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -55,9 +58,14 @@ public class CancelStopCalculating extends Operation {
     }
 
     @Override
-    protected void publishFailedEvent(Exception e) {
-        CancelStopBalanceFailedEvent event = new CancelStopBalanceFailedEvent(e);
+    protected void publishFailedEvent(AggregateId contractId, BalanceException e) {
+        throw new UnsupportedOperationException();
+    }
+
+    public static void handle(UnavailabilityException e, DomainEventPublisher eventPublisher) {
+        CancelStopBalanceFailedEvent event = new CancelStopBalanceFailedEvent(e.getContractId(), e);
         eventPublisher.publish(event, "BalanceServiceImpl");
+        throw new RollbackException(e);
     }
 
     @Override

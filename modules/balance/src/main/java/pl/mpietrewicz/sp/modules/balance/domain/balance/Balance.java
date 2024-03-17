@@ -4,6 +4,8 @@ import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundData;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
@@ -14,6 +16,8 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.ChangePre
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.publisherpolicy.PublishPolicy;
+import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceStoppedException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.NoOperationException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
@@ -62,13 +66,21 @@ public class Balance {
         this.operations = Stream.of(startCalculating).collect(Collectors.toList());
     }
 
-    public void addPayment(LocalDate date, Amount payment, PaymentPolicyEnum paymentPolicyEnum) {
-        AddPayment addPayment = new AddPayment(date, payment, paymentPolicyEnum, eventPublisher, premiumService);
+    public void addPayment(PaymentData paymentData, PaymentPolicyEnum paymentPolicyEnum) {
+        AggregateId paymentId = paymentData.getAggregateId();
+        LocalDate date = paymentData.getDate();
+        Amount amount = paymentData.getAmount();
+
+        AddPayment addPayment = new AddPayment(paymentId, date, amount, paymentPolicyEnum, eventPublisher, premiumService);
         commit(addPayment);
     }
 
-    public void addRefund(LocalDate date, Amount refund) {
-        AddRefund addRefund = new AddRefund(date, refund, eventPublisher);
+    public void addRefund(RefundData refundData) {
+        AggregateId refundId = refundData.getAggregateId();
+        LocalDate date = refundData.getDate();
+        Amount amount = refundData.getAmount();
+
+        AddRefund addRefund = new AddRefund(refundId, date, amount, eventPublisher);
         commit(addRefund);
     }
 
@@ -78,18 +90,33 @@ public class Balance {
     }
 
     public void stopCalculating(LocalDate end) {
+        try {
+            tryStopCalculating(end);
+        } catch (BalanceStoppedException e) {
+            StopCalculating.handle(new UnavailabilityException(contractId, e, "Unable to stop calculating " +
+                    "balance balance is currently stopped", contractId.getId()), eventPublisher);
+        }
+    }
+
+    private void tryStopCalculating(LocalDate end) throws BalanceStoppedException {
+        if (getStopCalculating().isPresent()) throw new BalanceStoppedException();
         StopCalculating stopCalculating = new StopCalculating(end, eventPublisher);
         commit(stopCalculating);
     }
 
     public void cancelStopCalculating() {
         try {
-            StopCalculating stopCalculating = tryGetStopCalculating();
-            CancelStopCalculating cancelStopCalculating = new CancelStopCalculating(stopCalculating, eventPublisher);
-            commit(cancelStopCalculating);
-        } catch (UnavailabilityException e) {
-            new CancelStopCalculating(eventPublisher).handle(e);
+            tryCancelStopCalculating();
+        } catch (NoOperationException e) {
+            CancelStopCalculating.handle(new UnavailabilityException(contractId, e, "Unable to cancel stop calculating " +
+                    "balance balance isn't stop on contract {}", contractId.getId()), eventPublisher);
         }
+    }
+
+    private void tryCancelStopCalculating() throws NoOperationException {
+        StopCalculating stopCalculating = tryGetStopCalculating();
+        CancelStopCalculating cancelStopCalculating = new CancelStopCalculating(stopCalculating, eventPublisher);
+        commit(cancelStopCalculating);
     }
 
     private void commit(Operation operation) {
@@ -112,7 +139,7 @@ public class Balance {
         try {
             tryRecalculateAfter(operation);
         } catch (ReexecutionException e) {
-            operation.handle(e);
+            operation.handle(contractId, e);
         }
     }
 
@@ -134,12 +161,10 @@ public class Balance {
         }
     }
 
-    private StopCalculating tryGetStopCalculating() throws UnavailabilityException {
-        try {
-            return getCastedStopCalculating();
-        } catch (NoSuchElementException e) {
-            throw new UnavailabilityException("No valid stop calculating operation to register cancel operation ");
-        }
+    private StopCalculating tryGetStopCalculating() throws NoOperationException {
+        return getStopCalculating()
+                .orElseThrow(() -> new NoOperationException(new NoSuchElementException(),
+                        "No stop calculating operation on contract {}", contractId.getId()));
     }
 
     private List<Operation> getValidOperations() {
@@ -175,17 +200,12 @@ public class Balance {
                 .orElseThrow();
     }
 
-    private Optional<Operation> getStopCalculating() {
+    private Optional<StopCalculating> getStopCalculating() {
         return getValidOperations().stream()
                 .filter(StopCalculating.class::isInstance)
-                .filter(operation -> ((StopCalculating) operation).isValid())
-                .findAny();
-    }
-
-    private StopCalculating getCastedStopCalculating() {
-        return getStopCalculating()
+                .filter(Operation::isValid)
                 .map(StopCalculating.class::cast)
-                .orElseThrow();
+                .findAny();
     }
 
     private String prepareInfo(Operation operation) { // todo: do poprawy logowanie

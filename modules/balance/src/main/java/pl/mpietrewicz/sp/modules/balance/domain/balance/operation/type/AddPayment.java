@@ -14,6 +14,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicy;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicyFactory;
+import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.PaymentException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
@@ -33,21 +34,25 @@ public class AddPayment extends Operation {
     @Inject
     private PremiumService premiumService;
 
+    private final AggregateId paymentId;
+
     private final Amount amount;
 
     private final PaymentPolicyEnum paymentPolicyEnum;
 
-    public AddPayment(LocalDate date, Amount amount, PaymentPolicyEnum paymentPolicyEnum,
+    public AddPayment(AggregateId paymentId, LocalDate date, Amount amount, PaymentPolicyEnum paymentPolicyEnum,
                       DomainEventPublisher eventPublisher, PremiumService premiumService) {
         super(date, eventPublisher);
+        this.paymentId = paymentId;
         this.amount = amount;
         this.paymentPolicyEnum = paymentPolicyEnum;
         this.premiumService = premiumService;
     }
 
-    public AddPayment(Long id, LocalDate date, LocalDateTime registration, Amount amount,
+    public AddPayment(Long id, AggregateId paymentId, LocalDate date, LocalDateTime registration, Amount amount,
                       PaymentPolicyEnum paymentPolicyEnum, List<Period> periods) {
         super(id, date, registration, periods);
+        this.paymentId = paymentId;
         this.amount = amount;
         this.paymentPolicyEnum = paymentPolicyEnum;
     }
@@ -57,7 +62,7 @@ public class AddPayment extends Operation {
         try {
             tryExecute(contractId, getRegistration());
         } catch (PaymentException e) {
-            handle(e);
+            handle(contractId, e);
         }
     }
 
@@ -66,13 +71,13 @@ public class AddPayment extends Operation {
         try {
             tryExecute(contractId, registration);
         } catch (PaymentException e) {
-            throw new ReexecutionException("Add payment failed!", e);
+            throw new ReexecutionException(e, "Add payment: {} failed!", contractId.getId());
         }
     }
 
     @Override
-    protected void publishFailedEvent(Exception e) {
-        publish(new AddPaymentFailedEvent(date, amount, e));
+    protected void publishFailedEvent(AggregateId contractId, BalanceException e) {
+        publish(new AddPaymentFailedEvent(paymentId, date, amount, e));
     }
 
     @Override

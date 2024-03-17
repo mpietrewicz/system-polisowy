@@ -8,6 +8,7 @@ import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType;
+import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
 
@@ -22,16 +23,21 @@ public class AddRefund extends Operation {
 
     private static final OperationType operationType = ADD_REFUND;
 
-    private final Amount refund;
+    private final AggregateId refundId;
 
-    public AddRefund(LocalDate date, Amount refund, DomainEventPublisher eventPublisher) {
+    private final Amount amount;
+
+    public AddRefund(AggregateId refundId, LocalDate date, Amount amount, DomainEventPublisher eventPublisher) {
         super(date, eventPublisher);
-        this.refund = refund;
+        this.refundId = refundId;
+        this.amount = amount;
     }
 
-    public AddRefund(Long id, LocalDate date, LocalDateTime registration, Amount refund, List<Period> periods) {
+    public AddRefund(Long id, AggregateId refundId, LocalDate date, LocalDateTime registration, Amount amount,
+                     List<Period> periods) {
         super(id, date, registration, periods);
-        this.refund = refund;
+        this.refundId = refundId;
+        this.amount = amount;
     }
 
     @Override
@@ -39,7 +45,7 @@ public class AddRefund extends Operation {
         try {
             tryExecute();
         } catch (RefundException e) {
-            handle(e);
+            handle(contractId, e);
         }
     }
 
@@ -48,13 +54,13 @@ public class AddRefund extends Operation {
         try {
             tryExecute();
         } catch (RefundException e) {
-            throw new ReexecutionException("Add refund failed!", e);
+            throw new ReexecutionException(e, "Add refund failed! (to contract: {}) during reexecution!", contractId.getId());
         }
     }
 
     @Override
-    protected void publishFailedEvent(Exception e) {
-        AddRefundFailedEvent event = new AddRefundFailedEvent(refund, date, e);
+    protected void publishFailedEvent(AggregateId contractId, BalanceException e) {
+        AddRefundFailedEvent event = new AddRefundFailedEvent(refundId, amount, date, e);
         eventPublisher.publish(event, "BalanceServiceImpl");
     }
 
@@ -64,7 +70,7 @@ public class AddRefund extends Operation {
     }
 
     private void tryExecute() throws RefundException {
-        getPeriod().tryRefund(refund);
+        getPeriod().tryRefund(amount);
     }
 
 }

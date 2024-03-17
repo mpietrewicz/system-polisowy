@@ -3,9 +3,9 @@ package pl.mpietrewicz.sp.ddd.canonicalmodel.events;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.event.Event;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 
 import java.io.Serializable;
-import java.time.LocalDate;
 
 @SuppressWarnings("serial")
 @Event
@@ -13,8 +13,7 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class StopBalanceFailedEvent implements Serializable {
 
-    private final LocalDate end;
-
+    private final AggregateId contractId;
     private final Exception exception;
 
 }

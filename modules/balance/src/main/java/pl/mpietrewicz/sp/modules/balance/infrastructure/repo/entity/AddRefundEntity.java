@@ -17,11 +17,14 @@ import java.util.List;
 @NoArgsConstructor
 public class AddRefundEntity extends OperationEntity {
 
+    private String refundId;
+
     private BigDecimal amount;
 
-    public AddRefundEntity(Long entityId, LocalDateTime registration, OperationType type, LocalDate date,
-                           List<PeriodEntity> periods, BigDecimal amount) {
+    public AddRefundEntity(Long entityId, String refundId, LocalDateTime registration, OperationType type,
+                           LocalDate date, List<PeriodEntity> periods, BigDecimal amount) {
         this.entityId = entityId;
+        this.refundId = refundId;
         this.registration = registration;
         this.type = type;
         this.date = date;

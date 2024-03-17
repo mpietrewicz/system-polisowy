@@ -7,7 +7,6 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus;
 import pl.mpietrewicz.sp.modules.balance.exceptions.PaymentException;
-import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
 
 import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 
@@ -26,7 +25,7 @@ public class Paid extends MonthState {
     }
 
     @Override
-    public Amount refund(PositiveAmount refund) throws RefundException {
+    public Amount refund(PositiveAmount refund) {
         if (month.getPaid().isLessThan(refund)) {
             month.changeState(new Unpaid(month));
             return refund.subtract(month.getPaid());

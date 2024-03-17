@@ -16,11 +16,8 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class ChangePremiumFailedEvent implements Serializable {
 
-    private final AggregateId premiumId;
+    private final AggregateId contractId;
     private final LocalDateTime timestamp;
-    private final Amount premium;
-    private final LocalDate date;
-
     private final Exception exception;
 
 }

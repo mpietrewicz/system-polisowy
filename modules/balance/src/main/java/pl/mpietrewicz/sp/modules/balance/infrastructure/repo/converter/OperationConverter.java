@@ -2,6 +2,7 @@ package pl.mpietrewicz.sp.modules.balance.infrastructure.repo.converter;
 
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.stereotype.Component;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
@@ -58,15 +59,15 @@ public class OperationConverter {
     }
 
     private AddPayment convert(AddPaymentEntity entity, List<Period> periods) {
-        AddPayment addPayment = new AddPayment(entity.getEntityId(), entity.getDate(), entity.getRegistration(),
+        AddPayment addPayment = new AddPayment(entity.getEntityId(), new AggregateId(entity.getPaymentId()), entity.getDate(), entity.getRegistration(),
                 new Amount(entity.getAmount()), entity.getPaymentPolicyEnum(), periods);
         spring.autowireBean(addPayment);
         return addPayment;
     }
 
     private AddRefund convert(AddRefundEntity entity, List<Period> periods) {
-        AddRefund addRefund = new AddRefund(entity.getEntityId(), entity.getDate(), entity.getRegistration(),
-                new Amount(entity.getAmount()), periods);
+        AddRefund addRefund = new AddRefund(entity.getEntityId(), new AggregateId(entity.getRefundId()), entity.getDate(),
+                entity.getRegistration(), new Amount(entity.getAmount()), periods);
         spring.autowireBean(addRefund);
         return addRefund;
     }
@@ -127,13 +128,13 @@ public class OperationConverter {
     }
 
     private OperationEntity convert(AddPayment model, List<PeriodEntity> periods) {
-        return new AddPaymentEntity(model.getId(), model.getRegistration(), model.getOperationType(), model.getDate(), periods,
-                model.getAmount().getBigDecimal(), model.getPaymentPolicyEnum());
+        return new AddPaymentEntity(model.getId(), model.getPaymentId().getId(), model.getRegistration(),
+                model.getOperationType(), model.getDate(), periods, model.getAmount().getBigDecimal(), model.getPaymentPolicyEnum());
     }
 
     private OperationEntity convert(AddRefund model, List<PeriodEntity> periods) {
-        return new AddRefundEntity(model.getId(), model.getRegistration(), model.getOperationType(), model.getDate(), periods,
-                model.getRefund().getBigDecimal());
+        return new AddRefundEntity(model.getId(), model.getRefundId().getId(), model.getRegistration(), model.getOperationType(),
+                model.getDate(), periods, model.getAmount().getBigDecimal());
     }
 
     private OperationEntity convert(ChangePremium model, List<PeriodEntity> periods) {
