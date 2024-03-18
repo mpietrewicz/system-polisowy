@@ -12,7 +12,6 @@ import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import java.time.YearMonth;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static javax.persistence.CascadeType.ALL;
@@ -33,15 +32,15 @@ public class Month extends BaseEntity {
     }
 
     public void correct(MonthlyBalance monthlyBalance, List<RiskDefinition> riskDefinitions) {
-        for (Map.Entry<AggregateId, Amount> componentPremium : monthlyBalance.getComponentPremiums().entrySet()) {
-            Optional<Component> currentComponent = getCurrentComponent(componentPremium.getKey());
-            if (currentComponent.isEmpty()) {
-                Component component = AllocationFactory.createComponent(componentPremium, riskDefinitions);
-                this.components.add(component);
-            } else {
-                currentComponent.get().correct(componentPremium, riskDefinitions);
-            }
-        }
+//        for (Map.Entry<AggregateId, Amount> componentPremium : monthlyBalance.getComponentPremiums().entrySet()) {
+//            Optional<Component> currentComponent = getCurrentComponent(componentPremium.getKey());
+//            if (currentComponent.isEmpty()) {
+//                Component component = AllocationFactory.createComponent(componentPremium, riskDefinitions);
+//                this.components.add(component);
+//            } else {
+//                currentComponent.get().correct(componentPremium, riskDefinitions);
+//            }
+//        }
     }
 
     private Optional<Component> getCurrentComponent(AggregateId componentId) {

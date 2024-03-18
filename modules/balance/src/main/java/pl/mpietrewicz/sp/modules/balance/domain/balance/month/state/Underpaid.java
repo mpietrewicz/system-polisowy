@@ -1,5 +1,6 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month.state;
 
+import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
@@ -7,15 +8,19 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus;
 
+import javax.persistence.DiscriminatorValue;
+import javax.persistence.Entity;
+
 import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 
 @ValueObject
+@Entity
+@DiscriminatorValue("UNDERPAID")
+@NoArgsConstructor
 public class Underpaid extends MonthState {
 
-    private static final PaidStatus paidStatus = PaidStatus.UNDERPAID;
-
     public Underpaid(Month month, Amount paid) {
-        super(month, paid, paidStatus);
+        super(month, paid, PaidStatus.UNDERPAID);
     }
 
     @Override
@@ -35,13 +40,15 @@ public class Underpaid extends MonthState {
 
     @Override
     public Amount refund(PositiveAmount refund) {
-        if (refund.isHigherThan(month.getPaid())) {
+        Amount paid = month.getPaid();
+
+        if (refund.isHigherThan(paid)) {
             month.changeState(new Unpaid(month));
-            return refund.subtract(month.getPaid());
-        } else if (refund.equals(month.getPaid())) {
+            return refund.subtract(paid);
+        } else if (refund.equals(paid)) {
             month.changeState(new Unpaid(month));
         } else {
-            month.changeState(new Underpaid(month, month.getPaid().subtract(refund)));
+            month.changeState(new Underpaid(month, paid.subtract(refund)));
         }
         return ZERO;
     }
@@ -53,11 +60,6 @@ public class Underpaid extends MonthState {
     }
 
     @Override
-    public PaidStatus getPaidStatus() {
-        return paidStatus;
-    }
-
-    @Override
     public boolean isPaid() {
         return false;
     }
@@ -65,6 +67,10 @@ public class Underpaid extends MonthState {
     @Override
     public boolean hasPayment() {
         return true;
+    }
+
+    public MonthState createCopy(Month month) {
+        return new Underpaid(month, getPaid());
     }
 
 }

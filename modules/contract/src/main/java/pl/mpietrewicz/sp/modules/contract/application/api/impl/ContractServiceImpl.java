@@ -3,7 +3,9 @@ package pl.mpietrewicz.sp.modules.contract.application.api.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.events.CanceledContractEndEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.ContractCreatedEvent;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.events.ContractEndedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
@@ -78,6 +80,26 @@ public class ContractServiceImpl implements ContractService {
     public ContractData getContractData(AggregateId contractId) {
         Contract contract = contractRepository.load(contractId);
         return contract.generateSnapshot();
+    }
+
+    @Override
+    public void endContract(AggregateId contractId, LocalDate date) {
+        Contract contract = contractRepository.load(contractId);
+
+        // todo: zaimplementować logikę
+
+        ContractEndedEvent event = new ContractEndedEvent(contract.generateSnapshot(), date);
+        eventPublisher.publish(event, "ContractServiceImpl");
+    }
+
+    @Override
+    public void cancelEndContract(AggregateId contractId) {
+        Contract contract = contractRepository.load(contractId);
+
+        // todo: zaimplementować logikę
+
+        CanceledContractEndEvent event = new CanceledContractEndEvent(contract.generateSnapshot());
+        eventPublisher.publish(event, "ContractServiceImpl");
     }
 
 }

@@ -28,8 +28,9 @@ public class AllocationFactory {
     }
 
     public static Month createMonth(MonthlyBalance monthlyBalance, List<RiskDefinition> riskDefinitions) {
-        List<Component> components = createComponents(monthlyBalance.getComponentPremiums(), riskDefinitions);
-        return new Month(monthlyBalance.getMonth(), components);
+//        List<Component> components = createComponents(monthlyBalance.getComponentPremiums(), riskDefinitions);
+//        return new Month(monthlyBalance.getMonth(), components);
+        return null;
     }
 
     private static List<Component> createComponents(Map<AggregateId, Amount> componentPremiums, List<RiskDefinition> riskDefinitions) {

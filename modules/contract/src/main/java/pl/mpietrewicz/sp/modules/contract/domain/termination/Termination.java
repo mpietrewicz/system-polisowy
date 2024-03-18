@@ -14,20 +14,22 @@ import java.time.LocalDateTime;
 @AggregateRoot
 public class Termination extends BaseAggregateRoot {
 
-    LocalDate terminatedDate;
-    LocalDateTime registerDate;
     @Embedded
     private ComponentData componentData;
+
+    LocalDate terminatedDate;
+
+    LocalDateTime registration;
 
     public Termination() {
     }
 
     public Termination(AggregateId aggregateId, ComponentData componentData, LocalDate terminatedDate,
-                       LocalDateTime registerDate) {
+                       LocalDateTime registration) {
         this.aggregateId = aggregateId;
         this.componentData = componentData;
         this.terminatedDate = terminatedDate;
-        this.registerDate = registerDate;
+        this.registration = registration;
     }
 
 

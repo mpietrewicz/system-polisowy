@@ -8,6 +8,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 
 @ValueObject
@@ -22,7 +23,7 @@ public class ComponentPremiumSnapshot {
     private List<ChangePremiumSnapshot> changes;
     private LocalDate end;
 
-    public Amount getPremiumAt(LocalDate date) {
+        public Amount getPremiumAt(LocalDate date) {
         if (date.isBefore(start)) {
             return Amount.ZERO; // todo: tutaj też mogę zwracać Illegalstate, gdy nie znajdę składki
         } else if (end != null && date.isAfter(end)) {
@@ -34,6 +35,10 @@ public class ComponentPremiumSnapshot {
                     .map(ChangePremiumSnapshot::getAmount)
                     .orElse(initialAmount);
         }
+    }
+
+    public Amount getPremiumAt(YearMonth month) {
+        return getPremiumAt(month.atDay(1));
     }
 
 }

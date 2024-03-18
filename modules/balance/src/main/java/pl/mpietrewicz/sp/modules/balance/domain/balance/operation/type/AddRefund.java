@@ -1,76 +1,76 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
-import lombok.Getter;
+import lombok.NoArgsConstructor;
+import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.AddRefundFailedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType;
-import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceException;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.policy.refund.RefundAmountPolicy;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
 
+import javax.persistence.AttributeOverride;
+import javax.persistence.Column;
+import javax.persistence.DiscriminatorValue;
+import javax.persistence.Embedded;
+import javax.persistence.Entity;
+import javax.persistence.RollbackException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_REFUND;
 
-@Getter
+@ValueObject
+@Entity
+@DiscriminatorValue("ADD_REFUND")
+@NoArgsConstructor
 public class AddRefund extends Operation {
 
-    private static final OperationType operationType = ADD_REFUND;
+    @Embedded
+    @AttributeOverride(name = "aggregateId", column = @Column(name = "refundId", nullable = false))
+    private AggregateId refundId;
 
-    private final AggregateId refundId;
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "amount"))
+    private Amount amount;
 
-    private final Amount amount;
-
-    public AddRefund(AggregateId refundId, LocalDate date, Amount amount, DomainEventPublisher eventPublisher) {
-        super(date, eventPublisher);
-        this.refundId = refundId;
-        this.amount = amount;
-    }
-
-    public AddRefund(Long id, AggregateId refundId, LocalDate date, LocalDateTime registration, Amount amount,
-                     List<Period> periods) {
-        super(id, date, registration, periods);
+    public AddRefund(AggregateId refundId, LocalDate date, Amount amount, Balance balance) {
+        super(date, LocalDateTime.now(), balance, ADD_REFUND);
         this.refundId = refundId;
         this.amount = amount;
     }
 
     @Override
-    public void execute(AggregateId contractId) {
+    public void execute() {
         try {
             tryExecute();
-        } catch (RefundException e) {
-            handle(contractId, e);
+        } catch (RefundException exception) {
+            publishEvent(new AddRefundFailedEvent(refundId, amount, date, exception));
+            throw new RollbackException(exception);
         }
     }
 
     @Override
-    protected void reexecute(AggregateId contractId, LocalDateTime registration) throws ReexecutionException {
+    protected void reexecute(LocalDateTime registration) throws ReexecutionException {
         try {
             tryExecute();
-        } catch (RefundException e) {
-            throw new ReexecutionException(e, "Add refund failed! (to contract: {}) during reexecution!", contractId.getId());
+        } catch (RefundException exception) {
+            throw new ReexecutionException(exception, "Failed add refund {} during reexecution!", refundId.getId());
         }
     }
 
     @Override
-    protected void publishFailedEvent(AggregateId contractId, BalanceException e) {
-        AddRefundFailedEvent event = new AddRefundFailedEvent(refundId, amount, date, e);
-        eventPublisher.publish(event, "BalanceServiceImpl");
-    }
-
-    @Override
-    public OperationType getOperationType() {
-        return operationType;
+    public void publishFailedEvent(ReexecutionException exception) {
+        publishEvent(new AddRefundFailedEvent(refundId, amount, date, exception));
     }
 
     private void tryExecute() throws RefundException {
-        getPeriod().tryRefund(amount);
+        RefundAmountPolicy refundAmountPolicy = new RefundAmountPolicy();
+        Period period = getPeriod();
+        refundAmountPolicy.refund(period, amount);
     }
 
 }

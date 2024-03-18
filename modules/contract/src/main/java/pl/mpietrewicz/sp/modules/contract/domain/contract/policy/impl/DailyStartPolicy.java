@@ -1,15 +1,15 @@
 package pl.mpietrewicz.sp.modules.contract.domain.contract.policy.impl;
 
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainPolicyImpl;
-import pl.mpietrewicz.sp.modules.contract.domain.contract.policy.ContractStartDatePolicy;
+import pl.mpietrewicz.sp.modules.contract.domain.contract.policy.ContractStartPolicy;
 
 import java.time.LocalDate;
 
 @DomainPolicyImpl
-public class SameDayCSDPolicy implements ContractStartDatePolicy {
+public class DailyStartPolicy implements ContractStartPolicy {
 
     @Override
-    public LocalDate specifyStartDate(LocalDate registerDate) {
+    public LocalDate getStartDate(LocalDate registerDate) {
         return registerDate;
     }
 

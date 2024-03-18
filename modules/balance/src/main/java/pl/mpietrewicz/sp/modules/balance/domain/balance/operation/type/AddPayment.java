@@ -1,99 +1,88 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
-import lombok.Getter;
+import lombok.NoArgsConstructor;
+import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.AddPaymentFailedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.MonthToPay;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicy;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.PaymentPolicyFactory;
-import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceException;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.policy.payment.PaymentPolicy;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.policy.payment.PaymentPolicyFactory;
 import pl.mpietrewicz.sp.modules.balance.exceptions.PaymentException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
-import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
 
-import javax.inject.Inject;
+import javax.persistence.AttributeOverride;
+import javax.persistence.Column;
+import javax.persistence.DiscriminatorValue;
+import javax.persistence.Embedded;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.RollbackException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_PAYMENT;
 
-@Getter
+@ValueObject
+@Entity
+@DiscriminatorValue("ADD_PAYMENT")
+@NoArgsConstructor
 public class AddPayment extends Operation {
 
-    private static final OperationType operationType = ADD_PAYMENT;
+    @Embedded
+    @AttributeOverride(name = "aggregateId", column = @Column(name = "paymentId", nullable = false))
+    private AggregateId paymentId;
 
-    @Inject
-    private PremiumService premiumService;
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "amount"))
+    private Amount amount;
 
-    private final AggregateId paymentId;
-
-    private final Amount amount;
-
-    private final PaymentPolicyEnum paymentPolicyEnum;
+    @Enumerated(EnumType.STRING)
+    private PaymentPolicyEnum paymentPolicyEnum;
 
     public AddPayment(AggregateId paymentId, LocalDate date, Amount amount, PaymentPolicyEnum paymentPolicyEnum,
-                      DomainEventPublisher eventPublisher, PremiumService premiumService) {
-        super(date, eventPublisher);
-        this.paymentId = paymentId;
-        this.amount = amount;
-        this.paymentPolicyEnum = paymentPolicyEnum;
-        this.premiumService = premiumService;
-    }
-
-    public AddPayment(Long id, AggregateId paymentId, LocalDate date, LocalDateTime registration, Amount amount,
-                      PaymentPolicyEnum paymentPolicyEnum, List<Period> periods) {
-        super(id, date, registration, periods);
+                      Balance balance) {
+        super(date, LocalDateTime.now(), balance, ADD_PAYMENT);
         this.paymentId = paymentId;
         this.amount = amount;
         this.paymentPolicyEnum = paymentPolicyEnum;
     }
 
     @Override
-    public void execute(AggregateId contractId) {
+    public void execute() {
+        PremiumSnapshot premiumSnapshot = getPremiumSnapshot(registration);
         try {
-            tryExecute(contractId, getRegistration());
-        } catch (PaymentException e) {
-            handle(contractId, e);
+            tryExecute(premiumSnapshot);
+        } catch (PaymentException exception) {
+            publishEvent(new AddPaymentFailedEvent(paymentId, date, amount, exception));
+            throw new RollbackException(exception);
         }
     }
 
     @Override
-    protected void reexecute(AggregateId contractId, LocalDateTime registration) throws ReexecutionException {
+    protected void reexecute(LocalDateTime registration) throws ReexecutionException {
+        PremiumSnapshot premiumSnapshot = getPremiumSnapshot(registration);
         try {
-            tryExecute(contractId, registration);
-        } catch (PaymentException e) {
-            throw new ReexecutionException(e, "Add payment: {} failed!", contractId.getId());
+            tryExecute(premiumSnapshot);
+        } catch (PaymentException exception) {
+            throw new ReexecutionException(exception, "Failed add payment {} during reexecution!", paymentId.getId());
         }
     }
 
     @Override
-    protected void publishFailedEvent(AggregateId contractId, BalanceException e) {
-        publish(new AddPaymentFailedEvent(paymentId, date, amount, e));
+    public void publishFailedEvent(ReexecutionException exception) {
+        publishEvent(new AddPaymentFailedEvent(paymentId, date, amount, exception));
     }
 
-    @Override
-    public OperationType getOperationType() {
-        return operationType;
-    }
-
-    private void tryExecute(AggregateId contractId, LocalDateTime registration) throws PaymentException {
-        PaymentData paymentData = new PaymentData(date, amount);
-
-        PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, registration);
+    private void tryExecute(PremiumSnapshot premiumSnapshot) throws PaymentException {
+        Period period = getPeriod();
         PaymentPolicy paymentPolicy = PaymentPolicyFactory.create(paymentPolicyEnum, premiumSnapshot);
-
-        MonthToPay monthToPay = paymentPolicy.getMonthToPay(getPeriod(), paymentData);
-
-        getPeriod().tryPay(monthToPay, premiumSnapshot);
+        paymentPolicy.pay(period, date, amount);
     }
 
 }

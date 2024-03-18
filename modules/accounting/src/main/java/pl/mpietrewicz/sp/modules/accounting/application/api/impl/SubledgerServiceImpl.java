@@ -14,7 +14,6 @@ public class SubledgerServiceImpl implements SubledgerService {
     private final SubledgerRepository subledgerRepository;
 
     @Override
-    public void generateInterface() {
-    }
+    public void generateInterface() {}
 
 }

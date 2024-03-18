@@ -1,94 +1,79 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
 
-import lombok.Getter;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
+import lombok.NoArgsConstructor;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
+import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.PeriodProvider;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.CancelStopCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
-import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 
-import javax.inject.Inject;
-import javax.persistence.RollbackException;
+import javax.persistence.CascadeType;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.Inheritance;
+import javax.persistence.InheritanceType;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
-public abstract class Operation {
+@Entity
+@NoArgsConstructor
+@Inheritance(strategy = InheritanceType.JOINED)
+public abstract class Operation extends BaseEntity {
 
-    @Inject
-    protected DomainEventPublisher eventPublisher;
+    protected LocalDate date;
 
-    private Long id;
+    protected LocalDateTime registration;
 
-    protected final LocalDate date;
+    @Enumerated(EnumType.STRING)
+    private OperationType operationType;
 
-    private final LocalDateTime registration;
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "operation_id")
+    protected List<Period> periods;
 
-    protected final List<Period> periods;
+    @ManyToOne(cascade = CascadeType.PERSIST)
+    protected Balance balance;
 
-    protected Operation(LocalDate date, DomainEventPublisher eventPublisher) {
-        this.registration = LocalDateTime.now();
-        this.date = date;
-        this.eventPublisher = eventPublisher;
-        this.periods = new ArrayList<>();
-    }
-
-    protected Operation(LocalDateTime registration, DomainEventPublisher eventPublisher) {
+    protected Operation(LocalDateTime registration, Balance balance, OperationType operationType) {
         this.registration = registration;
         this.date = registration.toLocalDate();
-        this.eventPublisher = eventPublisher;
+        this.balance = balance;
         this.periods = new ArrayList<>();
+        this.operationType = operationType;
     }
 
-    protected Operation(LocalDate date, LocalDateTime registration, DomainEventPublisher eventPublisher) {
+    protected Operation(LocalDate date, LocalDateTime registration, Balance balance, OperationType operationType) {
         this.date = date;
         this.registration = registration;
-        this.eventPublisher = eventPublisher;
+        this.balance = balance;
         this.periods = new ArrayList<>();
+        this.operationType = operationType;
     }
 
-    protected Operation(Long id, LocalDate date, LocalDateTime registration, List<Period> periods) {
-        this.id = id;
-        this.date = date;
-        this.registration = registration;
-        this.periods = periods;
+    public void execute(PeriodProvider previousPeriod) {
+        periods.add(previousPeriod.getCopy("execute"));
+        execute();
     }
 
-    public void execute(Operation previousOperation, AggregateId contractId) {
-        periods.add(previousOperation.getPeriodCopy("execute"));
-        execute(contractId);
-    }
-
-    public void reexecute(Operation previousOperation, AggregateId contractId, LocalDateTime registration, String info)
-            throws ReexecutionException {
+    public void reexecute(PeriodProvider previousPeriod, Operation initialOperation) throws ReexecutionException {
         getPeriod().markAsInvalid();
-        periods.add(previousOperation.getPeriodCopy(info));
-        reexecute(contractId, registration);
+        String info = "reexecute after " + initialOperation.operationType + " : " + initialOperation.date;
+        periods.add(previousPeriod.getCopy(info));
+        reexecute(initialOperation.registration);
     }
 
-    public void handle(AggregateId contractId, BalanceException e) {
-        publishFailedEvent(contractId, e);
-        throw new RollbackException(e);
-    }
-
-    protected abstract void execute(AggregateId contractId);
-
-    protected abstract void reexecute(AggregateId contractId, LocalDateTime registration) throws ReexecutionException;
-
-    protected abstract void publishFailedEvent(AggregateId contractId, BalanceException e);
-
-    protected abstract OperationType getOperationType();
-
-    public Period getPeriodCopy(String info) {
-        return getPeriod().createCopy(info);
-    }
+    public abstract void publishFailedEvent(ReexecutionException exception);
 
     public Period getPeriod() {
         return periods.stream()
@@ -98,6 +83,8 @@ public abstract class Operation {
     }
 
     public int orderComparator(Operation operation) {
+        if (this == operation) return 0;
+
         if (operation instanceof StartCalculating
                 || operation instanceof StopCalculating
                 || operation instanceof CancelStopCalculating) {
@@ -108,12 +95,11 @@ public abstract class Operation {
         if (priorityComparator(operation) != 0) return priorityComparator(operation);
         if (registrationComparator(operation) != 0) return registrationComparator(operation);
         if (idComparator(operation) != 0) return idComparator(operation);
-        if (this == operation) return 0;
         throw new IllegalStateException("Operations cannot be uniquely sorted");
     }
 
-    protected Integer getPriority() { // descending
-        return 10;
+    public boolean isValid() {
+        return true;
     }
 
     public boolean isAfter(Operation operation) {
@@ -124,24 +110,20 @@ public abstract class Operation {
         return orderComparator(operation) < 0;
     }
 
-    public LocalDate getDate() {
-        return date;
+    protected abstract void execute();
+
+    protected abstract void reexecute(LocalDateTime registration) throws ReexecutionException;
+
+    protected Integer getPriority() { // descending
+        return 10;
     }
 
-    public YearMonth getMonth() {
-        return YearMonth.from(date);
+    protected PremiumSnapshot getPremiumSnapshot(LocalDateTime timestamp) {
+        return balance.getPremiumSnapshot(timestamp);
     }
 
-    public LocalDateTime getRegistration() {
-        return registration;
-    }
-
-    public boolean isValid() {
-        return true;
-    }
-
-    public void publish(Serializable event) {
-        eventPublisher.publish(event, "BalanceServiceImpl");
+    protected void publishEvent(Serializable event) {
+        balance.publishEvent(event);
     }
 
     private int dateComparator(Operation operation) {
@@ -149,17 +131,17 @@ public abstract class Operation {
     }
 
     private int priorityComparator(Operation operation) {
-        return this.getPriority().compareTo(operation.getPriority());
+        return getPriority().compareTo(operation.getPriority());
     }
 
     private int registrationComparator(Operation operation) {
-        return this.registration.compareTo(operation.registration);
+        return registration.compareTo(operation.registration);
     }
 
     private int idComparator(Operation operation) {
-        if (this.id == null) return 1;
-        if (operation.id == null) return -1;
-        return this.id.compareTo(operation.id);
+        if (entityId == null) return 1;
+        if (operation.entityId == null) return -1;
+        return entityId.compareTo(operation.entityId);
     }
 
 }

@@ -85,4 +85,5 @@ public class Contract extends BaseAggregateRoot {
 			return ContractStatus.ACTIVE;
 		}
 	}
+
 }

@@ -9,6 +9,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundData;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.application.api.BalanceService;
 import pl.mpietrewicz.sp.modules.balance.infrastructure.repo.BalanceRepository;
@@ -79,9 +80,6 @@ public class IntegrationTest {
             newRunBalanceMethod(operation);
         }
 
-        Component component = componentRepository.findByNumber("P/1871");
-        balanceService.getBalance(component.getContractData());
-
         System.out.println("koniec");
     }
 
@@ -105,6 +103,10 @@ public class IntegrationTest {
                     new PaymentData(AggregateId.generate(), contractData.getAggregateId(), dataZmiany, kwota.getAmount()),
                     CONTINUATION
             );
+        } else if (List.of("Zwrot").contains(contractOperation.getOPERACJA())) {
+            balanceService.addRefund(
+                    new RefundData(AggregateId.generate(), contractData.getAggregateId(), dataZmiany, kwota.getAmount())
+            );
         } else if (List.of("PSU").contains(contractOperation.getOPERACJA())) {
             List<Component> components = componentRepository.findByContractId(contractData.getAggregateId());
             Component basicComponent = components.stream().filter(not(Component::isAdditional)).findAny().orElseThrow();
@@ -117,9 +119,9 @@ public class IntegrationTest {
             String number = contractOperation.getNR_SKLADNIKA();
             componentService.terminate(number, dataZmiany);
         } else if (List.of("ZOU_P").contains(contractOperation.getOPERACJA())) {
-            balanceService.stopCalculating(dataZmiany, contractData);
+            contractService.endContract(contractData.getAggregateId(), dataZmiany);
         } else if (List.of("WZOU_P").contains(contractOperation.getOPERACJA())) {
-            balanceService.cancelStopCalculating(contractData);
+            contractService.cancelEndContract(contractData.getAggregateId());
         } else if (List.of("USK").contains(contractOperation.getOPERACJA())) {
             String number = contractOperation.getNR_SKLADNIKA();
             premiumService.cancel(number);

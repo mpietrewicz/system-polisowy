@@ -32,48 +32,32 @@ public class BalanceServiceImpl implements BalanceService {
 
     @Override
     public void addPayment(PaymentData paymentData, PaymentPolicyEnum paymentPolicyEnum) {
-        Balance balance = balanceRepository.findByContractIdNew(paymentData.getContractId());
-
+        Balance balance = balanceRepository.findByContractId(paymentData.getContractId());
         balance.addPayment(paymentData, paymentPolicyEnum);
-        balanceRepository.merge(balance);
     }
 
     @Override
     public void addRefund(RefundData refundData) {
-        Balance balance = balanceRepository.findByContractIdNew(refundData.getContractId());
-
+        Balance balance = balanceRepository.findByContractId(refundData.getContractId());
         balance.addRefund(refundData);
-        balanceRepository.merge(balance);
     }
 
     @Override
     public void changePremium(ContractData contractData, LocalDate date, LocalDateTime timestamp) {
-        Balance balance = balanceRepository.findByContractIdNew(contractData.getAggregateId());
-
+        Balance balance = balanceRepository.findByContractId(contractData.getAggregateId());
         balance.changePremium(date, timestamp);
-        balanceRepository.merge(balance);
     }
 
     @Override
-    public void stopCalculating(LocalDate end, ContractData contractData) {
-        Balance balance = balanceRepository.findByContractIdNew(contractData.getAggregateId());
-
+    public void stopCalculating(ContractData contractData, LocalDate end) {
+        Balance balance = balanceRepository.findByContractId(contractData.getAggregateId());
         balance.stopCalculating(end);
-        balanceRepository.merge(balance);
     }
 
     @Override
     public void cancelStopCalculating(ContractData contractData) {
-        Balance balance = balanceRepository.findByContractIdNew(contractData.getAggregateId());
-
+        Balance balance = balanceRepository.findByContractId(contractData.getAggregateId());
         balance.cancelStopCalculating();
-        balanceRepository.merge(balance);
-    }
-
-    @Override
-    public void getBalance(ContractData contractData) {
-        Balance balance = balanceRepository.findByContractIdNew(contractData.getAggregateId());
-        System.out.println(balance);
     }
 
 }

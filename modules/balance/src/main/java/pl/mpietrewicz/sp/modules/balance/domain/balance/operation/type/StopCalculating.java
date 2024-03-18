@@ -1,58 +1,55 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
-import lombok.Getter;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.events.StopBalanceFailedEvent;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
+import lombok.NoArgsConstructor;
+import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType;
-import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceException;
-import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 
-import javax.persistence.RollbackException;
+import javax.persistence.AttributeOverride;
+import javax.persistence.Column;
+import javax.persistence.DiscriminatorValue;
+import javax.persistence.Embedded;
+import javax.persistence.Entity;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.util.List;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.STOP_CALCULATING;
 
-@Getter
+@ValueObject
+@Entity
+@DiscriminatorValue("STOP_CALCULATING")
+@NoArgsConstructor
 public class StopCalculating extends Operation implements StopCalculatingService {
 
-    private static final OperationType operationType = STOP_CALCULATING;
-
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "excess"))
     private Amount excess;
 
-    private final LocalDate end;
+    private LocalDate end;
 
     private boolean valid;
 
-    public StopCalculating(LocalDate end, DomainEventPublisher eventPublisher) {
-        super(LocalDateTime.now(), eventPublisher);
+    public StopCalculating(LocalDate end, Balance balance) {
+        super(LocalDateTime.now(), balance, STOP_CALCULATING);
         this.end = end;
         this.valid = true;
     }
 
-    public StopCalculating(Long id, LocalDate end, LocalDateTime registration, Amount excess, boolean valid, List<Period> periods) {
-        super(id, registration.toLocalDate(), registration, periods);
-        this.end = end;
-        this.excess = excess;
-        this.valid = valid;
-    }
-
     @Override
-    public void execute(AggregateId contractId) {
+    public void execute() {
         YearMonth monthOfEnd = YearMonth.from(end);
-        this.excess = getPeriod().tryRefundUpTo(monthOfEnd);
+        Period period = getPeriod();
+        this.excess = period.refundUpTo(monthOfEnd);
     }
 
     @Override
-    protected void reexecute(AggregateId contractId, LocalDateTime registration) {
+    protected void reexecute(LocalDateTime registration) {
         if (isValid()) {
-            execute(contractId);
+            execute();
         } else {
             throw new UnsupportedOperationException();
         }
@@ -69,19 +66,8 @@ public class StopCalculating extends Operation implements StopCalculatingService
     }
 
     @Override
-    protected void publishFailedEvent(AggregateId contractId, BalanceException e) {
+    public void publishFailedEvent(ReexecutionException exception) {
         throw new UnsupportedOperationException();
-    }
-
-    public static void handle(UnavailabilityException e, DomainEventPublisher eventPublisher) {
-        StopBalanceFailedEvent event = new StopBalanceFailedEvent(e.getContractId(), e);
-        eventPublisher.publish(event, "BalanceServiceImpl");
-        throw new RollbackException(e);
-    }
-
-    @Override
-    public OperationType getOperationType() {
-        return operationType;
     }
 
     @Override
@@ -91,7 +77,7 @@ public class StopCalculating extends Operation implements StopCalculatingService
 
     @Override
     public void invalidate() {
-        this.valid = false;
+        valid = false;
     }
 
     @Override
