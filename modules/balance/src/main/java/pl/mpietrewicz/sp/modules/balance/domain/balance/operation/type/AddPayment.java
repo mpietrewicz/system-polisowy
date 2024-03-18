@@ -6,7 +6,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.events.AddPaymentFailedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;

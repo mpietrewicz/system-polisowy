@@ -1,9 +1,10 @@
 package pl.mpietrewicz.sp.modules.accounting.infrastructure.repo.impl;
 
+import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainRepositoryImpl;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Divisor;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Divisor;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.GenericJpaRepository;
 import pl.mpietrewicz.sp.modules.accounting.domain.allocation.Allocation;
 import pl.mpietrewicz.sp.modules.accounting.infrastructure.repo.AllocationRepository;
@@ -13,7 +14,10 @@ import javax.persistence.PersistenceContext;
 import java.util.List;
 
 @DomainRepositoryImpl
+@RequiredArgsConstructor
 public class JpaAllocationRepository extends GenericJpaRepository<Allocation> implements AllocationRepository {
+
+    private final SpringDataAllocationRepository springDataAllocationRepository;
 
     @PersistenceContext(unitName = "accounting")
     public EntityManager entityManager;
@@ -25,10 +29,8 @@ public class JpaAllocationRepository extends GenericJpaRepository<Allocation> im
 
     @Override
     public Allocation findByContractId(AggregateId contractId) {
-        String query = "SELECT a FROM Allocation a WHERE a.contractData.aggregateId = :contractId";
-        return getEntityManager().createQuery(query, Allocation.class)
-                .setParameter("contractId", contractId)
-                .getSingleResult();
+        return springDataAllocationRepository.findByContractId(contractId)
+                .orElseThrow();
     }
 
     @Override

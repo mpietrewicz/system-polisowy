@@ -9,8 +9,8 @@ import java.time.LocalDate;
 public class DailyStartPolicy implements ContractStartPolicy {
 
     @Override
-    public LocalDate getStartDate(LocalDate registerDate) {
-        return registerDate;
+    public LocalDate getStartDate(LocalDate start) {
+        return start;
     }
 
 }

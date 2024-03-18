@@ -5,8 +5,7 @@ import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.cqrs.annotations.CommandHandlerAnnotation;
 import pl.mpietrewicz.sp.cqrs.command.handler.CommandHandler;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
 import pl.mpietrewicz.sp.modules.contract.application.api.ContractService;
 import pl.mpietrewicz.sp.modules.contract.application.commands.RegisterContractCommand;
 
@@ -20,13 +19,12 @@ public class RegisterContractCommandHandler implements CommandHandler<RegisterCo
 
     @Override
     public Void handle(RegisterContractCommand command) {
-        LocalDate registerDate = command.getRegisterDate();
+        LocalDate start = command.getStart();
         Amount premium = command.getPremium();
         Frequency frequency = command.getFrequency();
-        PaymentPolicyEnum paymentPolicyEnum = command.getPaymentPolicyEnum();
-        String number = "todo"; // todo: uzupełnić w przyszłości
+        String name = command.getName();
 
-        contractService.createContract(number, registerDate, premium, frequency, paymentPolicyEnum);
+        contractService.createContract(name, start, premium, frequency);
         return null;
     }
 }

@@ -5,7 +5,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.ComponentStatus;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.AttributeOverrides;
@@ -27,15 +26,11 @@ public class ComponentData {
 	private AggregateId aggregateId;
 
 	@Transient
-	private ContractData contractData;
+	private AggregateId contractId;
 
 	@Getter
 	@Transient
 	private LocalDate startDate;
-
-	@Getter
-	@Transient
-	private ComponentStatus componentStatus;
 
 	@SuppressWarnings("unused")
 	private ComponentData() {}
@@ -44,15 +39,14 @@ public class ComponentData {
 		this.aggregateId = aggregateId;
 	}
 
-	public ComponentData(AggregateId aggregateId, ContractData contractData, LocalDate startDate, ComponentStatus componentStatus) {
+	public ComponentData(AggregateId aggregateId, AggregateId contractId, LocalDate startDate) {
 		this.aggregateId = aggregateId;
-		this.contractData = contractData;
+		this.contractId = contractId;
 		this.startDate = startDate;
-		this.componentStatus = componentStatus;
 	}
 
 	public AggregateId getContractId() {
-		return contractData.getAggregateId();
+		return contractId;
 	}
 
 }

@@ -8,8 +8,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractD
 import java.io.Serializable;
 import java.time.LocalDate;
 
-@SuppressWarnings("serial")
-@Event
+@Event(boundedContext = "contract")
 @Getter
 @RequiredArgsConstructor
 public class ContractEndedEvent implements Serializable {

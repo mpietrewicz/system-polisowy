@@ -1,7 +1,7 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.policy.payment;
 
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainPolicy;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RenewalException;
 

@@ -6,6 +6,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.modules.contract.domain.contract.Contract;
 
 import java.util.List;
+import java.util.Optional;
 
 @DomainRepository
 public interface ContractRepository {
@@ -14,6 +15,8 @@ public interface ContractRepository {
 
 	void save(Contract contract);
 
-	List<Contract> findAll();
+	List<Contract> find();
+
+	Optional<Contract> findBy(AggregateId contractId);
 
 }

@@ -4,13 +4,12 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.event.Event;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
 
 import java.io.Serializable;
 import java.time.LocalDate;
 
-@SuppressWarnings("serial")
-@Event
+@Event(boundedContext = "balance")
 @Getter
 @RequiredArgsConstructor
 public class AddPaymentFailedEvent implements Serializable {

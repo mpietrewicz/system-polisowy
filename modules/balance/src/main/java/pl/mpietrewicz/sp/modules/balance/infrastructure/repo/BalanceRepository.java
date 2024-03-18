@@ -11,6 +11,6 @@ public interface BalanceRepository {
 
     void save(Balance balance);
 
-    Balance findByContractId(AggregateId contractId);
+    Balance findBy(AggregateId contractId);
 
 }

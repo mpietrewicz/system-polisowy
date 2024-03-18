@@ -4,8 +4,9 @@ package pl.mpietrewicz.sp.modules.finance.application.commands.handlers;
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.cqrs.annotations.CommandHandlerAnnotation;
 import pl.mpietrewicz.sp.cqrs.command.handler.CommandHandler;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.modules.finance.application.api.PaymentService;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.modules.finance.application.api.FinanceService;
 import pl.mpietrewicz.sp.modules.finance.application.commands.RegisterPaymentCommand;
 
 import java.time.LocalDate;
@@ -14,15 +15,15 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class RegisterPaymentCommandHandler implements CommandHandler<RegisterPaymentCommand, Void> {
 
-    private final PaymentService paymentService;
+    private final FinanceService financeService;
 
     @Override
     public Void handle(RegisterPaymentCommand command) {
-        String contractId = command.getContractId();
+        AggregateId contractId = command.getContractId();
         Amount amount = command.getAmount();
         LocalDate date = command.getDate();
 
-        paymentService.addPayment(contractId, amount, date);
+        financeService.addPayment(contractId, amount, date);
         return null;
     }
 }

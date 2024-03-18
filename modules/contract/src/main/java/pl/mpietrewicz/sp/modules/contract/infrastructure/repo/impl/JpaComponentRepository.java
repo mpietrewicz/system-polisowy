@@ -1,5 +1,6 @@
 package pl.mpietrewicz.sp.modules.contract.infrastructure.repo.impl;
 
+import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainRepositoryImpl;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.GenericJpaRepository;
@@ -9,9 +10,13 @@ import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.ComponentRepositor
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.util.List;
+import java.util.Optional;
 
 @DomainRepositoryImpl
+@RequiredArgsConstructor
 public class JpaComponentRepository extends GenericJpaRepository<Component> implements ComponentRepository {
+
+    private final SpringDataComponentRepository springDataBalanceRepository;
 
     @PersistenceContext(unitName = "contract")
     public EntityManager entityManager;
@@ -22,19 +27,18 @@ public class JpaComponentRepository extends GenericJpaRepository<Component> impl
     }
 
     @Override
-    public List<Component> findByContractId(AggregateId contractId) {
-        String query = "SELECT cp FROM Component cp WHERE cp.contractData.aggregateId = :contractId";
-        return entityManager.createQuery(query, Component.class)
-                .setParameter("contractId", contractId)
-                .getResultList();
+    public List<Component> findBy(AggregateId contractId) {
+        return springDataBalanceRepository.findByContractId(contractId);
     }
 
     @Override
-    public Component findByNumber(String number) {
-        String query = "SELECT cp FROM Component cp WHERE cp.number = :number";
-        return entityManager.createQuery(query, Component.class)
-                .setParameter("number", number)
-                .getSingleResult();
+    public Optional<Component> findBy(AggregateId contractId, String name) {
+        return springDataBalanceRepository.findByContractIdAndName(contractId, name);
+    }
+
+    @Override
+    public Optional<Component> findBy(AggregateId contractId, AggregateId componentId) {
+        return springDataBalanceRepository.findByContractIdAndAggregateId(contractId, componentId);
     }
 
 }

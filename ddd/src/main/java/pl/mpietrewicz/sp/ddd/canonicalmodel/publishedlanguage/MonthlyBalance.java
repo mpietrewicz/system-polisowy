@@ -1,7 +1,7 @@
 package pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage;
 
 import lombok.Getter;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
 
 import java.time.YearMonth;
 

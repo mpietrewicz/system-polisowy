@@ -4,8 +4,7 @@ import pl.mpietrewicz.sp.ddd.annotations.domain.DomainFactory;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,8 +16,7 @@ public class AllocationFactory {
 
     public static Allocation create(AggregateId contractId, List<MonthlyBalance> monthlyBalances, List<RiskDefinition> riskDefinitions) {
         List<Month> months = createMonths(monthlyBalances, riskDefinitions);
-        ContractData contractData = new ContractData(contractId);
-        return new Allocation(contractData, months);
+        return new Allocation(contractId, months);
     }
 
     private static List<Month> createMonths(List<MonthlyBalance> monthlyBalances, List<RiskDefinition> riskDefinitions) {

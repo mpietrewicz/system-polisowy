@@ -27,7 +27,7 @@ public class RenewalsPublisher implements PublishPolicy {
 
         for (YearMonth renewalMonth : newRenewals) {
             RenewalAddedEvent event = createEvent(contractId, renewalMonth);
-            eventPublisher.publish(event, "BalanceServiceImpl");
+            eventPublisher.publish(event);
         }
     }
 

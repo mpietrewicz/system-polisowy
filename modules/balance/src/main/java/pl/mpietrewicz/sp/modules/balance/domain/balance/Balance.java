@@ -9,7 +9,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
@@ -100,6 +100,16 @@ public class Balance extends BaseAggregateRoot {
         commit(addRefund);
     }
 
+    public RefundData addRefund(Amount amount) {
+        AggregateId refundId = AggregateId.generate();
+        LocalDate date = LocalDate.now();
+
+        AddRefund addRefund = new AddRefund(refundId, date, amount, this);
+        commit(addRefund);
+
+        return new RefundData(refundId, contractId, date, amount);
+    }
+
     public void changePremium(LocalDate date, LocalDateTime timestamp) {
         ChangePremium changePremium = new ChangePremium(date, timestamp, this);
         commit(changePremium);
@@ -112,7 +122,7 @@ public class Balance extends BaseAggregateRoot {
             UnavailabilityException unavailabilityException = new UnavailabilityException(contractId, exception,
                     "Unable to stop calculating balance balance is currently stopped", contractId.getId());
             StopBalanceFailedEvent event = new StopBalanceFailedEvent(contractId, unavailabilityException);
-            eventPublisher.publish(event, "BalanceServiceImpl");
+            eventPublisher.publish(event);
             throw new RollbackException(unavailabilityException);
         }
     }
@@ -124,7 +134,7 @@ public class Balance extends BaseAggregateRoot {
             UnavailabilityException unavailabilityException = new UnavailabilityException(contractId, exception,
                     "Unable to cancel stop calculating balance balance isn't stop on contract {}", contractId.getId());
             CancelStopBalanceFailedEvent event = new CancelStopBalanceFailedEvent(contractId, unavailabilityException);
-            eventPublisher.publish(event, "BalanceServiceImpl");
+            eventPublisher.publish(event);
             throw new RollbackException(exception);
         }
     }
@@ -134,7 +144,7 @@ public class Balance extends BaseAggregateRoot {
     }
 
     public void publishEvent(Serializable event) {
-        eventPublisher.publish(event, "BalanceServiceImpl");
+        eventPublisher.publish(event);
     }
 
     public LocalDate getStartBalance() {

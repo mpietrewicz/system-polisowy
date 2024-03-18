@@ -8,8 +8,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 
 import java.io.Serializable;
 
-@SuppressWarnings("serial")
-@Event
+@Event(boundedContext = "finance")
 @Getter
 @RequiredArgsConstructor
 public class PaymentAddedEvent implements Serializable {

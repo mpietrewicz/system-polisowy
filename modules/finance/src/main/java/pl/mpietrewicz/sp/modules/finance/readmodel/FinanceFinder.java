@@ -1,36 +1,42 @@
 package pl.mpietrewicz.sp.modules.finance.readmodel;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.application.Finder;
-import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
-import pl.mpietrewicz.sp.modules.finance.domain.payment.RegisterPayment;
-import pl.mpietrewicz.sp.modules.finance.readmodel.dto.WplataDto;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
+import pl.mpietrewicz.sp.modules.finance.infrastructure.repo.PaymentRepository;
+import pl.mpietrewicz.sp.modules.finance.infrastructure.repo.RefundRepository;
+import pl.mpietrewicz.sp.modules.finance.readmodel.converter.PaymentConverter;
+import pl.mpietrewicz.sp.modules.finance.readmodel.model.Payment;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Finder
-public interface FinanceFinder extends JpaRepository<RegisterPayment, BaseAggregateRoot> {
+@RequiredArgsConstructor
+public class FinanceFinder {
 
-    @Query("SELECT new pl.mpietrewicz.sp.modules.finance.readmodel.dto.WplataDto(p.aggregateId.aggregateId, p.date, p.register, " +
-            "p.amount.value, p.contractData.aggregateId.aggregateId) " +
-            "FROM RegisterPayment p " +
-            "WHERE p.contractData.aggregateId.aggregateId = :contractId")
-    List<WplataDto> findPayments(@Param("contractId") String contractId);
+    private final PaymentRepository paymentRepository;
 
-//    @Query("SELECT new pl.mpietrewicz.sp.finance.readmodel.dto.PrzypisDto(pd.entityId, " +
-//            "pd.period.periodFrom, pd.period.periodTo, pd.status, pd.premium) " +
-//            "FROM Due d " +
-//            "JOIN d.componentDues cd " +
-//            "JOIN cd.premiumDues pd " +
-//            "WHERE cd.componentData.aggregateId.aggregateId = :componentId")
-//    List<PrzypisDto> findPremiumDue(@Param("componentId") String componentId);
+    private final PaymentConverter paymentConverter;
 
-//    @Query("SELECT new pl.mpietrewicz.sp.finance.readmodel.dto.SaldoDto(b.duesSum, b.paymentsSum, b.balance, " +
-//            "b.periodPaid.paidTo, b.periodPaid.excess) " +
-//            "FROM BalanceOld b " +
-//            "WHERE b.contractData.aggregateId.aggregateId = :contractId")
-//    SaldoDto findBalance(@Param("contractId") String contractId);
+    private final RefundRepository refundRepository;
+
+    public List<Payment> find(AggregateId contractId) {
+        return Stream.concat(
+                paymentRepository.findBy(contractId).stream()
+                        .map(paymentConverter::convert),
+                refundRepository.findBy(contractId).stream()
+                        .map(paymentConverter::convert)
+        ).collect(Collectors.toList());
+    }
+
+    public Payment find(AggregateId contractId, AggregateId paymentId) {
+        return paymentRepository.findBy(contractId, paymentId).stream()
+                .findAny()
+                .map(paymentConverter::convert)
+                .orElseThrow();
+    }
+
 
 }

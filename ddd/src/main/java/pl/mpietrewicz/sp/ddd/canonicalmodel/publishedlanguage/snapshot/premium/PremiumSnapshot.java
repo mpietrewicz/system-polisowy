@@ -6,9 +6,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.CascadeType;
@@ -20,7 +19,7 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 
-import static pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount.ZERO;
+import static pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount.ZERO;
 
 @ValueObject
 @Getter
@@ -34,7 +33,7 @@ public class PremiumSnapshot {
 
 	private LocalDateTime timestamp;
 
-	private ContractData contractData;
+	private AggregateId contractId;
 
 	@OneToMany(cascade = CascadeType.ALL)
 	private List<ComponentPremiumSnapshot> componentPremiumSnapshots;
@@ -56,5 +55,35 @@ public class PremiumSnapshot {
 				.map(cps -> cps.getPremiumAt(month))
 				.reduce(ZERO, Amount::add);
 	}
+
+	public Amount getCurrentPremium() {
+		return componentPremiumSnapshots.stream()
+				.map(ComponentPremiumSnapshot::getCurrentPremium)
+				.reduce(ZERO, Amount::add);
+	}
+
+	public Amount getCurrentPremium(AggregateId componentId) {
+		return componentPremiumSnapshots.stream()
+				.filter(cps -> cps.getComponentId().equals(componentId))
+				.map(ComponentPremiumSnapshot::getCurrentPremium)
+				.findAny()
+				.orElse(ZERO);
+	}
+
+	public LocalDate getValidFrom() {
+		return componentPremiumSnapshots.stream()
+				.map(ComponentPremiumSnapshot::getValidFrom)
+				.max(LocalDate::compareTo)
+				.orElseThrow();
+	}
+
+	public LocalDate getValidFrom(AggregateId componentId) {
+		return componentPremiumSnapshots.stream()
+				.filter(cps -> cps.getComponentId().equals(componentId))
+				.findAny()
+				.map(ComponentPremiumSnapshot::getValidFrom)
+				.orElseThrow();
+	}
+
 
 }

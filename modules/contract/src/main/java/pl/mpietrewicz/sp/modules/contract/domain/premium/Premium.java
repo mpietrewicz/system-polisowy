@@ -1,20 +1,22 @@
 package pl.mpietrewicz.sp.modules.contract.domain.premium;
 
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.PremiumChangedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ComponentData;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.ComponentPremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
+import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
+import pl.mpietrewicz.sp.modules.contract.domain.premium.component.AdditionalComponentPremium;
+import pl.mpietrewicz.sp.modules.contract.domain.premium.component.BasicComponentPremium;
+import pl.mpietrewicz.sp.modules.contract.domain.premium.component.ComponentPremium;
+import pl.mpietrewicz.sp.modules.contract.domain.premium.operation.AddPremium;
 
 import javax.inject.Inject;
+import javax.persistence.AttributeOverride;
 import javax.persistence.CascadeType;
+import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -35,47 +37,39 @@ import static java.util.stream.Collectors.toList;
 public class Premium extends BaseAggregateRoot {
 
     @Embedded
-    private ContractData contractData;
+    @AttributeOverride(name = "aggregateId", column = @Column(name = "contractId", nullable = false))
+    private AggregateId contractId;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "premium_id")
-    @Fetch(FetchMode.JOIN)
     private final List<ComponentPremium> componentPremiums = new ArrayList<>();
 
     @Transient
     @Inject
     protected DomainEventPublisher eventPublisher;
 
-    private boolean dailyChanges = false; // todo: zrobić z tego politykę, czy rozliczanie co do dnia
-
     public Premium() {
     }
 
-    public Premium(AggregateId aggregateId, ContractData contractData, ComponentPremium basicComponentPremium) {
+    public Premium(AggregateId aggregateId, AggregateId contractId, BasicComponentPremium basicComponentPremium) {
         this.aggregateId = aggregateId;
-        this.contractData = contractData;
+        this.contractId = contractId;
         this.componentPremiums.add(basicComponentPremium);
     }
 
-    public void add(ComponentData componentData, LocalDate date, Amount amount) {
+    public void add(AggregateId componentId, LocalDate date, Amount amount, ChangePremiumPolicyEnum changePremiumPolicyEnum) {
         LocalDateTime now = LocalDateTime.now();
-
-        ComponentPremium componentPremium = getComponentPremium(componentData)
-                .orElseGet(() -> {
-                    ComponentPremium addedComponentPremium = new ComponentPremium(componentData);
-                    componentPremiums.add(addedComponentPremium);
-                    return addedComponentPremium;
-                });
-
-        if (!dailyChanges) date = YearMonth.from(date).atDay(1); // todo: w przyszłości to jakoś ładniej roziwzać
-        componentPremium.addPremium(date, amount, now);
+        AddPremium addPremium = new AddPremium(date, amount, now);
+        ComponentPremium additionalComponentPremium = new AdditionalComponentPremium(componentId, addPremium,
+                changePremiumPolicyEnum);
+        componentPremiums.add(additionalComponentPremium);
 
         sentEvent(date, now, "ComponentServiceImpl");
     }
 
-    public void cancel(ComponentData componentData) {
+    public void cancel(AggregateId componentId) {
         LocalDateTime now = LocalDateTime.now();
-        ComponentPremium componentPremium = getComponentPremium(componentData)
+        ComponentPremium componentPremium = getComponentPremium(componentId)
                 .orElseThrow(() -> new IllegalStateException("No component found for premium change"));
 
         LocalDate canceledAddDate = componentPremium.cancel(now);
@@ -83,31 +77,31 @@ public class Premium extends BaseAggregateRoot {
         sentEvent(canceledAddDate, now, "PremiumServiceImpl");
     }
 
-    public void change(ComponentData componentData, LocalDate date, Amount amount) {
+    public void change(AggregateId componentId, LocalDate date, Amount amount) {
         LocalDateTime now = LocalDateTime.now();
-        ComponentPremium componentPremium = getComponentPremium(componentData)
+        ComponentPremium componentPremium = getComponentPremium(componentId)
                 .orElseThrow(() -> new IllegalStateException("No component found for premium change"));
 
-        if (!dailyChanges) date = YearMonth.from(date).atDay(1); // todo: w przyszłości to jakoś ładniej roziwzać
+        date = YearMonth.from(date).atDay(1);
         componentPremium.changePremium(date, amount, now);
 
         sentEvent(date, now, "PremiumServiceImpl");
     }
 
-    public void delete(ComponentData componentData, LocalDate date) {
+    public void delete(AggregateId componentId, LocalDate date) {
         LocalDateTime now = LocalDateTime.now();
-        ComponentPremium componentPremium = getComponentPremium(componentData)
+        ComponentPremium componentPremium = getComponentPremium(componentId)
                 .orElseThrow(() -> new IllegalStateException("No component found for premium delete"));
 
-        if (!dailyChanges) date = YearMonth.from(date).atEndOfMonth(); // todo: w przyszłości to jakoś ładniej roziwzać
+        date = YearMonth.from(date).atEndOfMonth();
         componentPremium.deletePremium(date, now);
 
         sentEvent(date, now, "ComponentServiceImpl");
     }
 
-    private Optional<ComponentPremium> getComponentPremium(ComponentData componentData) {
+    private Optional<ComponentPremium> getComponentPremium(AggregateId componentId) {
         return componentPremiums.stream()
-                .filter(cp -> cp.applay(componentData))
+                .filter(cp -> cp.applay(componentId))
                 .findAny();
     }
 
@@ -121,14 +115,14 @@ public class Premium extends BaseAggregateRoot {
         return PremiumSnapshot.builder()
                 .premiumId(aggregateId)
                 .timestamp(timestamp)
-                .contractData(contractData)
+                .contractId(contractId)
                 .componentPremiumSnapshots(componentPremiumSnapshots)
                 .build();
     }
 
     private void sentEvent(LocalDate date, LocalDateTime timestamp, String serviceName) {
-        PremiumChangedEvent event = new PremiumChangedEvent(contractData, date, timestamp);
-        eventPublisher.publish(event, serviceName);
+        PremiumChangedEvent event = new PremiumChangedEvent(contractId, date, timestamp);
+        eventPublisher.publish(event);
     }
 
 }

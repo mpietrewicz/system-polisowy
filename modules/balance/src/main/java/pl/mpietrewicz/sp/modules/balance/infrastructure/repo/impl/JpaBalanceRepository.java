@@ -25,7 +25,7 @@ public class JpaBalanceRepository extends GenericJpaRepository<Balance> implemen
     }
 
     @Override
-    public Balance findByContractId(AggregateId contractId) {
+    public Balance findBy(AggregateId contractId) {
         return springDataBalanceRepository.findByContractId(contractId);
     }
 

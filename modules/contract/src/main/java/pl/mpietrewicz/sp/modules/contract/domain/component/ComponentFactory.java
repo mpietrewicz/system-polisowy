@@ -10,20 +10,19 @@ import java.time.LocalDate;
 @DomainFactory
 public class ComponentFactory {
 
-    public Component createBasicComponent(ContractData contractData, String number) {
+    public Component createBasicComponent(ContractData contractData, String name) {
         AggregateId aggregateId = AggregateId.generate();
-        LocalDate startDate = contractData.getContractStartDate();
-        LiabilityPeriod liabilityPeriod = new LiabilityPeriod(startDate);
-        Liability liability = new Liability(liabilityPeriod);
-        return new Component(aggregateId, contractData, number, startDate, ComponentType.BASIC, liability);
+        AggregateId contractId = contractData.getAggregateId();
+        LocalDate startDate = contractData.getStart();
+
+        return new Component(aggregateId, contractId, name, startDate, ComponentType.BASIC);
     }
 
-    public Component createAdditionalComponent(ContractData contractData, String number, LocalDate registerDate) {
+    public Component createAdditionalComponent(ContractData contractData, String name, LocalDate registerDate) {
         AggregateId aggregateId = AggregateId.generate();
+        AggregateId contractId = contractData.getAggregateId();
         LocalDate startDate = DateUtils.pierwszyDzienMiesiaca(registerDate);
-        LiabilityPeriod liabilityPeriod = new LiabilityPeriod(startDate);
-        Liability liability = new Liability(liabilityPeriod);
 
-        return new Component(aggregateId, contractData, number, startDate, ComponentType.ADDITIONAL, liability);
+        return new Component(aggregateId, contractId, name, startDate, ComponentType.ADDITIONAL);
     }
 }

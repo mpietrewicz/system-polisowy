@@ -5,6 +5,6 @@ import java.io.Serializable;
 
 public interface DomainEventPublisher {
 
-    void publish(Serializable event, String serviceName);
+    void publish(Serializable event);
 
 }

@@ -2,8 +2,8 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.month.state;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus;
@@ -11,7 +11,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus;
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
 
-import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
+import static pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount.ZERO;
 
 @ValueObject
 @Entity

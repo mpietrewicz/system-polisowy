@@ -5,12 +5,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import pl.mpietrewicz.sp.app.SpringbootApplication;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundData;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.application.api.BalanceService;
 import pl.mpietrewicz.sp.modules.balance.infrastructure.repo.BalanceRepository;
 import pl.mpietrewicz.sp.modules.contract.application.api.ComponentService;
@@ -19,6 +16,7 @@ import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
 import pl.mpietrewicz.sp.modules.contract.domain.component.Component;
 import pl.mpietrewicz.sp.modules.contract.domain.contract.Contract;
 import pl.mpietrewicz.sp.modules.contract.infrastructure.repo.ComponentRepository;
+import pl.mpietrewicz.sp.modules.finance.application.api.FinanceService;
 
 import javax.inject.Inject;
 import java.io.IOException;
@@ -32,8 +30,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.util.function.Predicate.not;
-import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum.CONTINUATION;
-import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum.RENEWAL_WITH_UNDERPAYMENT;
 
 @SpringBootTest
 @ContextConfiguration(classes = {SpringbootApplication.class} )
@@ -58,6 +54,9 @@ public class IntegrationTest {
 
     @Inject
     BalanceRepository balanceRepository;
+
+    @Inject
+    FinanceService financeService;
 
     @Test
     public void productionTestNew() throws IOException {
@@ -90,41 +89,33 @@ public class IntegrationTest {
                 : new PositiveAmount(contractOperation.getKTOWA().replace(",", "."));
         if (contractOperation.getOPERACJA().equals("ZUM")
                 || (contractOperation.getOPERACJA().equals("PUM") && contractOperation.getRODZAJ_SKL().equals("PODST"))) {
-            String number = contractOperation.getNR_SKLADNIKA();
-            Contract contract = contractService.createContract(number, dataZmiany, kwota, Frequency.QUARTERLY, RENEWAL_WITH_UNDERPAYMENT);
+            String name = contractOperation.getNR_SKLADNIKA();
+            Contract contract = contractService.createContract(name, dataZmiany, kwota, Frequency.QUARTERLY);
             contractData = contract.generateSnapshot();
         } else if (List.of("Wplata").contains(contractOperation.getOPERACJA())) {
-            balanceService.addPayment(
-                    new PaymentData(AggregateId.generate(), contractData.getAggregateId(), dataZmiany, kwota.getAmount()),
-                    RENEWAL_WITH_UNDERPAYMENT
-            );
+            financeService.addPayment(contractData.getAggregateId(), kwota.getAmount(), dataZmiany);
         } else if (List.of("Dofinansowanie").contains(contractOperation.getOPERACJA())) {
-            balanceService.addPayment(
-                    new PaymentData(AggregateId.generate(), contractData.getAggregateId(), dataZmiany, kwota.getAmount()),
-                    CONTINUATION
-            );
+            financeService.addFunding(contractData.getAggregateId(), kwota.getAmount(), dataZmiany);
         } else if (List.of("Zwrot").contains(contractOperation.getOPERACJA())) {
-            balanceService.addRefund(
-                    new RefundData(AggregateId.generate(), contractData.getAggregateId(), dataZmiany, kwota.getAmount())
-            );
+            balanceService.addRefund(contractData, kwota.getAmount());
         } else if (List.of("PSU").contains(contractOperation.getOPERACJA())) {
-            List<Component> components = componentRepository.findByContractId(contractData.getAggregateId());
+            List<Component> components = componentRepository.findBy(contractData.getAggregateId());
             Component basicComponent = components.stream().filter(not(Component::isAdditional)).findAny().orElseThrow();
             premiumService.change(basicComponent.getAggregateId(), dataZmiany, kwota);
         } else if (List.of("DSK").contains(contractOperation.getOPERACJA())
                 || (contractOperation.getOPERACJA().equals("PUM") && contractOperation.getRODZAJ_SKL().equals("DOD"))) {
-            String number = contractOperation.getNR_SKLADNIKA();
-            componentService.addComponent(contractData.getAggregateId(), number, dataZmiany, kwota);
+            String name = contractOperation.getNR_SKLADNIKA();
+            componentService.addComponent(contractData.getAggregateId(), name, dataZmiany, kwota);
         } else if (List.of("ZOU").contains(contractOperation.getOPERACJA())) {
-            String number = contractOperation.getNR_SKLADNIKA();
-            componentService.terminate(number, dataZmiany);
+            Component component = componentRepository.findBy(contractData.getAggregateId(), contractOperation.getNR_SKLADNIKA()).get();
+            componentService.terminate(component.getAggregateId(), dataZmiany);
         } else if (List.of("ZOU_P").contains(contractOperation.getOPERACJA())) {
             contractService.endContract(contractData.getAggregateId(), dataZmiany);
         } else if (List.of("WZOU_P").contains(contractOperation.getOPERACJA())) {
             contractService.cancelEndContract(contractData.getAggregateId());
         } else if (List.of("USK").contains(contractOperation.getOPERACJA())) {
-            String number = contractOperation.getNR_SKLADNIKA();
-            premiumService.cancel(number);
+            Component component = componentRepository.findBy(contractData.getAggregateId(), contractOperation.getNR_SKLADNIKA()).get();
+            premiumService.cancel(component.getAggregateId());
         }
     }
 

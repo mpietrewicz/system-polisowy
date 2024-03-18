@@ -22,7 +22,7 @@ public class BalanceFactory {
         Balance balance = new Balance(AggregateId.generate(), 0L, contractData.getAggregateId());
         spring.autowireBean(balance);
 
-        LocalDate contractStart = contractData.getContractStartDate();
+        LocalDate contractStart = contractData.getStart();
         Period period = new Period(contractStart, new ArrayList<>(), true, "init");
         StartCalculating startCalculating = new StartCalculating(YearMonth.from(contractStart),
                 premiumSnapshot.getAmountAt(contractStart), period, balance);

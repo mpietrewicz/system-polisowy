@@ -11,7 +11,7 @@ public interface PremiumRepository {
 
     void save(Premium premium);
 
-    Premium findByContractId(AggregateId contractId);
+    Premium findBy(AggregateId contractId);
 
     Premium findByComponentId(AggregateId componentId);
 

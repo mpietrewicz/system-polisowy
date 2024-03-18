@@ -6,7 +6,7 @@ springdoc:
 
 spring:
   profiles:
-    active: dev
+    active: mem
   h2:
     console.enabled: true
     console.path: /h2-console

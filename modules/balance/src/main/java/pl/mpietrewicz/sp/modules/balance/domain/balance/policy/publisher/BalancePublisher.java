@@ -26,7 +26,7 @@ public class BalancePublisher implements PublishPolicy {
         if (monthlyBalances.isEmpty()) return;
 
         BalanceUpdatedEvent event = createEvent(contractId, monthlyBalances);
-        eventPublisher.publish(event, "BalanceServiceImpl");
+        eventPublisher.publish(event);
     }
 
     private BalanceUpdatedEvent createEvent(AggregateId contractId, List<MonthlyBalance> monthlyBalances) {

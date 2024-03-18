@@ -1,10 +1,10 @@
 
 package pl.mpietrewicz.sp.modules.contract.domain.contract;
 
+import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 
@@ -12,78 +12,38 @@ import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import java.time.LocalDate;
-import java.time.YearMonth;
-
-import static pl.mpietrewicz.sp.modules.contract.domain.contract.ContractStatus.PENDING;
 
 @Entity
 @AggregateRoot
+@Getter
 public class Contract extends BaseAggregateRoot {
 
-	private LocalDate startDate;
-	private YearMonth accountingMonth;
-
-	@Enumerated(EnumType.STRING)
-	private ContractStatus contractStatus = PENDING;
+	private LocalDate start;
 
 	@Enumerated(EnumType.STRING)
 	private Frequency frequency;
 
-	@Enumerated(EnumType.STRING)
-    PaymentPolicyEnum paymentPolicyEnum;
+	private LocalDate end;
 
 	public Contract() {
 	}
 
-	public Contract(AggregateId aggregateId, LocalDate startDate, Frequency frequency,
-					PaymentPolicyEnum paymentPolicyEnum, YearMonth accountingMonth) {
+	public Contract(AggregateId aggregateId, LocalDate start, Frequency frequency) {
 		this.aggregateId = aggregateId;
-		this.startDate = startDate;
+		this.start = start;
 		this.frequency = frequency;
-		this.paymentPolicyEnum = paymentPolicyEnum;
-		this.accountingMonth = accountingMonth;
+	}
+
+	public void end(LocalDate date) {
+		end = date;
+	}
+
+	public void cancelEnd() {
+		end = null;
 	}
 
 	public ContractData generateSnapshot() {
-		return new ContractData(aggregateId, startDate, frequency, paymentPolicyEnum, accountingMonth);
-	}
-
-	public LocalDate getStartDate() {
-		return startDate;
-	}
-
-	public Frequency getFrequency() {
-		return frequency;
-	}
-
-	public YearMonth getAccountingMonth() {
-		return accountingMonth;
-	}
-
-	public void shiftAccountingMonth(YearMonth month) {
-		if (getAccountingMonth().compareTo(month) < 0) {
-			shiftAccountingMonth();
-		}
-	}
-
-	public void shiftAccountingMonth() {
-		if (isContractOpen()) {
-			accountingMonth = accountingMonth.plusMonths(1);
-			// todo wyślij zdarzenie
-		}
-	}
-
-	private boolean isContractOpen() {
-		return contractStatus == ContractStatus.ACTIVE;
-	}
-
-	// todo: gdy zostanie przwinienty miesiac nalezy tez zaktualizowac status! -> czyli balance odpowaida za aktualny status contract
-	private ContractStatus initStatus(LocalDate startDate) {
-		if (YearMonth.from(startDate).compareTo(accountingMonth) > 0) {
-			return PENDING;
-		} else {
-			return ContractStatus.ACTIVE;
-		}
+		return new ContractData(aggregateId, start, frequency);
 	}
 
 }

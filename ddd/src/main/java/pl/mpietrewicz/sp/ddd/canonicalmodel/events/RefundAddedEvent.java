@@ -7,12 +7,11 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundDat
 
 import java.io.Serializable;
 
-@SuppressWarnings("serial")
-@Event
+@Event(boundedContext = "balance")
 @Getter
 @RequiredArgsConstructor
 public class RefundAddedEvent implements Serializable {
 
-    private final transient RefundData paymentData;
+    private final transient RefundData refundData;
 
 }

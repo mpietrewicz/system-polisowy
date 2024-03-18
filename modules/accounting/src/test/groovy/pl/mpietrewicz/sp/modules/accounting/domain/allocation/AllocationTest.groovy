@@ -1,18 +1,18 @@
 //file:noinspection NonAsciiCharacters
 package pl.mpietrewicz.sp.modules.accounting.domain.allocation
 
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId
+
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount
-import pl.mpietrewicz.sp.ddd.sharedkernel.Divisor
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Divisor
 import spock.lang.Specification
 import spock.lang.Subject
 
 import java.time.YearMonth
 
-class AllocationTest extends Specification {
+class AllocationTest extends Specification { // todo: do dodrawy będą te testy
 
     @Subject
     Allocation allocation = new Allocation(new ContractData())
@@ -32,9 +32,6 @@ class AllocationTest extends Specification {
         List<MonthlyBalance> monthlyBalances = List.of(
                 MonthlyBalance.builder()
                         .month(YearMonth.parse("2023-03"))
-                        .getPremiumData(Map.of(
-                                new AggregateId("1"), new Amount("10")
-                        ))
                         .build())
         List<RiskDefinition> riskDefinition = List.of(
                 RiskDefinition.builder()
@@ -56,9 +53,6 @@ class AllocationTest extends Specification {
         List<MonthlyBalance> monthlyBalances = List.of(
                 MonthlyBalance.builder()
                         .month(YearMonth.parse("2023-03"))
-                        .getPremiumData(Map.of(
-                                new AggregateId("1"), new Amount("10")
-                        ))
                         .build())
         List<RiskDefinition> riskDefinition = List.of(
                 RiskDefinition.builder()

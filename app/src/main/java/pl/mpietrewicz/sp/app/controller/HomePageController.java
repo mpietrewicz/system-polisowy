@@ -11,7 +11,8 @@ public class HomePageController {
     private String activeProfiles;
 
     @GetMapping("/")
-    public String index() {
-        return "sp Start Page - " + activeProfiles;
+    public String getActiveProfile() {
+        return "SP Active Profile: " + activeProfiles;
     }
+
 }

@@ -18,4 +18,5 @@ public class Subledger extends BaseAggregateRoot {
     public void shiftMonth() {
         this.month = month.plusMonths(1);
     }
+
 }

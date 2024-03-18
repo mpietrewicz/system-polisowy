@@ -43,7 +43,7 @@ public class EventListenerBeanPostProcessor implements BeanPostProcessor, BeanFa
                 	//TODO add to some queue
                 	eventPublisher.registerEventHandler(handler);                	
                 }
-                else{                
+                else {
                 	EventHandler handler = new SpringEventHandler(eventType, beanName, method, beanFactory);
                 	eventPublisher.registerEventHandler(handler);
                 }                                

@@ -2,13 +2,16 @@ package pl.mpietrewicz.sp.modules.accounting.domain.allocation;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 
+import javax.persistence.AttributeOverride;
 import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import java.util.ArrayList;
@@ -20,17 +23,19 @@ import java.util.Optional;
 @NoArgsConstructor
 public class Allocation extends BaseAggregateRoot {
 
-    private ContractData contractData;
+    @Embedded
+    @AttributeOverride(name = "aggregateId", column = @Column(name = "contractId", nullable = false))
+    private AggregateId contractId;
 
     @OneToMany(cascade = CascadeType.ALL)
     private List<Month> months = new ArrayList<>();
 
-    public Allocation(ContractData contractData) {
-        this.contractData = contractData;
+    public Allocation(AggregateId contractId) {
+        this.contractId = contractId;
     }
 
-    public Allocation(ContractData contractData, List<Month> months) {
-        this.contractData = contractData;
+    public Allocation(AggregateId contractId, List<Month> months) {
+        this.contractId = contractId;
         this.months = months;
     }
 
@@ -57,4 +62,5 @@ public class Allocation extends BaseAggregateRoot {
                 .filter(month -> month.isAppliesTo(monthlyBalance))
                 .findAny();
     }
+
 }

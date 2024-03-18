@@ -7,8 +7,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractD
 
 import java.io.Serializable;
 
-@SuppressWarnings("serial")
-@Event
+@Event(boundedContext = "contract")
 @Getter
 @RequiredArgsConstructor
 public class CanceledContractEndEvent implements Serializable {

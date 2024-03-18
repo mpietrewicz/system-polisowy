@@ -1,78 +1,63 @@
 package pl.mpietrewicz.sp.modules.contract.domain.component;
 
+import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.ComponentStatus;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ComponentData;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 
-import javax.persistence.CascadeType;
+import javax.persistence.AttributeOverride;
+import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
 import java.time.LocalDate;
 
 @Entity
+@Getter
 @AggregateRoot
 public class Component extends BaseAggregateRoot {
 
     @Embedded
-    private ContractData contractData;
+    @AttributeOverride(name = "aggregateId", column = @Column(name = "contractId", nullable = false))
+    private AggregateId contractId;
 
-    private String number;
+    private String name;
 
-    private LocalDate startDate;
-
-    @Enumerated(EnumType.STRING)
-    private ComponentStatus componentStatus;
+    private LocalDate start;
 
     @Enumerated(EnumType.STRING)
     private ComponentType componentType;
 
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-    @JoinColumn(name = "liability_id")
-    private Liability liability;
+    private LocalDate end;
 
     public Component() {
     }
 
-    public Component(AggregateId aggregateId, ContractData contractData, String number, LocalDate startDate,
-                     ComponentType componentType, Liability liability) {
+    public Component(AggregateId aggregateId, AggregateId contractId, String name, LocalDate start,
+                     ComponentType componentType) {
         this.aggregateId = aggregateId;
-        this.contractData = contractData;
-        this.number = number;
-        this.startDate = startDate;
-        this.componentStatus = ComponentStatus.OPEN; // todo: do obsłużenia
+        this.contractId = contractId;
+        this.name = name;
+        this.start = start;
         this.componentType = componentType;
-        this.liability = liability;
     }
 
     public void terminate(LocalDate terminatedDate) {
-        liability.end(terminatedDate);
+        end = terminatedDate;
     }
 
     public ComponentData generateSnapshot() {
-        return new ComponentData(aggregateId, contractData, startDate, componentStatus);
+        return new ComponentData(aggregateId, contractId, start);
     }
 
-    public ContractData getContractData() {
-        return contractData;
-    }
-
-    public boolean isContractOpen() {
-        return componentStatus.equals(ComponentStatus.OPEN);
+    public AggregateId getContractId() {
+        return contractId;
     }
 
     public boolean isAdditional() {
         return this.componentType == ComponentType.ADDITIONAL;
     }
 
-    private void changeComponentStatus(ComponentStatus componentStatus) {
-        this.componentStatus = componentStatus;
-    }
 }

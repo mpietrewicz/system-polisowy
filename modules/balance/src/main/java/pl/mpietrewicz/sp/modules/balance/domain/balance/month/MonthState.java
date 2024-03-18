@@ -2,8 +2,8 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Unpaid;
 
