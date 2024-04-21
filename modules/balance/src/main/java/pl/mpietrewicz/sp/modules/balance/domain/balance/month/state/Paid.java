@@ -1,38 +1,44 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month.state;
 
+import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus;
-import pl.mpietrewicz.sp.modules.balance.exceptions.PaymentException;
+
+import javax.persistence.DiscriminatorValue;
+import javax.persistence.Entity;
 
 import static pl.mpietrewicz.sp.ddd.sharedkernel.Amount.ZERO;
 
 @ValueObject
+@Entity
+@DiscriminatorValue("PAID")
+@NoArgsConstructor
 public class Paid extends MonthState {
 
-    public static final PaidStatus paidStatus = PaidStatus.PAID;
-
     public Paid(Month month, Amount paid) {
-        super(month, paid, paidStatus);
+        super(month, paid, PaidStatus.PAID);
     }
 
     @Override
-    public Amount pay(PositiveAmount payment) throws PaymentException {
-        throw new PaymentException("You trying pay the paid period!");
+    public Amount pay(PositiveAmount payment) {
+        return payment;
     }
 
     @Override
     public Amount refund(PositiveAmount refund) {
-        if (month.getPaid().isLessThan(refund)) {
+        Amount paid = month.getPaid();
+
+        if (paid.isLessThan(refund)) {
             month.changeState(new Unpaid(month));
-            return refund.subtract(month.getPaid());
-        } else if (month.getPaid().equals(refund)) {
+            return refund.subtract(paid);
+        } else if (paid.equals(refund)) {
             month.changeState(new Unpaid(month));
-        } else if (month.getPaid().isHigherThan(refund)) {
-            month.changeState(new Underpaid(month, month.getPaid().subtract(refund)));
+        } else if (paid.isHigherThan(refund)) {
+            month.changeState(new Underpaid(month, paid.subtract(refund)));
         }
         return ZERO;
     }
@@ -43,11 +49,6 @@ public class Paid extends MonthState {
     }
 
     @Override
-    public PaidStatus getPaidStatus() {
-        return paidStatus;
-    }
-
-    @Override
     public boolean isPaid() {
         return true;
     }
@@ -55,6 +56,10 @@ public class Paid extends MonthState {
     @Override
     public boolean hasPayment() {
         return true;
+    }
+
+    public MonthState createCopy(Month month) {
+        return new Paid(month, getPaid());
     }
 
 

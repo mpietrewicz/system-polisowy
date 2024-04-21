@@ -19,10 +19,8 @@ public interface BalanceService {
 
     void changePremium(ContractData contractData, LocalDate date, LocalDateTime timestamp);
 
-    void stopCalculating(LocalDate end, ContractData contractData); // todo: podpiąć pod dobry event
+    void stopCalculating(ContractData contractData, LocalDate end);
 
-    void cancelStopCalculating(ContractData contractData); // todo: podpiąć pod dobry event
-
-    void getBalance(ContractData contractData); // todo: do usunięcia w przyszłości
+    void cancelStopCalculating(ContractData contractData);
 
 }

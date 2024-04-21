@@ -1,76 +1,56 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
-import lombok.Getter;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.events.CancelStopBalanceFailedEvent;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
+import lombok.NoArgsConstructor;
+import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType;
-import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceException;
-import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 
-import javax.persistence.RollbackException;
+import javax.persistence.DiscriminatorValue;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.Transient;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.CANCEL_STOP_CALCULATING;
 
-@Getter
+@ValueObject
+@Entity
+@DiscriminatorValue("CANCEL_STOP_CALCULATING")
+@NoArgsConstructor
 public class CancelStopCalculating extends Operation {
 
-    private static final OperationType operationType = CANCEL_STOP_CALCULATING;
-
+    @Transient
     private StopCalculatingService stopCalculatingService;
 
     private LocalDate canceledEnd;
 
     private boolean valid;
 
-    public CancelStopCalculating(DomainEventPublisher eventPublisher) {
-        super(LocalDateTime.now(), eventPublisher);
-        this.valid = false;
-    }
-
-    public CancelStopCalculating(StopCalculatingService stopCalculatingService, DomainEventPublisher eventPublisher) {
-        super(LocalDateTime.now(), eventPublisher);
+    public CancelStopCalculating(StopCalculatingService stopCalculatingService, Balance balance) {
+        super(LocalDateTime.now(), balance, CANCEL_STOP_CALCULATING);
         this.stopCalculatingService = stopCalculatingService;
         this.canceledEnd = stopCalculatingService.getEnd();
         this.valid = true;
     }
 
-    public CancelStopCalculating(Long id, LocalDate canceledEnd, LocalDateTime registration, boolean valid, List<Period> periods) {
-        super(id, registration.toLocalDate(), registration, periods);
-        this.canceledEnd = canceledEnd;
-        this.valid = valid;
-    }
-
     @Override
-    public void execute(AggregateId contractId) {
+    public void execute() {
         stopCalculatingService.invalidate();
-        invalidate();
+        valid = false;
     }
 
     @Override
-    protected void reexecute(AggregateId contractId, LocalDateTime registration) {
+    protected void reexecute(LocalDateTime registration) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    protected void publishFailedEvent(AggregateId contractId, BalanceException e) {
+    public void publishFailedEvent(ReexecutionException exception) {
         throw new UnsupportedOperationException();
-    }
-
-    public static void handle(UnavailabilityException e, DomainEventPublisher eventPublisher) {
-        CancelStopBalanceFailedEvent event = new CancelStopBalanceFailedEvent(e.getContractId(), e);
-        eventPublisher.publish(event, "BalanceServiceImpl");
-        throw new RollbackException(e);
-    }
-
-    @Override
-    public OperationType getOperationType() {
-        return operationType;
     }
 
     @Override
@@ -86,10 +66,6 @@ public class CancelStopCalculating extends Operation {
     @Override
     public boolean isValid() {
         return valid;
-    }
-
-    public void invalidate() {
-        this.valid = false;
     }
 
 }

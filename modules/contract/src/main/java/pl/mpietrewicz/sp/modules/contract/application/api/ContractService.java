@@ -21,4 +21,9 @@ public interface ContractService {
 	void shiftAccountingMonth(YearMonth month);
 
     ContractData getContractData(AggregateId contractId);
+
+	void endContract(AggregateId contractId, LocalDate date);
+
+	void cancelEndContract(AggregateId contractId);
+
 }

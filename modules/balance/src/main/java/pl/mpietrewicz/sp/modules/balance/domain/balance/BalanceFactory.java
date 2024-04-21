@@ -19,13 +19,15 @@ public class BalanceFactory {
     private AutowireCapableBeanFactory spring;
 
     public Balance create(ContractData contractData, PremiumSnapshot premiumSnapshot) {
-        LocalDate start = contractData.getContractStartDate();
-        Period period = new Period(start, new ArrayList<>(), true, "init");
-        StartCalculating startCalculating = new StartCalculating(YearMonth.from(start), premiumSnapshot.getAmountAt(start), period);
-        spring.autowireBean(startCalculating);
-
-        Balance balance = new Balance(AggregateId.generate(), 0L, contractData.getAggregateId(), startCalculating);
+        Balance balance = new Balance(AggregateId.generate(), 0L, contractData.getAggregateId());
         spring.autowireBean(balance);
+
+        LocalDate contractStart = contractData.getContractStartDate();
+        Period period = new Period(contractStart, new ArrayList<>(), true, "init");
+        StartCalculating startCalculating = new StartCalculating(YearMonth.from(contractStart),
+                premiumSnapshot.getAmountAt(contractStart), period, balance);
+
+        balance.operations.add(startCalculating);
         return balance;
     }
 

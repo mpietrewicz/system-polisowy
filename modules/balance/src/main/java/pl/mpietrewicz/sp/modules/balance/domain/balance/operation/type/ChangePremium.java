@@ -1,90 +1,76 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type;
 
-import lombok.Getter;
+import lombok.NoArgsConstructor;
+import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.ChangePremiumFailedEvent;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.MonthToPay;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.PaymentData;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.paymentpolicy.ContinuationPolicy;
-import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceException;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.policy.payment.PaymentPolicy;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.policy.payment.PaymentPolicyFactory;
+import pl.mpietrewicz.sp.modules.balance.exceptions.ChangePremiumException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.PaymentException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
-import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
 
-import javax.inject.Inject;
+import javax.persistence.DiscriminatorValue;
+import javax.persistence.Entity;
+import javax.persistence.RollbackException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.util.List;
 
+import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum.CONTINUATION;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.CHANGE_PREMIUM;
 
-@Getter
+@ValueObject
+@Entity
+@DiscriminatorValue("CHANGE_PREMIUM")
+@NoArgsConstructor
 public class ChangePremium extends Operation {
 
-    private static final OperationType operationType = CHANGE_PREMIUM;
-
-    @Inject
-    protected PremiumService premiumService;
-
-    public ChangePremium(LocalDate date, LocalDateTime timestamp, DomainEventPublisher eventPublisher,
-                         PremiumService premiumService) {
-        super(date, timestamp, eventPublisher);
-        this.premiumService = premiumService;
-    }
-
-    public ChangePremium(Long id, LocalDate date, LocalDateTime registration, List<Period> periods) {
-        super(id, date, registration, periods);
+    public ChangePremium(LocalDate date, LocalDateTime timestamp, Balance balance) {
+        super(date, timestamp, balance, CHANGE_PREMIUM);
     }
 
     @Override
-    public void execute(AggregateId contractId) {
+    public void execute() {
+        PremiumSnapshot premiumSnapshot = getPremiumSnapshot(registration);
         try {
-            tryExecute(contractId, getRegistration());
-        } catch (PaymentException e) {
-            handle(contractId, e);
+            tryExecute(premiumSnapshot);
+        } catch (PaymentException exception) {
+            ChangePremiumException changePremiumException = new ChangePremiumException(premiumSnapshot, exception,
+                    "Failed change premium!");
+            publishEvent(new ChangePremiumFailedEvent(premiumSnapshot, changePremiumException));
+            throw new RollbackException(exception);
         }
     }
 
     @Override
-    protected void reexecute(AggregateId contractId, LocalDateTime registration) throws ReexecutionException {
+    protected void reexecute(LocalDateTime registration) throws ReexecutionException {
+        PremiumSnapshot premiumSnapshot = getPremiumSnapshot(registration);
         try {
-            tryExecute(contractId, registration);
-        } catch (PaymentException e) {
-            throw new ReexecutionException(e, "Change premium on contract ({}) balance failed during reexecution!",
-                    contractId.getId());
+            tryExecute(premiumSnapshot);
+        } catch (PaymentException exception) {
+            throw new ReexecutionException(exception, "Failed change premium {} during reexecution!",
+                    premiumSnapshot.getPremiumId().getId());
         }
     }
 
     @Override
-    protected void publishFailedEvent(AggregateId contractId, BalanceException e) {
-        ChangePremiumFailedEvent event = new ChangePremiumFailedEvent(contractId, getRegistration(), e);
-        eventPublisher.publish(event, "BalanceServiceImpl");
+    public void publishFailedEvent(ReexecutionException exception) {
+        throw new UnsupportedOperationException();
     }
 
-    @Override
-    public OperationType getOperationType() {
-        return operationType;
-    }
-
-    private void tryExecute(AggregateId contractId, LocalDateTime registration) throws PaymentException {
+    private void tryExecute(PremiumSnapshot premiumSnapshot) throws PaymentException {
         YearMonth monthOfChange = YearMonth.from(date);
-        Amount refunded = getPeriod().tryRefundUpTo(monthOfChange);
+        Period period = getPeriod();
+        Amount refunded = period.refundUpTo(monthOfChange);
 
         if (refunded.isPositive()) {
-            PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, registration);
-
-            ContinuationPolicy continuationPolicy = new ContinuationPolicy(premiumSnapshot);
-            PaymentData paymentData = new PaymentData(date, refunded);
-            MonthToPay monthToPay = continuationPolicy.getMonthToPay(getPeriod(), paymentData);
-
-            getPeriod().tryPay(monthToPay, premiumSnapshot);
+            PaymentPolicy paymentPolicy = PaymentPolicyFactory.create(CONTINUATION, premiumSnapshot);
+            paymentPolicy.pay(period, date, refunded);
         }
     }
 

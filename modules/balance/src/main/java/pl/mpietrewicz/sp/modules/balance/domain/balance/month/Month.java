@@ -1,73 +1,84 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
+import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Unpaid;
-import pl.mpietrewicz.sp.modules.balance.exceptions.PaymentException;
-import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
 
+import javax.persistence.AttributeOverride;
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Embedded;
+import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToOne;
+import java.time.LocalDate;
 import java.time.YearMonth;
 
+@Entity
 @Getter
-public class Month {
+@NoArgsConstructor
+public class Month extends BaseEntity implements LastMonth {
 
-    private Long id;
+    private LocalDate yearMonth;
 
-    private final YearMonth yearMonth;
-
+    @OneToOne(cascade = CascadeType.PERSIST)
+    @JoinColumn(name = "month_state_id")
     private MonthState monthState;
 
-    private final Amount premium; // todo: tutaj można dać obiekt Premium gdzie będzie lista komponentów i ich składek
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "premium"))
+    private Amount premium;
 
-    private final boolean renewal;
-
-    public Month(Long id, YearMonth yearMonth, Amount premium, boolean renewal) {
-        this.id = id;
-        this.yearMonth = yearMonth;
-        this.premium = premium;
-        this.renewal = renewal;
-    }
+    private boolean renewal;
 
     public Month(YearMonth yearMonth, Amount premium, boolean renewal) {
-        this.yearMonth = yearMonth;
+        this.yearMonth = yearMonth.atDay(1);
         this.premium = premium;
         this.renewal = renewal;
         this.monthState = new Unpaid(this);
     }
 
-    public void changeState(MonthState monthState) {
-        this.monthState = monthState;
-    }
-
-    public Amount pay(PositiveAmount payment) throws PaymentException {
+    @Override
+    public Amount pay(PositiveAmount payment) {
         return monthState.pay(payment);
     }
 
-    public Amount refund(PositiveAmount refund) throws RefundException {
+    @Override
+    public Amount refund(PositiveAmount refund) {
         return monthState.refund(refund);
     }
 
+    @Override
     public Amount refund() {
-        Amount refunded = getPaid();
-        changeState(new Unpaid(this));
-        return refunded;
+        return monthState.refund();
     }
 
+    @Override
     public boolean canPaidBy(Amount payment) {
         return monthState.canPaidBy(payment);
-    }
-
-    public PaidStatus getPaidStatus() {
-        return monthState.getPaidStatus();
     }
 
     public boolean isPaid() {
         return monthState.isPaid();
     }
 
-    public boolean hasPayment() {
-        return monthState.hasPayment();
+    @Override
+    public boolean isUnpaid() {
+        return !monthState.hasPayment();
+    }
+
+    @Override
+    public LastMonth createNextMonth(PremiumSnapshot premiumSnapshot) {
+        YearMonth nextYearMonth = YearMonth.from(this.yearMonth).plusMonths(1);
+        return MonthFactory.create(nextYearMonth, premiumSnapshot, false);
+    }
+
+    public void changeState(MonthState monthState) {
+        this.monthState = monthState;
     }
 
     public Amount getPaid() {
@@ -75,34 +86,21 @@ public class Month {
     }
 
     public Month createCopy() {
-        Month month = new Month(yearMonth, premium, renewal);
+        Month month = new Month(YearMonth.from(yearMonth), premium, renewal);
         month.changeState(this.monthState.createCopy(month));
         return month;
     }
 
     public YearMonth getYearMonth() {
-        return yearMonth;
+        return YearMonth.from(yearMonth);
     }
 
     public int compareAscending(Month month) {
-        return this.yearMonth.compareTo(month.getYearMonth());
-    }
-
-    public int compareDescending(Month month) {
-        return month.getYearMonth().compareTo(this.yearMonth);
-    }
-
-    public boolean isBefore(Month month) {
-        return compareAscending(month) < 0;
+        return YearMonth.from(this.yearMonth).compareTo(month.getYearMonth());
     }
 
     public Amount getPremium() {
         return premium;
-    }
-
-    @Override
-    public String toString() {
-        return yearMonth + ", " + getPaidStatus();
     }
 
 }

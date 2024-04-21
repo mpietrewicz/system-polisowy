@@ -1,13 +1,17 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance;
 
-import lombok.Getter;
+import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.events.CancelStopBalanceFailedEvent;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.events.StopBalanceFailedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundData;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
+import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddPayment;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddRefund;
@@ -15,42 +19,54 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.CancelSto
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.ChangePremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.publisherpolicy.PublishPolicy;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.policy.publisher.PublishPolicy;
 import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceStoppedException;
-import pl.mpietrewicz.sp.modules.balance.exceptions.NoOperationException;
+import pl.mpietrewicz.sp.modules.balance.exceptions.NoStopCalculatingException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.UnavailabilityException;
 import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
 
 import javax.inject.Inject;
+import javax.persistence.AttributeOverride;
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Embedded;
+import javax.persistence.Entity;
+import javax.persistence.OneToMany;
+import javax.persistence.RollbackException;
+import javax.persistence.Transient;
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @AggregateRoot
-@Getter
-public class Balance {
+@Entity
+@NoArgsConstructor
+public class Balance extends BaseAggregateRoot {
 
     @Inject
+    @Transient
     protected DomainEventPublisher eventPublisher;
 
     @Inject
+    @Transient
     protected PremiumService premiumService;
 
     @Inject
+    @Transient
     protected List<PublishPolicy> publishPolicies;
 
-    private final AggregateId aggregateId;
+    @Embedded
+    @AttributeOverride(name = "aggregateId", column = @Column(name = "contractId", nullable = false))
+    private AggregateId contractId;
 
-    private final Long version;
-
-    private final AggregateId contractId;
-
-    private final List<Operation> operations;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "balance")
+    protected List<Operation> operations;
 
     public Balance(AggregateId aggregateId, Long version, AggregateId contractId, List<Operation> operations) {
         this.aggregateId = aggregateId;
@@ -59,11 +75,11 @@ public class Balance {
         this.operations = operations;
     }
 
-    public Balance(AggregateId aggregateId, Long version, AggregateId contractId, StartCalculating startCalculating) {
+    public Balance(AggregateId aggregateId, Long version, AggregateId contractId) {
         this.aggregateId = aggregateId;
         this.version = version;
         this.contractId = contractId;
-        this.operations = Stream.of(startCalculating).collect(Collectors.toList());
+        this.operations = new ArrayList<>();
     }
 
     public void addPayment(PaymentData paymentData, PaymentPolicyEnum paymentPolicyEnum) {
@@ -71,7 +87,7 @@ public class Balance {
         LocalDate date = paymentData.getDate();
         Amount amount = paymentData.getAmount();
 
-        AddPayment addPayment = new AddPayment(paymentId, date, amount, paymentPolicyEnum, eventPublisher, premiumService);
+        AddPayment addPayment = new AddPayment(paymentId, date, amount, paymentPolicyEnum, this);
         commit(addPayment);
     }
 
@@ -80,49 +96,73 @@ public class Balance {
         LocalDate date = refundData.getDate();
         Amount amount = refundData.getAmount();
 
-        AddRefund addRefund = new AddRefund(refundId, date, amount, eventPublisher);
+        AddRefund addRefund = new AddRefund(refundId, date, amount, this);
         commit(addRefund);
     }
 
     public void changePremium(LocalDate date, LocalDateTime timestamp) {
-        ChangePremium changePremium = new ChangePremium(date, timestamp, eventPublisher, premiumService);
+        ChangePremium changePremium = new ChangePremium(date, timestamp, this);
         commit(changePremium);
     }
 
     public void stopCalculating(LocalDate end) {
         try {
             tryStopCalculating(end);
-        } catch (BalanceStoppedException e) {
-            StopCalculating.handle(new UnavailabilityException(contractId, e, "Unable to stop calculating " +
-                    "balance balance is currently stopped", contractId.getId()), eventPublisher);
+        } catch (BalanceStoppedException exception) {
+            UnavailabilityException unavailabilityException = new UnavailabilityException(contractId, exception,
+                    "Unable to stop calculating balance balance is currently stopped", contractId.getId());
+            StopBalanceFailedEvent event = new StopBalanceFailedEvent(contractId, unavailabilityException);
+            eventPublisher.publish(event, "BalanceServiceImpl");
+            throw new RollbackException(unavailabilityException);
         }
-    }
-
-    private void tryStopCalculating(LocalDate end) throws BalanceStoppedException {
-        if (getStopCalculating().isPresent()) throw new BalanceStoppedException();
-        StopCalculating stopCalculating = new StopCalculating(end, eventPublisher);
-        commit(stopCalculating);
     }
 
     public void cancelStopCalculating() {
         try {
             tryCancelStopCalculating();
-        } catch (NoOperationException e) {
-            CancelStopCalculating.handle(new UnavailabilityException(contractId, e, "Unable to cancel stop calculating " +
-                    "balance balance isn't stop on contract {}", contractId.getId()), eventPublisher);
+        } catch (NoStopCalculatingException exception) {
+            UnavailabilityException unavailabilityException = new UnavailabilityException(contractId, exception,
+                    "Unable to cancel stop calculating balance balance isn't stop on contract {}", contractId.getId());
+            CancelStopBalanceFailedEvent event = new CancelStopBalanceFailedEvent(contractId, unavailabilityException);
+            eventPublisher.publish(event, "BalanceServiceImpl");
+            throw new RollbackException(exception);
         }
     }
 
-    private void tryCancelStopCalculating() throws NoOperationException {
+    public PremiumSnapshot getPremiumSnapshot(LocalDateTime timestamp) {
+        return premiumService.getPremiumSnapshot(contractId, timestamp);
+    }
+
+    public void publishEvent(Serializable event) {
+        eventPublisher.publish(event, "BalanceServiceImpl");
+    }
+
+    public LocalDate getStartBalance() {
+        return getValidOperations().stream()
+                .filter(StartCalculating.class::isInstance)
+                .map(StartCalculating.class::cast)
+                .map(StartCalculating::getDate)
+                .findAny()
+                .orElseThrow();
+    }
+
+    private void tryStopCalculating(LocalDate end) throws BalanceStoppedException {
+        if (getStopCalculating().isPresent()) throw new BalanceStoppedException();
+        StopCalculating stopCalculating = new StopCalculating(end, this);
+        commit(stopCalculating);
+    }
+
+    private void tryCancelStopCalculating() throws NoStopCalculatingException {
         StopCalculating stopCalculating = tryGetStopCalculating();
-        CancelStopCalculating cancelStopCalculating = new CancelStopCalculating(stopCalculating, eventPublisher);
+        CancelStopCalculating cancelStopCalculating = new CancelStopCalculating(stopCalculating, this);
         commit(cancelStopCalculating);
     }
 
     private void commit(Operation operation) {
         PeriodProvider before = getLastOperation().getPeriod();
 
-        calculate(operation);
+        Operation previousOperation = getPreviousOperation(operation);
+        operation.execute(previousOperation.getPeriod());
         operations.add(operation);
         recalculateAfter(operation);
 
@@ -130,29 +170,21 @@ public class Balance {
         publishUpdatedBalanceResult(before, after);
     }
 
-    private void calculate(Operation operation) {
-        Operation previousOperation = getPreviousOperation(operation);
-        operation.execute(previousOperation, contractId);
-    }
-
     private void recalculateAfter(Operation operation) {
         try {
             tryRecalculateAfter(operation);
-        } catch (ReexecutionException e) {
-            operation.handle(contractId, e);
+        } catch (ReexecutionException exception) {
+            operation.publishFailedEvent(exception);
+            throw new RollbackException(exception);
         }
     }
 
     private void tryRecalculateAfter(Operation operation) throws ReexecutionException {
         List<Operation> nextOperations = getNextOperationsAfter(operation);
         for (Operation nextOperation : nextOperations) {
-            recalculate(nextOperation, operation.getRegistration(), prepareInfo(operation));
+            Operation previousOperation = getPreviousOperation(nextOperation);
+            nextOperation.reexecute(previousOperation.getPeriod(), operation);
         }
-    }
-
-    private void recalculate(Operation operation, LocalDateTime registration, String info) throws ReexecutionException {
-        Operation previousOperation = getPreviousOperation(operation);
-        operation.reexecute(previousOperation, contractId, registration, info);
     }
 
     private void publishUpdatedBalanceResult(PeriodProvider before, PeriodProvider after) {
@@ -161,9 +193,9 @@ public class Balance {
         }
     }
 
-    private StopCalculating tryGetStopCalculating() throws NoOperationException {
+    private StopCalculating tryGetStopCalculating() throws NoStopCalculatingException {
         return getStopCalculating()
-                .orElseThrow(() -> new NoOperationException(new NoSuchElementException(),
+                .orElseThrow(() -> new NoStopCalculatingException(new NoSuchElementException(),
                         "No stop calculating operation on contract {}", contractId.getId()));
     }
 
@@ -173,7 +205,7 @@ public class Balance {
                 .collect(Collectors.toList());
     }
 
-    private Operation getPreviousOperation(Operation operation) {
+    public Operation getPreviousOperation(Operation operation) {
         return getValidOperations().stream()
                 .filter(o -> o.isBefore(operation))
                 .max(Operation::orderComparator)
@@ -206,10 +238,6 @@ public class Balance {
                 .filter(Operation::isValid)
                 .map(StopCalculating.class::cast)
                 .findAny();
-    }
-
-    private String prepareInfo(Operation operation) { // todo: do poprawy logowanie
-        return "reexecute after " + operation.getClass().getName() + " : " + operation.getDate();
     }
 
 }

@@ -32,7 +32,7 @@ class AllocationTest extends Specification {
         List<MonthlyBalance> monthlyBalances = List.of(
                 MonthlyBalance.builder()
                         .month(YearMonth.parse("2023-03"))
-                        .componentPremiums(Map.of(
+                        .getPremiumData(Map.of(
                                 new AggregateId("1"), new Amount("10")
                         ))
                         .build())
@@ -56,7 +56,7 @@ class AllocationTest extends Specification {
         List<MonthlyBalance> monthlyBalances = List.of(
                 MonthlyBalance.builder()
                         .month(YearMonth.parse("2023-03"))
-                        .componentPremiums(Map.of(
+                        .getPremiumData(Map.of(
                                 new AggregateId("1"), new Amount("10")
                         ))
                         .build())

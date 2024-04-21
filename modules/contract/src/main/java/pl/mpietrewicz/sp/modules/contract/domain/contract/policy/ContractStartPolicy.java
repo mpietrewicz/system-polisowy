@@ -5,8 +5,8 @@ import pl.mpietrewicz.sp.ddd.annotations.domain.DomainPolicy;
 import java.time.LocalDate;
 
 @DomainPolicy
-public interface ContractStartDatePolicy {
+public interface ContractStartPolicy {
 
-    LocalDate specifyStartDate(LocalDate registerDate);
+    LocalDate getStartDate(LocalDate registerDate);
 
 }

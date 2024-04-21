@@ -12,8 +12,9 @@ public class TerminationFactory {
 
     public Termination create(ComponentData componentData, LocalDate terminatedDate) {
         AggregateId aggregateId = AggregateId.generate();
-        LocalDateTime registerDate = LocalDateTime.now();
-        return new Termination(aggregateId, componentData, terminatedDate, registerDate);
+        LocalDateTime registration = LocalDateTime.now();
+
+        return new Termination(aggregateId, componentData, terminatedDate, registration);
     }
 
 }

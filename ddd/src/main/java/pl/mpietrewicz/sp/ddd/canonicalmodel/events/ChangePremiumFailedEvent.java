@@ -3,11 +3,9 @@ package pl.mpietrewicz.sp.ddd.canonicalmodel.events;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.event.Event;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 
 import java.io.Serializable;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @SuppressWarnings("serial")
@@ -16,8 +14,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class ChangePremiumFailedEvent implements Serializable {
 
-    private final AggregateId contractId;
-    private final LocalDateTime timestamp;
+    private final PremiumSnapshot premiumSnapshot;
     private final Exception exception;
 
 }

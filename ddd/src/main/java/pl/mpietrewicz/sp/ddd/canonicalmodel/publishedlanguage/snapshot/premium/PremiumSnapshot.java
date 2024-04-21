@@ -17,9 +17,8 @@ import javax.persistence.Embedded;
 import javax.persistence.OneToMany;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import static pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount.ZERO;
 
@@ -52,9 +51,10 @@ public class PremiumSnapshot {
 		}
 	}
 
-	public Map<AggregateId, Amount> getDetails(LocalDate date) {
+	public Amount getPremiumAt(YearMonth month) {
 		return componentPremiumSnapshots.stream()
-				.collect(Collectors.toMap(ComponentPremiumSnapshot::getComponentId, cps -> cps.getPremiumAt(date)));
+				.map(cps -> cps.getPremiumAt(month))
+				.reduce(ZERO, Amount::add);
 	}
 
 }

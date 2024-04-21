@@ -1,20 +1,23 @@
 package pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage;
 
-import lombok.Builder;
 import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
 
 import java.time.YearMonth;
-import java.util.Map;
 
-@Builder
 @Getter
 public class MonthlyBalance {
 
     private final YearMonth month;
 
-    private final Map<AggregateId, Amount> componentPremiums;
+    private final Amount premium;
 
-    private final boolean isPaid;
+    private final Amount paid;
+
+    public MonthlyBalance(YearMonth month, Amount premium, Amount paid) {
+        this.month = month;
+        this.premium = premium;
+        this.paid = paid;
+    }
 
 }
