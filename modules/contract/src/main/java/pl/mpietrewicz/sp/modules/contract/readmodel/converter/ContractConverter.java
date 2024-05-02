@@ -9,6 +9,7 @@ public class ContractConverter {
     public Contract convert(pl.mpietrewicz.sp.modules.contract.domain.contract.Contract contract) {
         return Contract.builder()
                 .contractId(contract.getAggregateId().getId())
+                .name(contract.getName())
                 .start(contract.getStart())
                 .frequency(contract.getFrequency())
                 .end(contract.getEnd())

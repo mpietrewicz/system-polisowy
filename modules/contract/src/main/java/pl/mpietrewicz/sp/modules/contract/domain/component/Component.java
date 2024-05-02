@@ -13,6 +13,7 @@ import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -24,6 +25,8 @@ public class Component extends BaseAggregateRoot {
     private AggregateId contractId;
 
     private String name;
+
+    private final LocalDateTime registration = LocalDateTime.now();
 
     private LocalDate start;
 

@@ -10,7 +10,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ComponentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.contract.application.api.ContractService;
 import pl.mpietrewicz.sp.modules.contract.domain.component.Component;
@@ -39,8 +39,8 @@ public class ContractServiceImpl implements ContractService {
     private final PremiumFactory premiumFactory;
 
     @Override
-    public Contract createContract(String name, LocalDate start, Amount premiumAmount, Frequency frequency) {
-        Contract contract = contractFactory.createContract(start, frequency);
+    public Contract createContract(String department, String name, LocalDate start, PositiveAmount premiumAmount, Frequency frequency) {
+        Contract contract = contractFactory.createContract(department, name, start, frequency);
         contractRepository.save(contract);
 
         ContractData contractData = contract.generateSnapshot();

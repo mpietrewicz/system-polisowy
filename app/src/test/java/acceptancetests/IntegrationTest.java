@@ -7,6 +7,7 @@ import org.springframework.test.context.ContextConfiguration;
 import pl.mpietrewicz.sp.app.SpringbootApplication;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
+import pl.mpietrewicz.sp.ddd.sharedkernel.exception.NotPositiveAmountException;
 import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.application.api.BalanceService;
 import pl.mpietrewicz.sp.modules.balance.infrastructure.repo.BalanceRepository;
@@ -84,38 +85,50 @@ public class IntegrationTest {
 
     private void newRunBalanceMethod(ContractOperation contractOperation) {
         LocalDate dataZmiany = convertToLocalDate(contractOperation.getDATA_ZMIANY());
-        PositiveAmount kwota = contractOperation.getKTOWA() == null
-                ? PositiveAmount.ZERO
-                : new PositiveAmount(contractOperation.getKTOWA().replace(",", "."));
+        PositiveAmount kwota = pobierzDodatniaKwote(contractOperation);
         if (contractOperation.getOPERACJA().equals("ZUM")
                 || (contractOperation.getOPERACJA().equals("PUM") && contractOperation.getRODZAJ_SKL().equals("PODST"))) {
-            String name = contractOperation.getNR_SKLADNIKA();
-            Contract contract = contractService.createContract(name, dataZmiany, kwota, Frequency.QUARTERLY);
+            String name = wyznaczNazweSkladnika(contractOperation);
+            Contract contract = contractService.createContract("2250", name, dataZmiany, kwota, Frequency.QUARTERLY);
             contractData = contract.generateSnapshot();
         } else if (List.of("Wplata").contains(contractOperation.getOPERACJA())) {
-            financeService.addPayment(contractData.getAggregateId(), kwota.getAmount(), dataZmiany);
+            financeService.addPayment(contractData.getAggregateId(), kwota, dataZmiany);
         } else if (List.of("Dofinansowanie").contains(contractOperation.getOPERACJA())) {
-            financeService.addFunding(contractData.getAggregateId(), kwota.getAmount(), dataZmiany);
+            financeService.addSubsidy(contractData.getAggregateId(), kwota, dataZmiany);
         } else if (List.of("Zwrot").contains(contractOperation.getOPERACJA())) {
-            balanceService.addRefund(contractData, kwota.getAmount());
+            balanceService.addRefund(contractData.getAggregateId(), kwota);
         } else if (List.of("PSU").contains(contractOperation.getOPERACJA())) {
             List<Component> components = componentRepository.findBy(contractData.getAggregateId());
             Component basicComponent = components.stream().filter(not(Component::isAdditional)).findAny().orElseThrow();
             premiumService.change(basicComponent.getAggregateId(), dataZmiany, kwota);
         } else if (List.of("DSK").contains(contractOperation.getOPERACJA())
                 || (contractOperation.getOPERACJA().equals("PUM") && contractOperation.getRODZAJ_SKL().equals("DOD"))) {
-            String name = contractOperation.getNR_SKLADNIKA();
+            String name = wyznaczNazweSkladnika(contractOperation);
             componentService.addComponent(contractData.getAggregateId(), name, dataZmiany, kwota);
         } else if (List.of("ZOU").contains(contractOperation.getOPERACJA())) {
-            Component component = componentRepository.findBy(contractData.getAggregateId(), contractOperation.getNR_SKLADNIKA()).get();
+            Component component = componentRepository.findBy(contractData.getAggregateId(), wyznaczNazweSkladnika(contractOperation)).get();
             componentService.terminate(component.getAggregateId(), dataZmiany);
         } else if (List.of("ZOU_P").contains(contractOperation.getOPERACJA())) {
             contractService.endContract(contractData.getAggregateId(), dataZmiany);
         } else if (List.of("WZOU_P").contains(contractOperation.getOPERACJA())) {
             contractService.cancelEndContract(contractData.getAggregateId());
         } else if (List.of("USK").contains(contractOperation.getOPERACJA())) {
-            Component component = componentRepository.findBy(contractData.getAggregateId(), contractOperation.getNR_SKLADNIKA()).get();
+            Component component = componentRepository.findBy(contractData.getAggregateId(), wyznaczNazweSkladnika(contractOperation)).get();
             premiumService.cancel(component.getAggregateId());
+        }
+    }
+
+    private String wyznaczNazweSkladnika(ContractOperation contractOperation) {
+        return contractOperation.getNR_SKLADNIKA().replace("/", "-");
+    }
+
+    private PositiveAmount pobierzDodatniaKwote(ContractOperation contractOperation) {
+        try {
+            return contractOperation.getKTOWA() == null
+                    ? null
+                    : PositiveAmount.withValue(contractOperation.getKTOWA().replace(",", "."));
+        } catch (NotPositiveAmountException exception) {
+            throw new IllegalStateException();
         }
     }
 

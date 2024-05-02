@@ -6,7 +6,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.events.PaymentAddedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.PaymentRefundedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundData;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.modules.finance.application.api.FinanceService;
 import pl.mpietrewicz.sp.modules.finance.domain.payment.Payment;
@@ -29,8 +29,8 @@ public class FinanceServiceImpl implements FinanceService {
     private final RefundRepository refundRepository;
 
     @Override
-    public void addPayment(AggregateId contractId, Amount amount, LocalDate date) {
-        Payment payment = paymentFactory.createPayment(contractId, amount, date);
+    public void addPayment(AggregateId contractId, PositiveAmount paymentAmount, LocalDate date) {
+        Payment payment = paymentFactory.createPayment(contractId, paymentAmount, date);
 
         PaymentAddedEvent event = new PaymentAddedEvent(payment.generateSnapshot(), payment.getPaymentPolicy());
         domainEventPublisher.publish(event);
@@ -49,8 +49,8 @@ public class FinanceServiceImpl implements FinanceService {
     }
 
     @Override
-    public void addFunding(AggregateId contractId, Amount amount, LocalDate date) {
-        Payment payment = paymentFactory.createFunding(contractId, amount, date);
+    public void addSubsidy(AggregateId contractId, PositiveAmount subsidy, LocalDate date) {
+        Payment payment = paymentFactory.createSubsidy(contractId, subsidy, date);
 
         PaymentAddedEvent event = new PaymentAddedEvent(payment.generateSnapshot(), payment.getPaymentPolicy());
         domainEventPublisher.publish(event);

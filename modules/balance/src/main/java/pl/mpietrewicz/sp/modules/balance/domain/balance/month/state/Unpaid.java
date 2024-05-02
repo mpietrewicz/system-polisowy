@@ -4,14 +4,17 @@ import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.ZeroAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus;
+import pl.mpietrewicz.sp.modules.balance.exceptions.NoMonthsToRefundException;
 
+import javax.persistence.AttributeOverride;
+import javax.persistence.Column;
 import javax.persistence.DiscriminatorValue;
+import javax.persistence.Embedded;
 import javax.persistence.Entity;
-
-import static pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount.ZERO;
 
 @ValueObject
 @Entity
@@ -19,8 +22,12 @@ import static pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount.ZERO;
 @NoArgsConstructor
 public class Unpaid extends MonthState {
 
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "paid", nullable = false))
+    private final ZeroAmount zero = new ZeroAmount();
+
     public Unpaid(Month month) {
-        super(month, ZERO, PaidStatus.UNPAID);
+        super(month, PaidStatus.UNPAID);
     }
 
     @Override
@@ -33,17 +40,22 @@ public class Unpaid extends MonthState {
         } else {
             month.changeState(new Underpaid(month, payment));
         }
-        return ZERO;
+        return new ZeroAmount();
     }
 
     @Override
-    public Amount refund(PositiveAmount refund) {
-        return refund;
+    public Amount refund(PositiveAmount refund) throws NoMonthsToRefundException {
+        throw new NoMonthsToRefundException("Trying refund unpaid month!");
     }
 
     @Override
-    public boolean canPaidBy(Amount payment) {
-        Amount premium = month.getPremium();
+    public Amount refund() {
+        return new ZeroAmount();
+    }
+
+    @Override
+    public boolean canPaidBy(PositiveAmount payment) {
+        PositiveAmount premium = month.getPremium();
         return payment.isHigherThan(premium) || payment.equals(premium);
     }
 
@@ -59,6 +71,11 @@ public class Unpaid extends MonthState {
 
     public MonthState createCopy(Month month) {
         return new Unpaid(month);
+    }
+
+    @Override
+    public Amount getPaid() {
+        return zero;
     }
 
 }

@@ -14,7 +14,6 @@ import pl.mpietrewicz.sp.cqrs.command.Gate;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
 import pl.mpietrewicz.sp.ddd.sharedkernel.exception.NotPositiveAmountException;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.modules.contract.application.commands.AddComponentCommand;
 import pl.mpietrewicz.sp.modules.contract.application.commands.ChangePremiumCommand;
@@ -82,28 +81,29 @@ public class ContractController {
 
     @PostMapping("/contract/register")
     public void registerContract(@RequestBody RegisterContract registerContract) throws NotPositiveAmountException {
-        LocalDate start = registerContract.getStart();
+        String department = registerContract.getDepartment();
         String name = registerContract.getName();
-        Amount premium = PositiveAmount.withValue(registerContract.getPremium());
+        LocalDate start = registerContract.getStart();
+        PositiveAmount premium = PositiveAmount.withValue(registerContract.getPremium());
         Frequency frequency = registerContract.getFrequency();
 
-        gate.dispatch(new RegisterContractCommand(start, name, premium, frequency));
+        gate.dispatch(new RegisterContractCommand(department, name, start, premium, frequency));
     }
 
     @PostMapping("/contract/{contractId}/component/{componentId}/premium/change")
     public void changePremium(@PathVariable String componentId, @RequestBody ChangePremium changePremium)
             throws NotPositiveAmountException {
         LocalDate start = changePremium.getStart();
-        PositiveAmount amount = PositiveAmount.withValue(changePremium.getAmount());
+        PositiveAmount premium = PositiveAmount.withValue(changePremium.getAmount());
 
-        gate.dispatch(new ChangePremiumCommand(new AggregateId(componentId), amount, start));
+        gate.dispatch(new ChangePremiumCommand(new AggregateId(componentId), premium, start));
     }
 
     @PostMapping("/contract/{contractId}/component/add")
     public void addComponent(@PathVariable String contractId, @RequestBody AddComponent addComponent) throws NotPositiveAmountException {
         String name = addComponent.getName();
         LocalDate start = addComponent.getStart();
-        Amount premium = PositiveAmount.withValue(addComponent.getPremium());
+        PositiveAmount premium = PositiveAmount.withValue(addComponent.getPremium());
 
         gate.dispatch(new AddComponentCommand(new AggregateId(contractId), name, start, premium));
     }

@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
 import pl.mpietrewicz.sp.modules.contract.domain.component.Component;
 import pl.mpietrewicz.sp.modules.contract.domain.premium.Premium;
@@ -22,11 +22,11 @@ public class PremiumServiceImpl implements PremiumService {
     private final ComponentRepository componentRepository;
 
     @Override
-    public void change(AggregateId componentId, LocalDate since, Amount amount) {
+    public void change(AggregateId componentId, LocalDate since, PositiveAmount premiumAmount) {
         Premium premium = premiumRepository.findByComponentId(componentId);
         Component component = componentRepository.load(componentId);
 
-        premium.change(component.getAggregateId(), since, amount);
+        premium.change(component.getAggregateId(), since, premiumAmount);
     }
 
     @Override

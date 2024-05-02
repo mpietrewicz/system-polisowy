@@ -19,4 +19,6 @@ public interface ContractRepository {
 
 	Optional<Contract> findBy(AggregateId contractId);
 
+	Optional<Contract> findBy(String name);
+
 }

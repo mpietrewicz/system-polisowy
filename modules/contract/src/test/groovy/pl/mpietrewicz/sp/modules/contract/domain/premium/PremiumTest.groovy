@@ -3,7 +3,7 @@ package pl.mpietrewicz.sp.modules.contract.domain.premium
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ComponentData
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount
 import spock.lang.Specification
 
 import java.time.LocalDate
@@ -18,18 +18,18 @@ class PremiumTest extends Specification {
         def premium = preparePremium(contractData)
 
         when:
-        premium.add(componentData, LocalDate.parse("2023-03-03"), new Amount("5"), EVERYTIME)
+        premium.add(componentData, LocalDate.parse("2023-03-03"), PositiveAmount.withValue("5"), EVERYTIME)
 
         then:
         premium.generateSnapshot(LocalDateTime.now())
                 .getAmountAt(LocalDate.parse("2023-04-01"))
-                .equals(new Amount("5"));
+                .equals(PositiveAmount.withValue("5"));
         premium.generateSnapshot(LocalDateTime.now())
                 .getAmountAt(LocalDate.parse("2023-03-01"))
-                .equals(new Amount("5"));
+                .equals(PositiveAmount.withValue("5"));
         premium.generateSnapshot(LocalDateTime.now())
                 .getAmountAt(LocalDate.parse("2023-02-01"))
-                .equals(new Amount("0"));
+                .equals(PositiveAmount.withValue("0"));
     }
 
     def "should change premium started 2023-04-01"() {
@@ -38,18 +38,18 @@ class PremiumTest extends Specification {
         def componentData = createComponentData("component_1")
 
         def premium = preparePremium(contractData)
-        premium.add(componentData, LocalDate.parse("2023-01-01"), Amount.TEN, EVERYTIME)
+        premium.add(componentData, LocalDate.parse("2023-01-01"), PositiveAmount.TEN, EVERYTIME)
 
         when:
-        premium.change(componentData, LocalDate.parse("2023-04-15"), new Amount("15"))
+        premium.change(componentData, LocalDate.parse("2023-04-15"), PositiveAmount.withValue("15"))
 
         then:
         premium.generateSnapshot(LocalDateTime.now())
                 .getAmountAt(LocalDate.parse("2023-04-01"))
-                .equals(new Amount("15"));
+                .equals(PositiveAmount.withValue("15"));
         premium.generateSnapshot(LocalDateTime.now())
                 .getAmountAt(LocalDate.parse("2023-03-01"))
-                .equals(new Amount("10"));
+                .equals(PositiveAmount.withValue("10"));
     }
 
     def "should delete premium after 2023-10-31"() {
@@ -58,7 +58,7 @@ class PremiumTest extends Specification {
         def componentData = createComponentData("component_1")
 
         def premium = preparePremium(contractData)
-        premium.add(componentData, LocalDate.parse("2023-01-01"), Amount.TEN, EVERYTIME)
+        premium.add(componentData, LocalDate.parse("2023-01-01"), PositiveAmount.TEN, EVERYTIME)
 
         when:
         premium.delete(componentData, LocalDate.parse("2023-10-31"))
@@ -66,10 +66,10 @@ class PremiumTest extends Specification {
         then:
         premium.generateSnapshot(LocalDateTime.now())
                 .getAmountAt(LocalDate.parse("2023-10-31"))
-                .equals(new Amount("10"));
+                .equals(PositiveAmount.withValue("10"));
         premium.generateSnapshot(LocalDateTime.now())
                 .getAmountAt(LocalDate.parse("2023-11-01"))
-                .equals(new Amount("0"));
+                .equals(PositiveAmount.withValue("0"));
     }
 
     private static ContractData createContractData(id) {

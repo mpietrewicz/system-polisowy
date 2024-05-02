@@ -5,7 +5,7 @@ import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 
 import javax.persistence.AttributeOverride;
@@ -51,10 +51,11 @@ public class Allocation extends BaseAggregateRoot {
         }
     }
 
-    public Amount getAmount() {
+    public PositiveAmount getAmount() {
         return months.stream()
                 .map(Month::getAmount)
-                .reduce(Amount.ZERO, Amount::add);
+                .reduce(PositiveAmount::add)
+                .orElseThrow();
     }
 
     private Optional<Month> getCurrentMonth(MonthlyBalance monthlyBalance) {

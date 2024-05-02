@@ -3,7 +3,7 @@ package pl.mpietrewicz.sp.modules.contract.domain.premium.component;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.ChangePremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.ComponentPremiumSnapshot;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 import pl.mpietrewicz.sp.modules.contract.domain.premium.ChangePremiumPolicyEnum;
 import pl.mpietrewicz.sp.modules.contract.domain.premium.operation.AddPremium;
@@ -59,21 +59,21 @@ public abstract class ComponentPremium extends BaseEntity {
         this.changePremiumPolicyEnum = changePremiumPolicyEnum;
     }
 
-    public void changePremium(LocalDate date, Amount amount, LocalDateTime timestamp) {
+    public void changePremium(LocalDate date, PositiveAmount premium, LocalDateTime timestamp) {
         if (!hasPremiumAt(date, timestamp)) {
             throw new IllegalStateException("Not found premium to change at date: " + date);
         } else if (!ChangePremiumPolicyFactory.create(changePremiumPolicyEnum).isAvailable(operations, date)) {
             throw new IllegalStateException("Change premium unavailable!");
         }
 
-        operations.add(new ChangePremium(date, amount, timestamp));
+        operations.add(new ChangePremium(date, premium, timestamp));
     }
 
     public void deletePremium(LocalDate date, LocalDateTime timestamp) {
         if (getValidOperations(timestamp).isEmpty()) {
             throw new IllegalStateException("Not found premium to delete at date: " + date);
         }
-        operations.add(new DeletePremium(date, Amount.ZERO, timestamp));
+        operations.add(new DeletePremium(date, timestamp));
     }
 
     public abstract LocalDate cancel(LocalDateTime timestamp);
@@ -92,20 +92,19 @@ public abstract class ComponentPremium extends BaseEntity {
         List<ChangePremiumSnapshot> changesSnapshot = getChangeOperations(validOperations).stream()
                 .map(Operation::getChangePremiumSnapshot)
                 .collect(toList());
-
-        LocalDate end = validOperations.stream()
-                .filter(o -> o.getType() == Type.DELETE)
-                .findAny()
-                .map(Operation::getDate)
-                .orElse(null);
+        LocalDate end = getEndPremiumDate(validOperations);
 
         return Optional.of(ComponentPremiumSnapshot.builder()
                 .componentId(componentId)
                 .start(addOperation.getDate())
-                .initialAmount(addOperation.getAmount())
+                .initialPremium(addOperation.getPremium())
                 .changes(changesSnapshot)
                 .end(end)
                 .build());
+    }
+
+    public boolean applay(AggregateId componentId) {
+        return this.componentId.equals(componentId);
     }
 
     protected Operation getAddOperation(List<Operation> validOperations) {
@@ -122,13 +121,9 @@ public abstract class ComponentPremium extends BaseEntity {
                 .collect(toList());
     }
 
-    public boolean applay(AggregateId componentId) {
-        return this.componentId.equals(componentId);
-    }
-
     private boolean hasPremiumAt(LocalDate date, LocalDateTime timestamp) {
         return generateSnapshot(timestamp)
-                .map(snapshot -> snapshot.getPremiumAt(date).isPositive())
+                .map(snapshot -> snapshot.getPremiumAt(date).isPresent())
                 .orElse(false);
     }
 
@@ -136,6 +131,14 @@ public abstract class ComponentPremium extends BaseEntity {
         return validOperations.stream()
                 .filter(o -> o.getType() == Type.CHANGE)
                 .collect(toList());
+    }
+
+    private LocalDate getEndPremiumDate(List<Operation> validOperations) {
+        return validOperations.stream()
+                .filter(o -> o.getType() == Type.DELETE)
+                .findAny()
+                .map(Operation::getDate)
+                .orElse(null);
     }
 
 }

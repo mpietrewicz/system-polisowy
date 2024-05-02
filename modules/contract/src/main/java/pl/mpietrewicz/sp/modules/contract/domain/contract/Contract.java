@@ -12,11 +12,16 @@ import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @AggregateRoot
 @Getter
 public class Contract extends BaseAggregateRoot {
+
+	private String name;
+
+	private final LocalDateTime registration = LocalDateTime.now();
 
 	private LocalDate start;
 
@@ -28,8 +33,9 @@ public class Contract extends BaseAggregateRoot {
 	public Contract() {
 	}
 
-	public Contract(AggregateId aggregateId, LocalDate start, Frequency frequency) {
+	public Contract(AggregateId aggregateId, String name, LocalDate start, Frequency frequency) {
 		this.aggregateId = aggregateId;
+		this.name = name;
 		this.start = start;
 		this.frequency = frequency;
 	}

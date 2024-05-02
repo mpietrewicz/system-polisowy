@@ -19,7 +19,7 @@ public class PremiumFinder {
 
     public Premium find(AggregateId contractId) {
         PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, LocalDateTime.now());
-        BigDecimal amount = premiumSnapshot.getCurrentPremium().value;
+        BigDecimal amount = premiumSnapshot.getCurrentPremium().getValue();
         LocalDate validFrom = premiumSnapshot.getValidFrom();
 
         return createPremium(amount, validFrom);
@@ -27,7 +27,7 @@ public class PremiumFinder {
 
     public Premium find(AggregateId contractId, AggregateId componentId) {
         PremiumSnapshot premiumSnapshot = premiumService.getPremiumSnapshot(contractId, LocalDateTime.now());
-        BigDecimal amount = premiumSnapshot.getCurrentPremium(componentId).value;
+        BigDecimal amount = premiumSnapshot.getCurrentPremium(componentId).getValue();
         LocalDate validFrom = premiumSnapshot.getValidFrom(componentId);
 
         return createPremium(amount, validFrom);

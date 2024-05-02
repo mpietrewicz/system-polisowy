@@ -4,10 +4,11 @@ import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.AddRefundFailedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.RequiredPeriod;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.period.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.policy.refund.RefundAmountPolicy;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RefundException;
@@ -18,10 +19,12 @@ import javax.persistence.DiscriminatorValue;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.RollbackException;
+import javax.persistence.Transient;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_REFUND;
+import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.RequiredPeriod.ALL_MONTHS;
 
 @ValueObject
 @Entity
@@ -34,43 +37,50 @@ public class AddRefund extends Operation {
     private AggregateId refundId;
 
     @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "amount"))
-    private Amount amount;
+    @AttributeOverride(name = "value", column = @Column(name = "refund"))
+    private PositiveAmount refund;
 
-    public AddRefund(AggregateId refundId, LocalDate date, Amount amount, Balance balance) {
+    @Transient
+    private static final RequiredPeriod requiredPeriod = ALL_MONTHS;
+
+    public AddRefund(AggregateId refundId, LocalDate date, PositiveAmount refund, Balance balance) {
         super(date, LocalDateTime.now(), balance, ADD_REFUND);
         this.refundId = refundId;
-        this.amount = amount;
+        this.refund = refund;
     }
 
     @Override
-    public void execute() {
+    public void execute(Period period) {
         try {
-            tryExecute();
+            tryExecute(period);
         } catch (RefundException exception) {
-            publishEvent(new AddRefundFailedEvent(refundId, amount, date, exception));
+            publishEvent(new AddRefundFailedEvent(refundId, refund, date, exception));
             throw new RollbackException(exception);
         }
     }
 
     @Override
-    protected void reexecute(LocalDateTime registration) throws ReexecutionException {
+    protected void reexecute(Period period, LocalDateTime registration) throws ReexecutionException {
         try {
-            tryExecute();
+            tryExecute(period);
         } catch (RefundException exception) {
             throw new ReexecutionException(exception, "Failed add refund {} during reexecution!", refundId.getId());
         }
     }
 
     @Override
-    public void publishFailedEvent(ReexecutionException exception) {
-        publishEvent(new AddRefundFailedEvent(refundId, amount, date, exception));
+    public RequiredPeriod getRequiredPeriod() {
+        return requiredPeriod;
     }
 
-    private void tryExecute() throws RefundException {
+    @Override
+    public void publishFailedEvent(ReexecutionException exception) {
+        publishEvent(new AddRefundFailedEvent(refundId, refund, date, exception));
+    }
+
+    private void tryExecute(Period period) throws RefundException {
         RefundAmountPolicy refundAmountPolicy = new RefundAmountPolicy();
-        Period period = getPeriod();
-        refundAmountPolicy.refund(period, amount);
+        refundAmountPolicy.refund(period, refund);
     }
 
 }

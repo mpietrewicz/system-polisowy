@@ -3,7 +3,7 @@ package pl.mpietrewicz.sp.modules.finance.domain.refund;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainFactory;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundData;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 
 import java.time.LocalDate;
 
@@ -13,10 +13,10 @@ public class RefundFactory {
     public Refund create(RefundData refundData) {
         AggregateId contractId = refundData.getContractId();
         AggregateId refundId = refundData.getAggregateId();
-        Amount amount = refundData.getAmount();
+        PositiveAmount refund = refundData.getRefund();
         LocalDate date = refundData.getDate();
 
-        return new Refund(refundId, contractId, amount, date);
+        return new Refund(refundId, contractId, refund, date);
     }
 
 }

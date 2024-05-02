@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.cqrs.annotations.CommandHandlerAnnotation;
 import pl.mpietrewicz.sp.cqrs.command.handler.CommandHandler;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.modules.contract.application.api.ComponentService;
 import pl.mpietrewicz.sp.modules.contract.application.commands.AddComponentCommand;
 
@@ -21,7 +21,7 @@ public class AddComponentCommandHandler implements CommandHandler<AddComponentCo
         AggregateId contractId = command.getContractId();
         String name = command.getName();
         LocalDate registerDate = command.getRegisterDate();
-        Amount premium = command.getPremium();
+        PositiveAmount premium = command.getPremium();
 
         componentService.addComponent(contractId, name, registerDate, premium);
         return null;

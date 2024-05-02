@@ -37,4 +37,9 @@ public class JpaContractRepository extends GenericJpaRepository<Contract> implem
         return springDataContractRepository.findByAggregateId(contractId);
     }
 
+    @Override
+    public Optional<Contract> findBy(String name) {
+        return springDataContractRepository.findByName(name);
+    }
+
 }

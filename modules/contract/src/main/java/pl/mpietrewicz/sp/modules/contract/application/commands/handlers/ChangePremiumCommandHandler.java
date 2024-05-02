@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.cqrs.annotations.CommandHandlerAnnotation;
 import pl.mpietrewicz.sp.cqrs.command.handler.CommandHandler;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
 import pl.mpietrewicz.sp.modules.contract.application.commands.ChangePremiumCommand;
 
@@ -19,7 +19,7 @@ public class ChangePremiumCommandHandler implements CommandHandler<ChangePremium
     @Override
     public Void handle(ChangePremiumCommand command) {
         AggregateId componentId = command.getComponentId();
-        Amount premium = command.getPremium();
+        PositiveAmount premium = command.getPremium();
         LocalDate changeDate = command.getChangeDate();
 
         premiumService.change(componentId, changeDate, premium);

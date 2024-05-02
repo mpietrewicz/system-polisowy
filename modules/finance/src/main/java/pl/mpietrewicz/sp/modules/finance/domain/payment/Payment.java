@@ -7,7 +7,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundData;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 
 import javax.persistence.AttributeOverride;
@@ -25,8 +25,8 @@ import java.time.LocalDateTime;
 public class Payment extends BaseAggregateRoot {
 
 	@Embedded
-	@AttributeOverride(name = "value", column = @Column(name = "amount"))
-	private Amount amount;
+	@AttributeOverride(name = "value", column = @Column(name = "payment"))
+	private PositiveAmount payment;
 
 	private LocalDate date;
 
@@ -48,17 +48,17 @@ public class Payment extends BaseAggregateRoot {
 	@SuppressWarnings("unused")
 	private Payment(){}
 	
-	public Payment(AggregateId aggregateId, AggregateId contractId, Amount amount, LocalDate date,
+	public Payment(AggregateId aggregateId, AggregateId contractId, PositiveAmount payment, LocalDate date,
 				   PaymentPolicyEnum paymentPolicyEnum) {
 		this.aggregateId = aggregateId;
 		this.contractId = contractId;
-		this.amount = amount;
+		this.payment = payment;
 		this.date = date;
 		this.paymentPolicyEnum = paymentPolicyEnum;
 	}
 
 	public PaymentData generateSnapshot() {
-		return new PaymentData(aggregateId, contractId, date, amount);
+		return new PaymentData(aggregateId, contractId, date, payment);
 	}
 
 	public LocalDate getDate() {
@@ -72,7 +72,7 @@ public class Payment extends BaseAggregateRoot {
 	public RefundData refund() {
 		refunded = true;
 		refundId = AggregateId.generate();
-		return new RefundData(refundId, contractId, LocalDate.now(), amount);
+		return new RefundData(refundId, contractId, LocalDate.now(), payment);
 	}
 
 }

@@ -2,6 +2,7 @@
 package pl.mpietrewicz.sp.ddd.sharedkernel.valueobject;
 
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
+import pl.mpietrewicz.sp.ddd.sharedkernel.exception.NotPositiveAmountException;
 
 import javax.persistence.Embeddable;
 import java.io.Serializable;
@@ -29,10 +30,12 @@ public class Divisor implements Serializable {
 		this.divisor = new BigDecimal(divisor);
 	}
 
-	public Amount getQuotient(Amount dividend) {
-		return new Amount(
-				divisor.divide(dividend.getBigDecimal(), DEFAULT_SCALE, DEFAULT_ROUNDING)
-		);
+	public PositiveAmount getQuotient(PositiveAmount dividend) {
+		try {
+			return PositiveAmount.withValue(divisor.divide(dividend.getBigDecimal(), DEFAULT_SCALE, DEFAULT_ROUNDING));
+		} catch (NotPositiveAmountException e) {
+			throw new IllegalStateException(); // todo: obsłużyc w prszyszłości
+		}
 	}
 
 }

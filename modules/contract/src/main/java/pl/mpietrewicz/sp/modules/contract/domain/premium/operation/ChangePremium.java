@@ -2,7 +2,7 @@ package pl.mpietrewicz.sp.modules.contract.domain.premium.operation;
 
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
@@ -15,8 +15,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class ChangePremium extends Operation {
 
-    public ChangePremium(LocalDate date, Amount amount, LocalDateTime timestamp) {
-        super(date, amount, timestamp);
+    public ChangePremium(LocalDate date, PositiveAmount premium, LocalDateTime timestamp) {
+        super(date, premium, timestamp);
     }
 
     @Override

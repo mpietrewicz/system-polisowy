@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 import pl.mpietrewicz.sp.cqrs.command.Gate;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.sharedkernel.exception.NotPositiveAmountException;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.modules.finance.application.commands.RegisterPaymentCommand;
 import pl.mpietrewicz.sp.modules.finance.readmodel.FinanceFinder;
@@ -44,10 +43,10 @@ public class FinanceController {
     @PostMapping("contract/{contractId}/payment/register")
     public void registerPayment(@PathVariable String contractId, @RequestBody RegisterPayment registerPayment)
             throws NotPositiveAmountException {
-        Amount amount = PositiveAmount.withValue(registerPayment.getAmount());
+        PositiveAmount payment = PositiveAmount.withValue(registerPayment.getAmount());
         LocalDate date = registerPayment.getDate();
 
-        gate.dispatch(new RegisterPaymentCommand(new AggregateId(contractId), amount, date));
+        gate.dispatch(new RegisterPaymentCommand(new AggregateId(contractId), payment, date));
     }
 
 }

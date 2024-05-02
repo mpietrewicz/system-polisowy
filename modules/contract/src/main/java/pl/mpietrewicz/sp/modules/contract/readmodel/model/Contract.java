@@ -11,6 +11,7 @@ import java.time.LocalDate;
 public class Contract {
 
     private String contractId;
+    private String name;
     private LocalDate start;
     private Frequency frequency;
     private LocalDate end;

@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.event.Event;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -15,7 +15,7 @@ import java.time.LocalDate;
 public class AddRefundFailedEvent implements Serializable {
 
     private final AggregateId refundId;
-    private final Amount refund;
+    private final PositiveAmount refund;
     private final LocalDate date;
     private final Exception exception;
 

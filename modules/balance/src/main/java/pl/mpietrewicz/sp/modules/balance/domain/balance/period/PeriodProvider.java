@@ -1,4 +1,4 @@
-package pl.mpietrewicz.sp.modules.balance.domain.balance;
+package pl.mpietrewicz.sp.modules.balance.domain.balance.period;
 
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 
@@ -10,7 +10,5 @@ public interface PeriodProvider {
     List<MonthlyBalance> getMonthlyBalances();
 
     List<YearMonth> getRenewalMonths();
-
-    Period getCopy(String info);
 
 }

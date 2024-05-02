@@ -5,7 +5,7 @@ package pl.mpietrewicz.sp.modules.accounting.domain.allocation
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount
 import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Divisor
 import spock.lang.Specification
 import spock.lang.Subject
@@ -24,7 +24,7 @@ class AllocationTest extends Specification { // todo: do dodrawy będą te testy
         when:
         allocation.update(monthlyBalances, riskDefinition)
         then:
-        allocation.getAmount().equals(Amount.ZERO)
+        allocation.getAmount().equals(PositiveAmount.TEN)
     }
 
     def "Powinien utworzyć nowy przypis"() {
@@ -45,7 +45,7 @@ class AllocationTest extends Specification { // todo: do dodrawy będą te testy
         when:
         allocation.update(monthlyBalances, riskDefinition)
         then:
-        allocation.getAmount().subtract(Amount.TEN) == 0
+        allocation.getAmount().subtract(PositiveAmount.TEN) == 0
     }
 
     def "Powinien skorygować istniejący przypis nowy przypis"() {
@@ -66,7 +66,7 @@ class AllocationTest extends Specification { // todo: do dodrawy będą te testy
         when:
         allocation.update(monthlyBalances, riskDefinition)
         then:
-        allocation.getAmount().subtract(Amount.TEN).equals(Amount.ZERO)
+        allocation.getAmount().subtract(PositiveAmount.TEN).equals(PositiveAmount.TEN)
     }
 
 }

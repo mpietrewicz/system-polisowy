@@ -6,10 +6,13 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractD
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.Map;
 
 public interface BalanceService {
 
@@ -19,12 +22,14 @@ public interface BalanceService {
 
     void addRefund(RefundData refundData);
 
-    void addRefund(ContractData contractData, Amount amount);
+    void addRefund(AggregateId contractId, PositiveAmount refund);
 
     void changePremium(AggregateId contractId, LocalDate date, LocalDateTime timestamp);
 
     void stopCalculating(ContractData contractData, LocalDate end);
 
     void cancelStopCalculating(ContractData contractData);
+
+    Map<YearMonth, BigDecimal> getPaidTo(AggregateId contractId);
 
 }

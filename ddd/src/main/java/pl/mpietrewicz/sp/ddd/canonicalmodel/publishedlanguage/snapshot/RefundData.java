@@ -5,7 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.AttributeOverrides;
@@ -33,15 +33,15 @@ public class RefundData {
 	private LocalDate date;
 
 	@Transient
-	private Amount amount;
+	private PositiveAmount refund;
 
 	@SuppressWarnings("unused")
 	private RefundData(){}
 
-	public RefundData(AggregateId aggregateId, AggregateId contractId, LocalDate date, Amount amount) {
+	public RefundData(AggregateId aggregateId, AggregateId contractId, LocalDate date, PositiveAmount refund) {
 		this.aggregateId = aggregateId;
 		this.contractId = contractId;
-		this.amount = amount;
+		this.refund = refund;
 		this.date = date;
 	}
 

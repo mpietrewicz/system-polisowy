@@ -11,7 +11,7 @@ public class PaymentConverter {
         return Payment.builder()
                 .date(payment.getDate())
                 .registration(payment.getRegistration())
-                .amount(payment.getAmount().value)
+                .amount(payment.getPayment().getValue())
                 .build();
     }
 
@@ -19,7 +19,7 @@ public class PaymentConverter {
         return Payment.builder()
                 .date(refund.getDate())
                 .registration(refund.getRegistration())
-                .amount(refund.getAmount().value.negate())
+                .amount(refund.getRefund().getValue().negate())
                 .build();
     }
 

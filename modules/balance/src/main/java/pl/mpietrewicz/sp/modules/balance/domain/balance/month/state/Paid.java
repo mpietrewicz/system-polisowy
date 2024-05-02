@@ -4,14 +4,17 @@ import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.ZeroAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.MonthState;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.PaidStatus;
+import pl.mpietrewicz.sp.modules.balance.exceptions.NoMonthsToRefundException;
 
+import javax.persistence.AttributeOverride;
+import javax.persistence.Column;
 import javax.persistence.DiscriminatorValue;
+import javax.persistence.Embedded;
 import javax.persistence.Entity;
-
-import static pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount.ZERO;
 
 @ValueObject
 @Entity
@@ -19,8 +22,13 @@ import static pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount.ZERO;
 @NoArgsConstructor
 public class Paid extends MonthState {
 
-    public Paid(Month month, Amount paid) {
-        super(month, paid, PaidStatus.PAID);
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "paid", nullable = false))
+    private PositiveAmount paid;
+
+    public Paid(Month month, PositiveAmount paid) {
+        super(month, PaidStatus.PAID);
+        this.paid = paid;
     }
 
     @Override
@@ -29,9 +37,7 @@ public class Paid extends MonthState {
     }
 
     @Override
-    public Amount refund(PositiveAmount refund) {
-        Amount paid = month.getPaid();
-
+    public Amount refund(PositiveAmount refund) throws NoMonthsToRefundException {
         if (paid.isLessThan(refund)) {
             month.changeState(new Unpaid(month));
             return refund.subtract(paid);
@@ -40,11 +46,18 @@ public class Paid extends MonthState {
         } else if (paid.isHigherThan(refund)) {
             month.changeState(new Underpaid(month, paid.subtract(refund)));
         }
-        return ZERO;
+        return new ZeroAmount();
     }
 
     @Override
-    public boolean canPaidBy(Amount payment) {
+    public Amount refund() {
+        PositiveAmount paidBeforeRefund = paid;
+        month.changeState(new Unpaid(month));
+        return paidBeforeRefund;
+    }
+
+    @Override
+    public boolean canPaidBy(PositiveAmount payment) {
         return true;
     }
 
@@ -59,7 +72,12 @@ public class Paid extends MonthState {
     }
 
     public MonthState createCopy(Month month) {
-        return new Paid(month, getPaid());
+        return new Paid(month, paid);
+    }
+
+    @Override
+    public Amount getPaid() {
+        return paid;
     }
 
 

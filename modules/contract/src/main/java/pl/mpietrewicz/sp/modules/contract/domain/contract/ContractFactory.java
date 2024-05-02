@@ -12,12 +12,13 @@ import java.time.LocalDate;
 @DomainFactory
 public class ContractFactory {
 
-	public Contract createContract(LocalDate start, Frequency frequency) {
+	public Contract createContract(String department, String name, LocalDate start, Frequency frequency) {
 		AggregateId aggregateId = AggregateId.generate();
 		ContractStartPolicy contractStartPolicy = new MonthlyStartPolicy();
 		LocalDate contractStart = contractStartPolicy.getStartDate(start);
+		String nameWithDepartment = department + "/" + name;
 
-		return new Contract(aggregateId, contractStart, frequency);
+		return new Contract(aggregateId, nameWithDepartment, contractStart, frequency);
 	}
 
 }

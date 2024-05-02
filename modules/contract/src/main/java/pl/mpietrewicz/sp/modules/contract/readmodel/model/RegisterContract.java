@@ -11,8 +11,9 @@ import java.time.LocalDate;
 @Getter
 public class RegisterContract {
 
-    private LocalDate start;
+    private String department;
     private String name;
+    private LocalDate start;
     private BigDecimal premium;
     private Frequency frequency;
 

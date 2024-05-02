@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.cqrs.annotations.Command;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.Frequency;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -15,9 +15,10 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class RegisterContractCommand implements Serializable {
 
-    private final LocalDate start;
+    private final String department;
     private final String name;
-    private final Amount premium;
+    private final LocalDate start;
+    private final PositiveAmount premium;
     private final Frequency frequency;
 
 }

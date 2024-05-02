@@ -1,7 +1,7 @@
 package pl.mpietrewicz.sp.modules.contract.domain.premium.operation;
 
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.ChangePremiumSnapshot;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 
 import javax.persistence.AttributeOverride;
@@ -27,14 +27,14 @@ public abstract class Operation extends BaseEntity {
 
     @Embedded
     @AttributeOverride(name = "value", column = @Column(name = "amount"))
-    private Amount amount;
+    private PositiveAmount premium;
 
     public Operation() {
     }
 
-    public Operation(LocalDate date, Amount amount, LocalDateTime timestamp) {
+    public Operation(LocalDate date, PositiveAmount premium, LocalDateTime timestamp) {
         this.date = date;
-        this.amount = amount;
+        this.premium = premium;
         this.registration = timestamp;
     }
 
@@ -60,14 +60,14 @@ public abstract class Operation extends BaseEntity {
         return date;
     }
 
-    public Amount getAmount() {
-        return amount;
+    public PositiveAmount getPremium() {
+        return premium;
     }
 
     public ChangePremiumSnapshot getChangePremiumSnapshot() {
         return ChangePremiumSnapshot.builder()
                 .date(date)
-                .amount(amount)
+                .premium(premium)
                 .build();
     }
 

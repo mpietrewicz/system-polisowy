@@ -1890,21 +1890,6 @@
     "NADWYZKA": null
   },
   {
-    "ID_UMOWY": "0353/P/1871",
-    "NR_SKLADNIKA": "P/1871",
-    "RODZAJ_SKL": "PODST",
-    "ID_OPERACJI": "99210164",
-    "OPERACJA": "Zwrot",
-    "DATA_REJESTRACJI": "2024-01-01 00:26:17",
-    "DATA_ZMIANY": "2022-09-30",
-    "KTOWA": "1,34",
-    "WPLACONO_DO_PO_OPER": null,
-    "NADWYZKA_PO_OPER": null,
-    "ID_WZNOWIENIA": null,
-    "WPLACONO_DO": null,
-    "NADWYZKA": null
-  },
-  {
     "ID_UMOWY": "0353/P/1874",
     "NR_SKLADNIKA": "P/1874",
     "RODZAJ_SKL": "PODST",

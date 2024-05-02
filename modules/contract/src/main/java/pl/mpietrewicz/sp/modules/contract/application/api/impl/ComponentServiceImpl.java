@@ -3,7 +3,7 @@ package pl.mpietrewicz.sp.modules.contract.application.api.impl;
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.modules.contract.application.api.ComponentService;
 import pl.mpietrewicz.sp.modules.contract.domain.component.Component;
 import pl.mpietrewicz.sp.modules.contract.domain.component.ComponentDomainService;
@@ -25,11 +25,11 @@ public class ComponentServiceImpl implements ComponentService {
     private final PremiumRepository premiumRepository;
 
     @Override
-    public void addComponent(AggregateId contractId, String name, LocalDate start, Amount newPremium) {
+    public void addComponent(AggregateId contractId, String name, LocalDate start, PositiveAmount premiumAmount) {
         Contract contract = contractRepository.load(contractId);
         Premium premium = premiumRepository.findBy(contractId);
 
-        Component component = componentDomainService.addComponent(contract, premium, name, start, newPremium);
+        Component component = componentDomainService.addComponent(contract, premium, name, start, premiumAmount);
         componentRepository.save(component);
     }
 

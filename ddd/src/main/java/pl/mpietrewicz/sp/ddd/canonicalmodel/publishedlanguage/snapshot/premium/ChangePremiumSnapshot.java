@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 
 import java.time.LocalDate;
 
@@ -15,7 +15,7 @@ import java.time.LocalDate;
 public class ChangePremiumSnapshot {
 
     LocalDate date;
-    Amount amount;
+    PositiveAmount premium;
 
     protected boolean isBeforeOrEquals(LocalDate date) {
         return this.date.compareTo(date) <= 0;

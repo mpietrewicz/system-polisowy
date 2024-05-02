@@ -5,11 +5,12 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Optional;
 
 @ValueObject
 @Getter
@@ -19,24 +20,25 @@ public class ComponentPremiumSnapshot {
 
     private AggregateId componentId;
     private LocalDate start;
-    private Amount initialAmount;
+    private PositiveAmount initialPremium;
     private List<ChangePremiumSnapshot> changes;
     private LocalDate end;
 
-    public Amount getPremiumAt(LocalDate date) {
+    public Optional<PositiveAmount> getPremiumAt(LocalDate date) {
         if (isBetweenStartAdnEnd(date)) {
-            return changes.stream()
+            return Optional.of(changes.stream()
                     .filter(change -> change.isBeforeOrEquals(date))
                     .max(ChangePremiumSnapshot::orderComparator)
-                    .map(ChangePremiumSnapshot::getAmount)
-                    .orElse(initialAmount);
+                    .map(ChangePremiumSnapshot::getPremium)
+                    .orElse(initialPremium));
         } else {
-            return Amount.ZERO;
+            return Optional.empty();
         }
     }
 
-    public Amount getPremiumAt(YearMonth month) {
-        return getPremiumAt(month.atDay(1));
+    public PositiveAmount getPremiumAt(YearMonth month) {
+        return getPremiumAt(month.atDay(1))
+                .orElseThrow();
     }
 
     private boolean isBetweenStartAdnEnd(LocalDate date) {
@@ -44,8 +46,9 @@ public class ComponentPremiumSnapshot {
                 && (end == null || date.compareTo(end) <= 0);
     }
 
-    public Amount getCurrentPremium() { // todo: połączyć to ze zwracaną warością
-        return getPremiumAt(LocalDate.now());
+    public PositiveAmount getCurrentPremium() { // todo: połączyć to ze zwracaną warością
+        return getPremiumAt(LocalDate.now())
+                .orElseThrow();
     }
 
     public LocalDate getValidFrom() { // todo: połączyć to ze zwracaną warością

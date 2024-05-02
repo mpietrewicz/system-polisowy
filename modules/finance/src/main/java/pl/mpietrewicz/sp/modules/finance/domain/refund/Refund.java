@@ -4,7 +4,7 @@ package pl.mpietrewicz.sp.modules.finance.domain.refund;
 import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.AggregateRoot;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 
 import javax.persistence.AttributeOverride;
@@ -20,8 +20,8 @@ import java.time.LocalDateTime;
 public class Refund extends BaseAggregateRoot {
 
 	@Embedded
-	@AttributeOverride(name = "value", column = @Column(name = "amount"))
-	private Amount amount;
+	@AttributeOverride(name = "value", column = @Column(name = "refund"))
+	private PositiveAmount refund;
 
 	private LocalDate date;
 
@@ -33,10 +33,10 @@ public class Refund extends BaseAggregateRoot {
 
 	private Refund(){}
 	
-	public Refund(AggregateId aggregateId, AggregateId contractId, Amount amount, LocalDate date) {
+	public Refund(AggregateId aggregateId, AggregateId contractId, PositiveAmount refund, LocalDate date) {
 		this.aggregateId = aggregateId;
 		this.contractId = contractId;
-		this.amount = amount;
+		this.refund = refund;
 		this.date = date;
 	}
 

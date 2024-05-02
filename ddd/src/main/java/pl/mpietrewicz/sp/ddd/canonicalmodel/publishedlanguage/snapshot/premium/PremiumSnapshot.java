@@ -6,7 +6,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
 import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 
 import javax.persistence.AttributeOverride;
@@ -18,8 +17,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
-
-import static pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount.ZERO;
+import java.util.Optional;
 
 @ValueObject
 @Getter
@@ -39,35 +37,31 @@ public class PremiumSnapshot {
 	private List<ComponentPremiumSnapshot> componentPremiumSnapshots;
 
 	public PositiveAmount getAmountAt(LocalDate date) {
-		Amount amount = componentPremiumSnapshots.stream()
-				.map(cps -> cps.getPremiumAt(date))
-				.reduce(ZERO, Amount::add);
-
-		if (amount.isPositive()) {
-			return amount.castToPositive();
-		} else {
-			throw new IllegalStateException("No any premium at date: " + date);
-		}
-	}
-
-	public Amount getPremiumAt(YearMonth month) {
 		return componentPremiumSnapshots.stream()
-				.map(cps -> cps.getPremiumAt(month))
-				.reduce(ZERO, Amount::add);
+				.map(cps -> cps.getPremiumAt(date))
+				.filter(Optional::isPresent)
+				.map(Optional::get)
+				.reduce(PositiveAmount::add)
+				.orElseThrow(() -> new IllegalStateException("No any premium at date: " + date));
 	}
 
-	public Amount getCurrentPremium() {
+	public PositiveAmount getPremiumAt(YearMonth month) {
+		return getAmountAt(month.atDay(1));
+	}
+
+	public PositiveAmount getCurrentPremium() {
 		return componentPremiumSnapshots.stream()
 				.map(ComponentPremiumSnapshot::getCurrentPremium)
-				.reduce(ZERO, Amount::add);
+				.reduce(PositiveAmount::add)
+				.orElseThrow();
 	}
 
-	public Amount getCurrentPremium(AggregateId componentId) {
+	public PositiveAmount getCurrentPremium(AggregateId componentId) {
 		return componentPremiumSnapshots.stream()
 				.filter(cps -> cps.getComponentId().equals(componentId))
 				.map(ComponentPremiumSnapshot::getCurrentPremium)
 				.findAny()
-				.orElse(ZERO);
+				.orElseThrow();
 	}
 
 	public LocalDate getValidFrom() {

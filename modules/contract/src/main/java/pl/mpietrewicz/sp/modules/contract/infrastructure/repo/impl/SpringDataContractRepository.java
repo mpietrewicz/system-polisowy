@@ -15,4 +15,6 @@ public interface SpringDataContractRepository extends JpaRepository<Contract, St
 
     Optional<Contract> findByAggregateId(AggregateId aggregateId);
 
+    Optional<Contract> findByName(String name);
+
 }

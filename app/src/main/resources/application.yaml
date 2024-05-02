@@ -6,7 +6,7 @@ springdoc:
 
 spring:
   profiles:
-    active: mem
+    active: dev
   h2:
     console.enabled: true
     console.path: /h2-console
@@ -14,6 +14,14 @@ spring:
     format:
       date: yyyy-MM-dd
       date-time: yyyy-MM-dd HH:mm:ss
+  cache:
+    type: simple
 
 server:
   port:${PORT:8080}
+
+management:
+    endpoints:
+        web:
+            exposure:
+                include: "*"
