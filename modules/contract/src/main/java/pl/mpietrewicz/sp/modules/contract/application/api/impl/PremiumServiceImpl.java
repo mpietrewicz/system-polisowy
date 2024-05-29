@@ -1,5 +1,6 @@
 package pl.mpietrewicz.sp.modules.contract.application.api.impl;
 
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
@@ -22,6 +23,7 @@ public class PremiumServiceImpl implements PremiumService {
     private final ComponentRepository componentRepository;
 
     @Override
+    @Timed(value = "PremiumService.change")
     public void change(AggregateId componentId, LocalDate since, PositiveAmount premiumAmount) {
         Premium premium = premiumRepository.findByComponentId(componentId);
         Component component = componentRepository.load(componentId);

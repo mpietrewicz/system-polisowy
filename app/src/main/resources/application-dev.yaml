@@ -39,6 +39,16 @@ spring:
 
 cors-origin: http://localhost:4200
 
+management:
+    endpoints:
+        web:
+            exposure:
+                include: "*"
+    metrics:
+        export:
+            prometheus:
+                enabled: true
+
 # logging:
 #   level:
 #     org:

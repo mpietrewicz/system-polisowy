@@ -1,5 +1,6 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.period.collector;
 
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.InternalDomainService;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
@@ -18,6 +19,7 @@ import static java.util.function.Predicate.not;
 public class LastMonthCollector extends AllMonthsCollector {
 
     @Override
+    @Timed(value = "LastMonthCollector.getPeriodCopyFor")
     public Period getPeriodCopyFor(Operation operation, List<Operation> operations) {
         LocalDate start = operation.getPeriodStart();
         AtomicReference<Month> checked = new AtomicReference<>(null);

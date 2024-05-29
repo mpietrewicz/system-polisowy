@@ -1,5 +1,6 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.period.collector;
 
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.InternalDomainService;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.ChangeStatus;
@@ -23,6 +24,7 @@ import static java.util.function.Predicate.not;
 public class AllMonthsCollector implements PeriodCollector {
 
     @Override
+    @Timed(value = "AllMonthsCollector.getPeriodCopyFor")
     public Period getPeriodCopyFor(Operation operation, List<Operation> operations) {
         LocalDate start = operation.getPeriodStart();
         AtomicReference<Month> checked = new AtomicReference<>(null);
@@ -38,6 +40,7 @@ public class AllMonthsCollector implements PeriodCollector {
     }
 
     @Override
+    @Timed(value = "AllMonthsCollector.getPartialPeriodToSave")
     public PartialPeriod getPartialPeriodToSave(Period previousPeriod, Period currentPeriod) {
         Iterator<Month> currentIterator = currentPeriod.getMonths().stream()
                 .sorted(Month::compareAscending).iterator();
