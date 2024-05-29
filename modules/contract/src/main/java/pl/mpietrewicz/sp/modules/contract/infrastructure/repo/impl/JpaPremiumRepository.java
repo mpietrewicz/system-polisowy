@@ -1,5 +1,6 @@
 package pl.mpietrewicz.sp.modules.contract.infrastructure.repo.impl;
 
+import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainRepositoryImpl;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.GenericJpaRepository;
@@ -10,7 +11,10 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
 @DomainRepositoryImpl
+@RequiredArgsConstructor
 public class JpaPremiumRepository extends GenericJpaRepository<Premium> implements PremiumRepository {
+
+    private final SpringDataPremiumRepository springDataPremiumRepository;
 
     @PersistenceContext(unitName = "contract")
     public EntityManager entityManager;
@@ -21,16 +25,14 @@ public class JpaPremiumRepository extends GenericJpaRepository<Premium> implemen
     }
 
     @Override
-    public Premium findByContractId(AggregateId contractId) {
-        String query = "SELECT p FROM Premium p WHERE p.contractData.aggregateId = :contractId";
-        return entityManager.createQuery(query, Premium.class)
-                .setParameter("contractId", contractId)
-                .getSingleResult();
+    public Premium findBy(AggregateId contractId) {
+        return springDataPremiumRepository.findByContractId(contractId)
+                .orElseThrow();
     }
 
     @Override
     public Premium findByComponentId(AggregateId componentId) {
-        String query = "SELECT p FROM Premium p JOIN p.componentPremiums cp WHERE cp.componentData.aggregateId = :componentId";
+        String query = "SELECT p FROM Premium p JOIN p.componentPremiums cp WHERE cp.componentId = :componentId";
         return entityManager.createQuery(query, Premium.class)
                 .setParameter("componentId", componentId)
                 .getResultStream()

@@ -4,7 +4,7 @@ import pl.mpietrewicz.sp.ddd.annotations.domain.DomainPolicy;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.RenewalAddedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.PeriodProvider;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.period.PeriodProvider;
 
 import javax.inject.Inject;
 import java.time.YearMonth;
@@ -27,7 +27,7 @@ public class RenewalsPublisher implements PublishPolicy {
 
         for (YearMonth renewalMonth : newRenewals) {
             RenewalAddedEvent event = createEvent(contractId, renewalMonth);
-            eventPublisher.publish(event, "BalanceServiceImpl");
+            eventPublisher.publish(event);
         }
     }
 

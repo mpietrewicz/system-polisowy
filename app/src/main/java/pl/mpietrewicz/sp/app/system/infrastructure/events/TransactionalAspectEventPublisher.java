@@ -11,6 +11,8 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import pl.mpietrewicz.sp.app.system.infrastructure.events.impl.PendingPublication;
 import pl.mpietrewicz.sp.app.system.infrastructure.events.impl.handlers.EventHandler;
+import pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService;
+import pl.mpietrewicz.sp.ddd.annotations.event.Event;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 
 import java.io.Serializable;
@@ -39,8 +41,13 @@ public class TransactionalAspectEventPublisher implements DomainEventPublisher {
     }
 
     @Override
-    public void publish(Serializable event, String serviceName) {
-        addPendingPublication(event, serviceName);
+    public void publish(Serializable event) {
+        if (event.getClass().isAnnotationPresent(Event.class)) {
+            Event annotation = event.getClass().getAnnotation(Event.class);
+            String boundedContext = annotation.boundedContext();
+
+            addPendingPublication(event, boundedContext);
+        }
     }
 
     @Pointcut("@within(pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService) && " +
@@ -50,10 +57,14 @@ public class TransactionalAspectEventPublisher implements DomainEventPublisher {
 
     @AfterReturning("applicationServiceMethods()")
     public void afterApplicationServiceMethod(JoinPoint joinPoint) {
-        String serviceClassName = getServiceClassName(joinPoint);
+        Class<?> targetClass = joinPoint.getTarget().getClass();
+        if (targetClass.isAnnotationPresent(ApplicationService.class)) {
+            ApplicationService annotation = targetClass.getAnnotation(ApplicationService.class);
+            String boundedContext = annotation.boundedContext();
 
-        for (PendingPublication publication : getPendingPublication(serviceClassName)) {
-            doPublish(publication.getEvent());
+            for (PendingPublication publication : getPendingPublication(boundedContext)) {
+                doPublish(publication.getEvent());
+            }
         }
     }
 
@@ -69,20 +80,20 @@ public class TransactionalAspectEventPublisher implements DomainEventPublisher {
         }
     }
 
-    public void addPendingPublication(Serializable event, String serviceName) {
+    public void addPendingPublication(Serializable event, String boundedContext) {
         lock.lock();
         try {
-            pendingPublications.add(new PendingPublication(event, serviceName));
+            pendingPublications.add(new PendingPublication(event, boundedContext));
         } finally {
             lock.unlock();
         }
     }
 
-    public List<PendingPublication> getPendingPublication(String serviceName) {
+    public List<PendingPublication> getPendingPublication(String boundedContext) {
         lock.lock();
         try {
             List<PendingPublication> events = pendingPublications.stream()
-                    .filter(event -> event.getServiceName().equals(serviceName))
+                    .filter(event -> event.getBoundedContext().equals(boundedContext))
                     .sorted(Comparator.comparing(PendingPublication::getCreated))
                     .collect(Collectors.toList());
             pendingPublications.removeAll(events);
@@ -90,11 +101,6 @@ public class TransactionalAspectEventPublisher implements DomainEventPublisher {
         } finally {
             lock.unlock();
         }
-    }
-
-    private String getServiceClassName(JoinPoint joinPoint) {
-        String fullServiceClassName = joinPoint.getTarget().getClass().getName();
-        return fullServiceClassName.substring(fullServiceClassName.lastIndexOf(".") + 1);
     }
 
 }

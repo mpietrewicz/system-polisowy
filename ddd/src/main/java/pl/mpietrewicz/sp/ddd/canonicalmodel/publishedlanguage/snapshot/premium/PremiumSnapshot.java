@@ -6,9 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.ContractData;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.CascadeType;
@@ -19,8 +17,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
-
-import static pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount.ZERO;
+import java.util.Optional;
 
 @ValueObject
 @Getter
@@ -34,27 +31,53 @@ public class PremiumSnapshot {
 
 	private LocalDateTime timestamp;
 
-	private ContractData contractData;
+	private AggregateId contractId;
 
 	@OneToMany(cascade = CascadeType.ALL)
 	private List<ComponentPremiumSnapshot> componentPremiumSnapshots;
 
 	public PositiveAmount getAmountAt(LocalDate date) {
-		Amount amount = componentPremiumSnapshots.stream()
-				.map(cps -> cps.getPremiumAt(date))
-				.reduce(ZERO, Amount::add);
-
-		if (amount.isPositive()) {
-			return amount.castToPositive();
-		} else {
-			throw new IllegalStateException("No any premium at date: " + date);
-		}
-	}
-
-	public Amount getPremiumAt(YearMonth month) {
 		return componentPremiumSnapshots.stream()
-				.map(cps -> cps.getPremiumAt(month))
-				.reduce(ZERO, Amount::add);
+				.map(cps -> cps.getPremiumAt(date))
+				.filter(Optional::isPresent)
+				.map(Optional::get)
+				.reduce(PositiveAmount::add)
+				.orElseThrow(() -> new IllegalStateException("No any premium at date: " + date));
 	}
+
+	public PositiveAmount getPremiumAt(YearMonth month) {
+		return getAmountAt(month.atDay(1));
+	}
+
+	public PositiveAmount getCurrentPremium() {
+		return componentPremiumSnapshots.stream()
+				.map(ComponentPremiumSnapshot::getCurrentPremium)
+				.reduce(PositiveAmount::add)
+				.orElseThrow();
+	}
+
+	public PositiveAmount getCurrentPremium(AggregateId componentId) {
+		return componentPremiumSnapshots.stream()
+				.filter(cps -> cps.getComponentId().equals(componentId))
+				.map(ComponentPremiumSnapshot::getCurrentPremium)
+				.findAny()
+				.orElseThrow();
+	}
+
+	public LocalDate getValidFrom() {
+		return componentPremiumSnapshots.stream()
+				.map(ComponentPremiumSnapshot::getValidFrom)
+				.max(LocalDate::compareTo)
+				.orElseThrow();
+	}
+
+	public LocalDate getValidFrom(AggregateId componentId) {
+		return componentPremiumSnapshots.stream()
+				.filter(cps -> cps.getComponentId().equals(componentId))
+				.findAny()
+				.map(ComponentPremiumSnapshot::getValidFrom)
+				.orElseThrow();
+	}
+
 
 }

@@ -9,8 +9,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import java.io.Serializable;
 import java.util.List;
 
-@SuppressWarnings("serial")
-@Event
+@Event(boundedContext = "balance")
 @Getter
 @RequiredArgsConstructor
 public class BalanceUpdatedEvent implements Serializable {

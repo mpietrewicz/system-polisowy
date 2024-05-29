@@ -9,6 +9,6 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 public class SystemContext {
 	
 	public SystemUser getSystemUser(){
-		return new SystemUser(new AggregateId("1"));//TODO introduce security integration
+		return new SystemUser(new AggregateId("1")); // TODO introduce security integration
 	}
 }

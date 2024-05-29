@@ -3,7 +3,7 @@ package pl.mpietrewicz.sp.modules.accounting.domain.allocation;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 
 import javax.persistence.AttributeOverride;
@@ -21,16 +21,16 @@ public class Risk extends BaseEntity {
     private Long riskId;
 
     @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "amount"))
-    private Amount amount;
+    @AttributeOverride(name = "value", column = @Column(name = "riskAmount"))
+    private PositiveAmount riskAmount;
 
-    public Risk(Long riskId, Amount amount) {
+    public Risk(Long riskId, PositiveAmount riskAmount) {
         this.riskId = riskId;
-        this.amount = amount;
+        this.riskAmount = riskAmount;
     }
 
     public Risk getNegate() {
-        return new Risk(riskId, amount.negate());
+        return new Risk(riskId, riskAmount.negate());
     }
 
     public boolean isAppliesTo(RiskDefinition riskDefinition) {
@@ -42,8 +42,8 @@ public class Risk extends BaseEntity {
                 .anyMatch(this::isAppliesTo);
     }
 
-    public Amount getAmount() {
-        return amount;
+    public PositiveAmount getRiskAmount() {
+        return riskAmount;
     }
 
 }

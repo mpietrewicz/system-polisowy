@@ -6,10 +6,11 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.events.AddPaymentFailedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.RequiredPeriod;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.period.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.policy.payment.PaymentPolicy;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.policy.payment.PaymentPolicyFactory;
 import pl.mpietrewicz.sp.modules.balance.exceptions.PaymentException;
@@ -23,10 +24,12 @@ import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.RollbackException;
+import javax.persistence.Transient;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.ADD_PAYMENT;
+import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.RequiredPeriod.LAST_MONT;
 
 @ValueObject
 @Entity
@@ -39,50 +42,57 @@ public class AddPayment extends Operation {
     private AggregateId paymentId;
 
     @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "amount"))
-    private Amount amount;
+    @AttributeOverride(name = "value", column = @Column(name = "payment"))
+    private PositiveAmount payment;
 
     @Enumerated(EnumType.STRING)
     private PaymentPolicyEnum paymentPolicyEnum;
 
-    public AddPayment(AggregateId paymentId, LocalDate date, Amount amount, PaymentPolicyEnum paymentPolicyEnum,
+    @Transient
+    private static final RequiredPeriod requiredPeriod = LAST_MONT;
+
+    public AddPayment(AggregateId paymentId, LocalDate date, PositiveAmount payment, PaymentPolicyEnum paymentPolicyEnum,
                       Balance balance) {
         super(date, LocalDateTime.now(), balance, ADD_PAYMENT);
         this.paymentId = paymentId;
-        this.amount = amount;
+        this.payment = payment;
         this.paymentPolicyEnum = paymentPolicyEnum;
     }
 
     @Override
-    public void execute() {
+    public void execute(Period period) {
         PremiumSnapshot premiumSnapshot = getPremiumSnapshot(registration);
         try {
-            tryExecute(premiumSnapshot);
+            tryExecute(period, premiumSnapshot);
         } catch (PaymentException exception) {
-            publishEvent(new AddPaymentFailedEvent(paymentId, date, amount, exception));
+            publishEvent(new AddPaymentFailedEvent(paymentId, date, payment, exception));
             throw new RollbackException(exception);
         }
     }
 
     @Override
-    protected void reexecute(LocalDateTime registration) throws ReexecutionException {
+    protected void reexecute(Period period, LocalDateTime registration) throws ReexecutionException {
         PremiumSnapshot premiumSnapshot = getPremiumSnapshot(registration);
         try {
-            tryExecute(premiumSnapshot);
+            tryExecute(period, premiumSnapshot);
         } catch (PaymentException exception) {
             throw new ReexecutionException(exception, "Failed add payment {} during reexecution!", paymentId.getId());
         }
     }
 
     @Override
-    public void publishFailedEvent(ReexecutionException exception) {
-        publishEvent(new AddPaymentFailedEvent(paymentId, date, amount, exception));
+    public RequiredPeriod getRequiredPeriod() {
+        return requiredPeriod;
     }
 
-    private void tryExecute(PremiumSnapshot premiumSnapshot) throws PaymentException {
-        Period period = getPeriod();
+    @Override
+    public void publishFailedEvent(ReexecutionException exception) {
+        publishEvent(new AddPaymentFailedEvent(paymentId, date, payment, exception));
+    }
+
+    private void tryExecute(Period period, PremiumSnapshot premiumSnapshot) throws PaymentException {
         PaymentPolicy paymentPolicy = PaymentPolicyFactory.create(paymentPolicyEnum, premiumSnapshot);
-        paymentPolicy.pay(period, date, amount);
+        paymentPolicy.pay(period, date, payment);
     }
 
 }

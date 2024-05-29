@@ -1,10 +1,11 @@
 
 package pl.mpietrewicz.sp.modules.finance.infrastructure.repo.impl;
 
+import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainRepositoryImpl;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.GenericJpaRepository;
-import pl.mpietrewicz.sp.modules.finance.domain.payment.RegisterPayment;
+import pl.mpietrewicz.sp.modules.finance.domain.payment.Payment;
 import pl.mpietrewicz.sp.modules.finance.infrastructure.repo.PaymentRepository;
 
 import javax.persistence.EntityManager;
@@ -12,7 +13,10 @@ import javax.persistence.PersistenceContext;
 import java.util.List;
 
 @DomainRepositoryImpl
-public class JpaPaymentRepository extends GenericJpaRepository<RegisterPayment> implements PaymentRepository {
+@RequiredArgsConstructor
+public class JpaPaymentRepository extends GenericJpaRepository<Payment> implements PaymentRepository {
+
+    private final SpringDataPaymentRepository springDataPaymentRepository;
 
     @PersistenceContext(unitName = "finance")
     public EntityManager entityManager;
@@ -23,11 +27,13 @@ public class JpaPaymentRepository extends GenericJpaRepository<RegisterPayment> 
     }
 
     @Override
-    public List<RegisterPayment> findAll(AggregateId contractId) {
-        String query = "SELECT p FROM Payment p WHERE p.contractData.aggregateId = :contractId";
-        return entityManager.createQuery(query, RegisterPayment.class)
-                .setParameter("contractId", contractId)
-                .getResultList();
+    public List<Payment> findBy(AggregateId contractId) {
+        return springDataPaymentRepository.findByContractId(contractId);
+    }
+
+    @Override
+    public List<Payment> findBy(AggregateId contractId, AggregateId paymentId) {
+        return springDataPaymentRepository.findByContractIdAndAggregateId(contractId, paymentId);
     }
 
 }

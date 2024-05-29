@@ -7,8 +7,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 
 import java.io.Serializable;
 
-@SuppressWarnings("serial")
-@Event
+@Event(boundedContext = "balance")
 @Getter
 @RequiredArgsConstructor
 public class StopBalanceFailedEvent implements Serializable {

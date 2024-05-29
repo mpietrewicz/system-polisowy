@@ -8,8 +8,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import java.io.Serializable;
 import java.time.YearMonth;
 
-@SuppressWarnings("serial")
-@Event
+@Event(boundedContext = "balance")
 @Getter
 @RequiredArgsConstructor
 public class RenewalAddedEvent implements Serializable {

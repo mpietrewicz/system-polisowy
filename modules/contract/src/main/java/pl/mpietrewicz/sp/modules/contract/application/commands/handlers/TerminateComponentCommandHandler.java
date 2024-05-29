@@ -20,9 +20,8 @@ public class TerminateComponentCommandHandler implements CommandHandler<Terminat
     public Void handle(TerminateComponentCommand command) {
         AggregateId componentId = command.getComponentId();
         LocalDate terminatedDate = command.getTerminatedDate();
-        String number = "todo"; // todo: uzupełnić w przyszłości
 
-        componentService.terminate(number, terminatedDate);
+        componentService.terminate(componentId, terminatedDate);
         return null;
     }
 }

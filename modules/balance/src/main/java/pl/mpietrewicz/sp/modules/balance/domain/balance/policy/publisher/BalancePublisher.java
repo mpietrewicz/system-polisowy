@@ -5,7 +5,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.events.BalanceUpdatedEvent;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.PeriodProvider;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.period.PeriodProvider;
 import pl.mpietrewicz.sp.modules.contract.application.api.PremiumService;
 
 import javax.inject.Inject;
@@ -26,7 +26,7 @@ public class BalancePublisher implements PublishPolicy {
         if (monthlyBalances.isEmpty()) return;
 
         BalanceUpdatedEvent event = createEvent(contractId, monthlyBalances);
-        eventPublisher.publish(event, "BalanceServiceImpl");
+        eventPublisher.publish(event);
     }
 
     private BalanceUpdatedEvent createEvent(AggregateId contractId, List<MonthlyBalance> monthlyBalances) {

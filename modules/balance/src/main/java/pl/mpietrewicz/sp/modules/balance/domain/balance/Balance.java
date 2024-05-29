@@ -9,16 +9,22 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.PaymentData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.RefundData;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.RequiredPeriod;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddPayment;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddRefund;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.CancelStopCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.ChangePremium;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.period.collector.CollectorStrategyFactory;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.period.PartialPeriod;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.period.Period;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.period.collector.PeriodCollector;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.period.PeriodProvider;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.policy.publisher.PublishPolicy;
 import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceStoppedException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.NoStopCalculatingException;
@@ -36,18 +42,30 @@ import javax.persistence.OneToMany;
 import javax.persistence.RollbackException;
 import javax.persistence.Transient;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.RequiredPeriod.ALL_MONTHS;
 
 @AggregateRoot
 @Entity
 @NoArgsConstructor
 public class Balance extends BaseAggregateRoot {
+
+    @Embedded
+    @AttributeOverride(name = "aggregateId", column = @Column(name = "contractId", nullable = false))
+    private AggregateId contractId;
+
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "balance")
+    protected List<Operation> operations;
 
     @Inject
     @Transient
@@ -61,12 +79,9 @@ public class Balance extends BaseAggregateRoot {
     @Transient
     protected List<PublishPolicy> publishPolicies;
 
-    @Embedded
-    @AttributeOverride(name = "aggregateId", column = @Column(name = "contractId", nullable = false))
-    private AggregateId contractId;
-
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "balance")
-    protected List<Operation> operations;
+    @Inject
+    @Transient
+    protected CollectorStrategyFactory collectorStrategyFactory;
 
     public Balance(AggregateId aggregateId, Long version, AggregateId contractId, List<Operation> operations) {
         this.aggregateId = aggregateId;
@@ -85,19 +100,28 @@ public class Balance extends BaseAggregateRoot {
     public void addPayment(PaymentData paymentData, PaymentPolicyEnum paymentPolicyEnum) {
         AggregateId paymentId = paymentData.getAggregateId();
         LocalDate date = paymentData.getDate();
-        Amount amount = paymentData.getAmount();
+        PositiveAmount payment = paymentData.getPayment();
 
-        AddPayment addPayment = new AddPayment(paymentId, date, amount, paymentPolicyEnum, this);
+        AddPayment addPayment = new AddPayment(paymentId, date, payment, paymentPolicyEnum, this);
         commit(addPayment);
     }
 
     public void addRefund(RefundData refundData) {
         AggregateId refundId = refundData.getAggregateId();
         LocalDate date = refundData.getDate();
-        Amount amount = refundData.getAmount();
+        PositiveAmount refund = refundData.getRefund();
 
-        AddRefund addRefund = new AddRefund(refundId, date, amount, this);
+        AddRefund addRefund = new AddRefund(refundId, date, refund, this);
         commit(addRefund);
+    }
+
+    public RefundData addRefund(PositiveAmount refund) {
+        AggregateId refundId = AggregateId.generate();
+        LocalDate date = LocalDate.now();
+
+        AddRefund addRefund = new AddRefund(refundId, date, refund, this);
+        commit(addRefund);
+        return new RefundData(refundId, contractId, date, refund);
     }
 
     public void changePremium(LocalDate date, LocalDateTime timestamp) {
@@ -108,24 +132,16 @@ public class Balance extends BaseAggregateRoot {
     public void stopCalculating(LocalDate end) {
         try {
             tryStopCalculating(end);
-        } catch (BalanceStoppedException exception) {
-            UnavailabilityException unavailabilityException = new UnavailabilityException(contractId, exception,
-                    "Unable to stop calculating balance balance is currently stopped", contractId.getId());
-            StopBalanceFailedEvent event = new StopBalanceFailedEvent(contractId, unavailabilityException);
-            eventPublisher.publish(event, "BalanceServiceImpl");
-            throw new RollbackException(unavailabilityException);
+        } catch (BalanceStoppedException balanceStoppedException) {
+            handle(balanceStoppedException);
         }
     }
 
     public void cancelStopCalculating() {
         try {
             tryCancelStopCalculating();
-        } catch (NoStopCalculatingException exception) {
-            UnavailabilityException unavailabilityException = new UnavailabilityException(contractId, exception,
-                    "Unable to cancel stop calculating balance balance isn't stop on contract {}", contractId.getId());
-            CancelStopBalanceFailedEvent event = new CancelStopBalanceFailedEvent(contractId, unavailabilityException);
-            eventPublisher.publish(event, "BalanceServiceImpl");
-            throw new RollbackException(exception);
+        } catch (NoStopCalculatingException noStopCalculatingException) {
+            handle(noStopCalculatingException);
         }
     }
 
@@ -134,16 +150,19 @@ public class Balance extends BaseAggregateRoot {
     }
 
     public void publishEvent(Serializable event) {
-        eventPublisher.publish(event, "BalanceServiceImpl");
+        eventPublisher.publish(event);
     }
 
-    public LocalDate getStartBalance() {
-        return getValidOperations().stream()
-                .filter(StartCalculating.class::isInstance)
-                .map(StartCalculating.class::cast)
-                .map(StartCalculating::getDate)
-                .findAny()
-                .orElseThrow();
+    public Map<YearMonth, BigDecimal> getPaidTo() {
+        Operation lastOperation = getLastOperation();
+        Period period = getWholePeriod();
+        YearMonth lastPaidYearMonth = period.getLastPaidYearMonth();
+
+        if (lastOperation instanceof StopCalculating) {
+            return Map.of(lastPaidYearMonth, ((StopCalculating) lastOperation).getExcess().getValue());
+        } else {
+            return Map.of(lastPaidYearMonth, period.getExcess());
+        }
     }
 
     private void tryStopCalculating(LocalDate end) throws BalanceStoppedException {
@@ -159,15 +178,21 @@ public class Balance extends BaseAggregateRoot {
     }
 
     private void commit(Operation operation) {
-        PeriodProvider before = getLastOperation().getPeriod();
+        PeriodProvider before = getWholePeriod();
 
-        Operation previousOperation = getPreviousOperation(operation);
-        operation.execute(previousOperation.getPeriod());
+        calculate(operation);
         operations.add(operation);
         recalculateAfter(operation);
 
-        PeriodProvider after = getLastOperation().getPeriod();
+        PeriodProvider after = getWholePeriod();
         publishUpdatedBalanceResult(before, after);
+    }
+
+    private void calculate(Operation operation) {
+        PeriodCollector periodCollector = getPeriodCollector(operation);
+        Period previousPeriod = getPreviousPeriod(operation, periodCollector);
+        Period currentPeriod = operation.executeOn(previousPeriod);
+        savePeriod(operation, previousPeriod, currentPeriod, periodCollector);
     }
 
     private void recalculateAfter(Operation operation) {
@@ -180,17 +205,61 @@ public class Balance extends BaseAggregateRoot {
     }
 
     private void tryRecalculateAfter(Operation operation) throws ReexecutionException {
+        LocalDateTime initialRegistration = operation.getRegistration();
         List<Operation> nextOperations = getNextOperationsAfter(operation);
-        for (Operation nextOperation : nextOperations) {
-            Operation previousOperation = getPreviousOperation(nextOperation);
-            nextOperation.reexecute(previousOperation.getPeriod(), operation);
+
+        for (Operation toRecalculate : nextOperations) {
+            PeriodCollector periodCollector = getPeriodCollector(toRecalculate);
+            Period previousPeriod = getPreviousPeriod(toRecalculate, periodCollector);
+            Period currentPeriod = toRecalculate.reexecuteOn(previousPeriod, initialRegistration);
+            savePeriod(toRecalculate, previousPeriod, currentPeriod, periodCollector);
         }
     }
 
-    private void publishUpdatedBalanceResult(PeriodProvider before, PeriodProvider after) {
-        for (PublishPolicy publishPolicy : publishPolicies) {
-            publishPolicy.doPublish(contractId, before, after);
-        }
+    private PeriodCollector getPeriodCollector(Operation operation) {
+        RequiredPeriod requiredPeriod = operation.getRequiredPeriod();
+        return collectorStrategyFactory.get(requiredPeriod);
+    }
+
+    private Period getPreviousPeriod(Operation operation, PeriodCollector periodCollector) {
+        Operation previousOperation = getPreviousOperation(operation);
+        return getPeriod(previousOperation, periodCollector);
+    }
+
+    private Period getWholePeriod() {
+        Operation lastOperation = getLastOperation();
+        PeriodCollector periodCollector = collectorStrategyFactory.get(ALL_MONTHS);
+        return getPeriod(lastOperation, periodCollector);
+    }
+
+    private Period getPeriod(Operation operation, PeriodCollector periodCollector) {
+        List<Operation> validOperations = getValidOperations();
+        return periodCollector.getPeriodCopyFor(operation, validOperations);
+    }
+
+    private void savePeriod(Operation operation, Period previousPeriod, Period currentPeriod, PeriodCollector periodCollector) {
+        PartialPeriod periodToSave = periodCollector.getPartialPeriodToSave(previousPeriod, currentPeriod);
+        operation.savePeriod(periodToSave);
+    }
+
+    private Operation getLastOperation() {
+        return getValidOperations().stream()
+                .max(Operation::orderComparator)
+                .orElseThrow();
+    }
+
+    private Operation getPreviousOperation(Operation operation) {
+        return getValidOperations().stream()
+                .filter(o -> o.isBefore(operation))
+                .max(Operation::orderComparator)
+                .orElse(getStartCalculating());
+    }
+
+    private Operation getStartCalculating() {
+        return getValidOperations().stream()
+                .filter(StartCalculating.class::isInstance)
+                .findAny()
+                .orElseThrow();
     }
 
     private StopCalculating tryGetStopCalculating() throws NoStopCalculatingException {
@@ -205,13 +274,6 @@ public class Balance extends BaseAggregateRoot {
                 .collect(Collectors.toList());
     }
 
-    public Operation getPreviousOperation(Operation operation) {
-        return getValidOperations().stream()
-                .filter(o -> o.isBefore(operation))
-                .max(Operation::orderComparator)
-                .orElse(getStartCalculating());
-    }
-
     private List<Operation> getNextOperationsAfter(Operation operation) {
         return getValidOperations().stream()
                 .filter(o -> o.isAfter(operation))
@@ -219,25 +281,33 @@ public class Balance extends BaseAggregateRoot {
                 .collect(Collectors.toList());
     }
 
-    private Operation getLastOperation() {
-        return getValidOperations().stream()
-                .max(Operation::orderComparator)
-                .orElseThrow();
-    }
-
-    private Operation getStartCalculating() {
-        return getValidOperations().stream()
-                .filter(StartCalculating.class::isInstance)
-                .findAny()
-                .orElseThrow();
-    }
-
     private Optional<StopCalculating> getStopCalculating() {
         return getValidOperations().stream()
                 .filter(StopCalculating.class::isInstance)
-                .filter(Operation::isValid)
                 .map(StopCalculating.class::cast)
                 .findAny();
+    }
+
+    private void publishUpdatedBalanceResult(PeriodProvider before, PeriodProvider after) {
+        for (PublishPolicy publishPolicy : publishPolicies) {
+            publishPolicy.doPublish(contractId, before, after);
+        }
+    }
+
+    private void handle(BalanceStoppedException exception) {
+        UnavailabilityException unavailabilityException = new UnavailabilityException(contractId, exception,
+                "Unable to stop calculating balance balance is currently stopped", contractId.getId());
+        StopBalanceFailedEvent event = new StopBalanceFailedEvent(contractId, unavailabilityException);
+        eventPublisher.publish(event);
+        throw new RollbackException(unavailabilityException);
+    }
+
+    private void handle(NoStopCalculatingException exception) {
+        UnavailabilityException unavailabilityException = new UnavailabilityException(contractId, exception,
+                "Unable to cancel stop calculating balance balance isn't stop on contract {}", contractId.getId());
+        CancelStopBalanceFailedEvent event = new CancelStopBalanceFailedEvent(contractId, unavailabilityException);
+        eventPublisher.publish(event);
+        throw new RollbackException(exception);
     }
 
 }

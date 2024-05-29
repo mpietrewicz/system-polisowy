@@ -3,16 +3,19 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.month;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.ddd.sharedkernel.PositiveAmount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.state.Unpaid;
+import pl.mpietrewicz.sp.modules.balance.exceptions.NoMonthsToRefundException;
 
 import javax.persistence.AttributeOverride;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
 import java.time.LocalDate;
@@ -25,17 +28,20 @@ public class Month extends BaseEntity implements LastMonth {
 
     private LocalDate yearMonth;
 
+    @Enumerated(EnumType.STRING)
+    private ChangeStatus changeStatus;
+
     @OneToOne(cascade = CascadeType.PERSIST)
     @JoinColumn(name = "month_state_id")
     private MonthState monthState;
 
     @Embedded
     @AttributeOverride(name = "value", column = @Column(name = "premium"))
-    private Amount premium;
+    private PositiveAmount premium;
 
     private boolean renewal;
 
-    public Month(YearMonth yearMonth, Amount premium, boolean renewal) {
+    public Month(YearMonth yearMonth, PositiveAmount premium, boolean renewal) {
         this.yearMonth = yearMonth.atDay(1);
         this.premium = premium;
         this.renewal = renewal;
@@ -48,7 +54,7 @@ public class Month extends BaseEntity implements LastMonth {
     }
 
     @Override
-    public Amount refund(PositiveAmount refund) {
+    public Amount refund(PositiveAmount refund) throws NoMonthsToRefundException {
         return monthState.refund(refund);
     }
 
@@ -58,7 +64,7 @@ public class Month extends BaseEntity implements LastMonth {
     }
 
     @Override
-    public boolean canPaidBy(Amount payment) {
+    public boolean canPaidBy(PositiveAmount payment) {
         return monthState.canPaidBy(payment);
     }
 
@@ -81,6 +87,10 @@ public class Month extends BaseEntity implements LastMonth {
         this.monthState = monthState;
     }
 
+    public boolean isValid() {
+        return changeStatus != ChangeStatus.REMOVED;
+    }
+
     public Amount getPaid() {
         return monthState.getPaid();
     }
@@ -99,8 +109,35 @@ public class Month extends BaseEntity implements LastMonth {
         return YearMonth.from(this.yearMonth).compareTo(month.getYearMonth());
     }
 
-    public Amount getPremium() {
+    public int compareDescending(Month month) {
+        return month.getYearMonth().compareTo(YearMonth.from(this.yearMonth));
+    }
+
+    public boolean isBefore(Month month) {
+        return compareAscending(month) < 0;
+    }
+
+    public boolean isAfter(Month month) {
+        return compareAscending(month) > 0;
+    }
+
+    public PositiveAmount getPremium() {
         return premium;
+    }
+
+    public boolean isTheSame(Month month) {
+        return isTheSameYearMonth(month)
+        && this.premium.equals(month.premium)
+        && this.renewal == month.renewal
+        && this.monthState.isTheSame(month.monthState);
+    }
+
+    public boolean isTheSameYearMonth(Month month) {
+        return this.yearMonth.equals(month.yearMonth);
+    }
+
+    public void setAs(ChangeStatus changeStatus) {
+        this.changeStatus = changeStatus;
     }
 
 }

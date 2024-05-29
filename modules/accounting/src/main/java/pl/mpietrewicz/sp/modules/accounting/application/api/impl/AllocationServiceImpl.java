@@ -1,7 +1,6 @@
 package pl.mpietrewicz.sp.modules.accounting.application.api.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 import pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
@@ -14,8 +13,7 @@ import pl.mpietrewicz.sp.modules.accounting.infrastructure.repo.AllocationReposi
 import javax.persistence.NoResultException;
 import java.util.List;
 
-@ApplicationService(transactional = @Transactional(
-        transactionManager = "accountingTransactionManager"))
+@ApplicationService(boundedContext = "accounting", transactionManager = "accountingTransactionManager")
 @RequiredArgsConstructor
 public class AllocationServiceImpl implements AllocationService {
 
@@ -27,7 +25,7 @@ public class AllocationServiceImpl implements AllocationService {
         List<RiskDefinition> riskDefinitions = allocationRepository.findRiskDefinitions(contractId);
         Allocation allocation = getAllocation(contractId, monthlyBalances, riskDefinitions);
 
-        allocation.update(monthlyBalances, riskDefinitions);
+//        allocation.update(monthlyBalances, riskDefinitions);
     }
 
     private Allocation getAllocation(AggregateId contractId, List<MonthlyBalance> monthlyBalances,

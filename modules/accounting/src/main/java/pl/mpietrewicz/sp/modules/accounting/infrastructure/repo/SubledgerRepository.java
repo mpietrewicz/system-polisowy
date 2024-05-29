@@ -9,7 +9,7 @@ public interface SubledgerRepository {
 
 	Subledger load(AggregateId id);
 
-	void save(Subledger accounting);
+	void save(Subledger subledger);
 
 	Subledger find();
 }

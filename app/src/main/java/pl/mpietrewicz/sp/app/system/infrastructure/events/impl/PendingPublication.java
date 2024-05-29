@@ -11,6 +11,6 @@ public class PendingPublication {
 
     private final LocalDateTime created = LocalDateTime.now();
     private final Object event;
-    private final String serviceName;
+    private final String boundedContext;
 
 }

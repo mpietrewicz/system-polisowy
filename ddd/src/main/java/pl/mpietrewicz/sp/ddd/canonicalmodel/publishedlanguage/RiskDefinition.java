@@ -2,7 +2,7 @@ package pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage;
 
 import lombok.Builder;
 import lombok.Getter;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Divisor;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Divisor;
 
 @Builder
 @Getter

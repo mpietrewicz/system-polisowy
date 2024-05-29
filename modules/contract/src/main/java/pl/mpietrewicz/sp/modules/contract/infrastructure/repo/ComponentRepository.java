@@ -5,6 +5,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.modules.contract.domain.component.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 @DomainRepository
 public interface ComponentRepository {
@@ -13,8 +14,10 @@ public interface ComponentRepository {
 
 	void save(Component component);
 
-	List<Component> findByContractId(AggregateId contractId);
+	List<Component> findBy(AggregateId contractId);
 
-	Component findByNumber(String number);
+	Optional<Component> findBy(AggregateId contractId, String name);
+
+	Optional<Component> findBy(AggregateId contractId, AggregateId componentId);
 
 }

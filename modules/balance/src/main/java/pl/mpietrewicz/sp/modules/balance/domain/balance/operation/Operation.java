@@ -1,14 +1,16 @@
 package pl.mpietrewicz.sp.modules.balance.domain.balance.operation;
 
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.Balance;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.PeriodProvider;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.CancelStopCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.period.PartialPeriod;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.period.Period;
 import pl.mpietrewicz.sp.modules.balance.exceptions.ReexecutionException;
 
 import javax.persistence.CascadeType;
@@ -31,8 +33,10 @@ import java.util.List;
 @Inheritance(strategy = InheritanceType.JOINED)
 public abstract class Operation extends BaseEntity {
 
+    @Getter
     protected LocalDate date;
 
+    @Getter
     protected LocalDateTime registration;
 
     @Enumerated(EnumType.STRING)
@@ -40,7 +44,7 @@ public abstract class Operation extends BaseEntity {
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "operation_id")
-    protected List<Period> periods;
+    public List<PartialPeriod> partialPeriods;
 
     @ManyToOne(cascade = CascadeType.PERSIST)
     protected Balance balance;
@@ -49,7 +53,7 @@ public abstract class Operation extends BaseEntity {
         this.registration = registration;
         this.date = registration.toLocalDate();
         this.balance = balance;
-        this.periods = new ArrayList<>();
+        this.partialPeriods = new ArrayList<>();
         this.operationType = operationType;
     }
 
@@ -57,29 +61,35 @@ public abstract class Operation extends BaseEntity {
         this.date = date;
         this.registration = registration;
         this.balance = balance;
-        this.periods = new ArrayList<>();
+        this.partialPeriods = new ArrayList<>();
         this.operationType = operationType;
     }
 
-    public void execute(PeriodProvider previousPeriod) {
-        periods.add(previousPeriod.getCopy("execute"));
-        execute();
+    protected Operation(LocalDate date, LocalDateTime registration, Balance balance, OperationType operationType,
+                        List<PartialPeriod> partialPeriods) {
+        this.date = date;
+        this.registration = registration;
+        this.balance = balance;
+        this.partialPeriods = partialPeriods;
+        this.operationType = operationType;
     }
 
-    public void reexecute(PeriodProvider previousPeriod, Operation initialOperation) throws ReexecutionException {
-        getPeriod().markAsInvalid();
-        String info = "reexecute after " + initialOperation.operationType + " : " + initialOperation.date;
-        periods.add(previousPeriod.getCopy(info));
-        reexecute(initialOperation.registration);
+    public Period executeOn(Period previousPeriod) {
+        Period copy = previousPeriod.getCopy("execute");
+        execute(copy);
+        return copy;
     }
 
-    public abstract void publishFailedEvent(ReexecutionException exception);
+    public Period reexecuteOn(Period previousPeriod, LocalDateTime registration)
+            throws ReexecutionException {
+        Period copy = previousPeriod.getCopy("reexecute for " + registration);
+        reexecute(copy, registration);
+        return copy;
+    }
 
-    public Period getPeriod() {
-        return periods.stream()
-                .filter(Period::isValid)
-                .findFirst()
-                .orElseThrow();
+    public void savePeriod(PartialPeriod partialPeriod) {
+        partialPeriods.forEach(PartialPeriod::markAsInvalid);
+        partialPeriods.add(partialPeriod);
     }
 
     public int orderComparator(Operation operation) {
@@ -88,7 +98,7 @@ public abstract class Operation extends BaseEntity {
         if (operation instanceof StartCalculating
                 || operation instanceof StopCalculating
                 || operation instanceof CancelStopCalculating) {
-            return - operation.orderComparator(this);
+            return -operation.orderComparator(this);
         }
 
         if (dateComparator(operation) != 0) return dateComparator(operation);
@@ -96,6 +106,10 @@ public abstract class Operation extends BaseEntity {
         if (registrationComparator(operation) != 0) return registrationComparator(operation);
         if (idComparator(operation) != 0) return idComparator(operation);
         throw new IllegalStateException("Operations cannot be uniquely sorted");
+    }
+
+    public int reverseOrderComparator(Operation operation) {
+        return -orderComparator(operation);
     }
 
     public boolean isValid() {
@@ -110,9 +124,13 @@ public abstract class Operation extends BaseEntity {
         return orderComparator(operation) < 0;
     }
 
-    protected abstract void execute();
+    public abstract RequiredPeriod getRequiredPeriod();
 
-    protected abstract void reexecute(LocalDateTime registration) throws ReexecutionException;
+    public abstract void publishFailedEvent(ReexecutionException exception);
+
+    protected abstract void execute(Period period);
+
+    protected abstract void reexecute(Period period, LocalDateTime registration) throws ReexecutionException;
 
     protected Integer getPriority() { // descending
         return 10;
@@ -120,6 +138,21 @@ public abstract class Operation extends BaseEntity {
 
     protected PremiumSnapshot getPremiumSnapshot(LocalDateTime timestamp) {
         return balance.getPremiumSnapshot(timestamp);
+    }
+
+    protected PartialPeriod getValidPeriod() {
+        return partialPeriods.stream()
+                .filter(PartialPeriod::isValid)
+                .findAny()
+                .orElseThrow();
+    }
+
+    public LocalDate getPeriodStart() {
+        return getValidPeriod().getStart();
+    }
+
+    public List<Month> getPeriodMonths() {
+        return getValidPeriod().getMonths();
     }
 
     protected void publishEvent(Serializable event) {

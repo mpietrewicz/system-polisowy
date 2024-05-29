@@ -6,10 +6,8 @@ import pl.mpietrewicz.sp.ddd.annotations.event.Event;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
 
-@SuppressWarnings("serial")
-@Event
+@Event(boundedContext = "balance")
 @Getter
 @RequiredArgsConstructor
 public class ChangePremiumFailedEvent implements Serializable {

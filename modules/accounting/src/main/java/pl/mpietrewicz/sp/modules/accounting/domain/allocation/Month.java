@@ -5,7 +5,7 @@ import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.MonthlyBalance;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 
 import javax.persistence.Entity;
@@ -49,10 +49,11 @@ public class Month extends BaseEntity {
                 .findAny();
     }
 
-    public Amount getAmount() {
+    public PositiveAmount getAmount() {
         return components.stream()
                 .map(Component::getAmount)
-                .reduce(Amount.ZERO, Amount::add);
+                .reduce(PositiveAmount::add)
+                .orElseThrow();
     }
 
     public boolean isAppliesTo(MonthlyBalance monthlyBalance) {

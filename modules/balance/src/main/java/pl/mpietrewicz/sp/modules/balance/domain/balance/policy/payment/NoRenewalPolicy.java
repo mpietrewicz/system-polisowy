@@ -2,8 +2,8 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.policy.payment;
 
 import pl.mpietrewicz.sp.ddd.annotations.domain.DomainPolicyImpl;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.snapshot.premium.PremiumSnapshot;
-import pl.mpietrewicz.sp.ddd.sharedkernel.Amount;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.Period;
+import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.period.Period;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.LastMonth;
 import pl.mpietrewicz.sp.modules.balance.exceptions.RenewalException;
 
@@ -20,9 +20,9 @@ public class NoRenewalPolicy implements PaymentPolicy {
     }
 
     @Override
-    public void pay(Period period, LocalDate date, Amount amount) throws RenewalException {
+    public void pay(Period period, LocalDate date, PositiveAmount payment) throws RenewalException {
         LastMonth monthToPay = getMonthToPay(period, date);
-        period.pay(monthToPay, amount, premiumSnapshot);
+        period.pay(monthToPay, payment, premiumSnapshot);
     }
 
     private LastMonth getMonthToPay(Period period, LocalDate date) throws RenewalException {

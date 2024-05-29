@@ -31,4 +31,5 @@ public class SystemUser {
 	public boolean isLoogedIn(){
 		return clientId != null;
 	}
+
 }

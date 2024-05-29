@@ -10,8 +10,8 @@ import java.time.YearMonth;
 public class MonthlyStartPolicy implements ContractStartPolicy {
 
     @Override
-    public LocalDate getStartDate(LocalDate registerDate) {
-        return YearMonth.from(registerDate).atDay(1);
+    public LocalDate getStartDate(LocalDate start) {
+        return YearMonth.from(start).atDay(1);
     }
 
 }

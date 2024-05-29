@@ -11,8 +11,9 @@ import java.lang.annotation.Target;
 
 @Component
 @Retention(RetentionPolicy.RUNTIME)
-@Transactional(propagation = Propagation.REQUIRED)
+@Transactional(propagation = Propagation.REQUIRED, transactionManager = "#transactionManager")
 @Target(ElementType.TYPE)
 public @interface ApplicationService {
-    Transactional transactional(); // wymaga podania transactionManager'a
+    String boundedContext();
+    String transactionManager();
 }
