@@ -14,9 +14,9 @@ import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @AggregateRoot
 @Entity
@@ -30,38 +30,26 @@ public class Allocation extends BaseAggregateRoot {
     @OneToMany(cascade = CascadeType.ALL)
     private List<Month> months = new ArrayList<>();
 
-    public Allocation(AggregateId contractId) {
+    public Allocation(AggregateId aggregateId, AggregateId contractId) {
+        this.aggregateId = aggregateId;
         this.contractId = contractId;
     }
 
-    public Allocation(AggregateId contractId, List<Month> months) {
-        this.contractId = contractId;
-        this.months = months;
-    }
-
-    public void update(List<MonthlyBalance> monthlyBalances, List<RiskDefinition> riskDefinitions) {
+    public void add(List<MonthlyBalance> monthlyBalances, List<RiskDefinition> riskDefinitions) {
         for (MonthlyBalance monthlyBalance : monthlyBalances) {
-            Optional<Month> currentMonth = getCurrentMonth(monthlyBalance);
-            if (currentMonth.isEmpty()) {
-                Month month = AllocationFactory.createMonth(monthlyBalance, riskDefinitions);
-                this.months.add(month);
-            } else {
-                currentMonth.get().correct(monthlyBalance, riskDefinitions);
+            BigDecimal premium = monthlyBalance.getPremium();
+
+            List<Risk> risks = new ArrayList<>();
+            for (RiskDefinition riskDefinition : riskDefinitions) {
+                PositiveAmount riskPremium = calculateRiskPremium(riskDefinition, premium);
+                risks.add(new Risk(riskDefinition.getId(), riskDefinition.getName(), riskPremium));
             }
+            months.add(new Month(monthlyBalance.getMonth(), risks));
         }
     }
 
-    public PositiveAmount getAmount() {
-        return months.stream()
-                .map(Month::getAmount)
-                .reduce(PositiveAmount::add)
-                .orElseThrow();
-    }
-
-    private Optional<Month> getCurrentMonth(MonthlyBalance monthlyBalance) {
-        return months.stream()
-                .filter(month -> month.isAppliesTo(monthlyBalance))
-                .findAny();
+    private PositiveAmount calculateRiskPremium(RiskDefinition risk, BigDecimal premium) {
+        return risk.getPremiumDivisor().getQuotient(premium);
     }
 
 }

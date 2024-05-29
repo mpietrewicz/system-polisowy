@@ -21,12 +21,12 @@ public class BalancePublisher implements PublishPolicy {
     protected PremiumService premiumService;
 
     @Override
-    public void doPublish(AggregateId contractId, PeriodProvider before, PeriodProvider after) {
-        List<MonthlyBalance> monthlyBalances = after.getMonthlyBalances();
-        if (monthlyBalances.isEmpty()) return;
-
-        BalanceUpdatedEvent event = createEvent(contractId, monthlyBalances);
-        eventPublisher.publish(event);
+    public void doPublish(AggregateId contractId, PeriodProvider periodProvider) {
+        List<MonthlyBalance> monthlyBalances = periodProvider.getMonthlyBalances();
+        if (!monthlyBalances.isEmpty()) {
+            BalanceUpdatedEvent event = createEvent(contractId, monthlyBalances);
+            eventPublisher.publish(event);
+        }
     }
 
     private BalanceUpdatedEvent createEvent(AggregateId contractId, List<MonthlyBalance> monthlyBalances) {

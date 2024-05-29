@@ -3,6 +3,7 @@ package pl.mpietrewicz.sp.modules.balance.domain.balance.period.collector;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import pl.mpietrewicz.sp.ddd.annotations.domain.InternalDomainService;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.RequiredPeriod;
 
 @InternalDomainService
@@ -10,30 +11,36 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.RequiredPeriod
 public class CollectorStrategyFactory {
 
     @Qualifier("allMonthsCollector")
-    private final PeriodCollector allMonthsCollector;
+    private final MonthsCollector allMonthsCollector;
+
+    @Qualifier("monthsAfterCollector")
+    private final MonthsCollector monthsAfterCollector;
 
     @Qualifier("lastMonthCollector")
-    private final PeriodCollector lastMonthCollector;
+    private final MonthsCollector lastMonthCollector;
 
     @Qualifier("noMonthsCollector")
-    private final PeriodCollector noMonthsCollector;
+    private final MonthsCollector noMonthsCollector;
 
-    @Qualifier("disabledCollector")
-    private final PeriodCollector disabledCollector;
+    public MonthsCollector getFor(Operation operation) {
+        RequiredPeriod requiredPeriod = operation.getRequiredPeriod();
 
-    public PeriodCollector get(RequiredPeriod requiredPeriod) {
         switch (requiredPeriod) {
             case ALL_MONTHS:
                 return allMonthsCollector;
+            case MONTHS_AFTER:
+                return monthsAfterCollector;
             case LAST_MONT:
                 return lastMonthCollector;
             case NO_MONTHS:
                 return noMonthsCollector;
-            case DISABLED:
-                return disabledCollector;
             default:
                 throw new IllegalArgumentException();
         }
+    }
+
+    public MonthsCollector getForPaidTo() {
+        return lastMonthCollector;
     }
 
 }

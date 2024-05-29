@@ -13,18 +13,16 @@ import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.domain.DomainEventPublisher;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseAggregateRoot;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.RequiredPeriod;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddPayment;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.AddRefund;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.CancelStopCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.ChangePremium;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StartCalculating;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.period.collector.CollectorStrategyFactory;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.period.PartialPeriod;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.period.Period;
-import pl.mpietrewicz.sp.modules.balance.domain.balance.period.collector.PeriodCollector;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.period.PeriodFactory;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.period.PeriodProvider;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.period.collector.PartialPeriodCollector;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.policy.publisher.PublishPolicy;
 import pl.mpietrewicz.sp.modules.balance.exceptions.BalanceStoppedException;
 import pl.mpietrewicz.sp.modules.balance.exceptions.NoStopCalculatingException;
@@ -53,8 +51,6 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.RequiredPeriod.ALL_MONTHS;
-
 @AggregateRoot
 @Entity
 @NoArgsConstructor
@@ -69,19 +65,23 @@ public class Balance extends BaseAggregateRoot {
 
     @Inject
     @Transient
-    protected DomainEventPublisher eventPublisher;
+    private DomainEventPublisher eventPublisher;
 
     @Inject
     @Transient
-    protected PremiumService premiumService;
+    private PremiumService premiumService;
 
     @Inject
     @Transient
-    protected List<PublishPolicy> publishPolicies;
+    private List<PublishPolicy> publishPolicies;
 
     @Inject
     @Transient
-    protected CollectorStrategyFactory collectorStrategyFactory;
+    private PeriodFactory periodFactory;
+
+    @Inject
+    @Transient
+    private PartialPeriodCollector partialPeriodCollector;
 
     public Balance(AggregateId aggregateId, Long version, AggregateId contractId, List<Operation> operations) {
         this.aggregateId = aggregateId;
@@ -155,7 +155,7 @@ public class Balance extends BaseAggregateRoot {
 
     public Map<YearMonth, BigDecimal> getPaidTo() {
         Operation lastOperation = getLastOperation();
-        Period period = getWholePeriod();
+        Period period = periodFactory.createForPaidTo(getValidOperations());
         YearMonth lastPaidYearMonth = period.getLastPaidYearMonth();
 
         if (lastOperation instanceof StopCalculating) {
@@ -178,21 +178,17 @@ public class Balance extends BaseAggregateRoot {
     }
 
     private void commit(Operation operation) {
-        PeriodProvider before = getWholePeriod();
-
         calculate(operation);
         operations.add(operation);
         recalculateAfter(operation);
-
-        PeriodProvider after = getWholePeriod();
-        publishUpdatedBalanceResult(before, after);
     }
 
     private void calculate(Operation operation) {
-        PeriodCollector periodCollector = getPeriodCollector(operation);
-        Period previousPeriod = getPreviousPeriod(operation, periodCollector);
-        Period currentPeriod = operation.executeOn(previousPeriod);
-        savePeriod(operation, previousPeriod, currentPeriod, periodCollector);
+        Period periodBefore = periodFactory.createFor(operation, getValidOperations());
+        Period periodAfter = operation.executeOn(periodBefore);
+        PartialPeriod partialPeriod = partialPeriodCollector.getPartialPeriod(periodBefore, periodAfter);
+        operation.savePeriod(partialPeriod);
+        publishUpdatedBalanceResult(partialPeriod);
     }
 
     private void recalculateAfter(Operation operation) {
@@ -205,60 +201,20 @@ public class Balance extends BaseAggregateRoot {
     }
 
     private void tryRecalculateAfter(Operation operation) throws ReexecutionException {
-        LocalDateTime initialRegistration = operation.getRegistration();
         List<Operation> nextOperations = getNextOperationsAfter(operation);
 
         for (Operation toRecalculate : nextOperations) {
-            PeriodCollector periodCollector = getPeriodCollector(toRecalculate);
-            Period previousPeriod = getPreviousPeriod(toRecalculate, periodCollector);
-            Period currentPeriod = toRecalculate.reexecuteOn(previousPeriod, initialRegistration);
-            savePeriod(toRecalculate, previousPeriod, currentPeriod, periodCollector);
+            Period periodBefore = periodFactory.createFor(toRecalculate, getValidOperations());
+            Period periodAfter = toRecalculate.reexecuteOn(periodBefore, operation);
+            PartialPeriod partialPeriod = partialPeriodCollector.getPartialPeriod(periodBefore, periodAfter);
+            toRecalculate.savePeriod(partialPeriod);
+            publishUpdatedBalanceResult(partialPeriod);
         }
-    }
-
-    private PeriodCollector getPeriodCollector(Operation operation) {
-        RequiredPeriod requiredPeriod = operation.getRequiredPeriod();
-        return collectorStrategyFactory.get(requiredPeriod);
-    }
-
-    private Period getPreviousPeriod(Operation operation, PeriodCollector periodCollector) {
-        Operation previousOperation = getPreviousOperation(operation);
-        return getPeriod(previousOperation, periodCollector);
-    }
-
-    private Period getWholePeriod() {
-        Operation lastOperation = getLastOperation();
-        PeriodCollector periodCollector = collectorStrategyFactory.get(ALL_MONTHS);
-        return getPeriod(lastOperation, periodCollector);
-    }
-
-    private Period getPeriod(Operation operation, PeriodCollector periodCollector) {
-        List<Operation> validOperations = getValidOperations();
-        return periodCollector.getPeriodCopyFor(operation, validOperations);
-    }
-
-    private void savePeriod(Operation operation, Period previousPeriod, Period currentPeriod, PeriodCollector periodCollector) {
-        PartialPeriod periodToSave = periodCollector.getPartialPeriodToSave(previousPeriod, currentPeriod);
-        operation.savePeriod(periodToSave);
     }
 
     private Operation getLastOperation() {
         return getValidOperations().stream()
                 .max(Operation::orderComparator)
-                .orElseThrow();
-    }
-
-    private Operation getPreviousOperation(Operation operation) {
-        return getValidOperations().stream()
-                .filter(o -> o.isBefore(operation))
-                .max(Operation::orderComparator)
-                .orElse(getStartCalculating());
-    }
-
-    private Operation getStartCalculating() {
-        return getValidOperations().stream()
-                .filter(StartCalculating.class::isInstance)
-                .findAny()
                 .orElseThrow();
     }
 
@@ -288,9 +244,9 @@ public class Balance extends BaseAggregateRoot {
                 .findAny();
     }
 
-    private void publishUpdatedBalanceResult(PeriodProvider before, PeriodProvider after) {
+    private void publishUpdatedBalanceResult(PeriodProvider periodProvider) {
         for (PublishPolicy publishPolicy : publishPolicies) {
-            publishPolicy.doPublish(contractId, before, after);
+            publishPolicy.doPublish(contractId, periodProvider);
         }
     }
 

@@ -1,8 +1,8 @@
 package pl.mpietrewicz.sp.modules.accounting.domain.allocation;
 
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
-import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition;
 import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.PositiveAmount;
 import pl.mpietrewicz.sp.ddd.support.infrastructure.repo.BaseEntity;
 
@@ -10,40 +10,25 @@ import javax.persistence.AttributeOverride;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
-import java.util.List;
-import java.util.Objects;
 
 @ValueObject
 @Entity
 @NoArgsConstructor
 public class Risk extends BaseEntity {
 
+    @Getter
     private Long riskId;
 
+    private String name;
+
     @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "riskAmount"))
-    private PositiveAmount riskAmount;
+    @AttributeOverride(name = "value", column = @Column(name = "riskPremium"))
+    private PositiveAmount riskPremium;
 
-    public Risk(Long riskId, PositiveAmount riskAmount) {
+    public Risk(Long riskId, String name, PositiveAmount riskPremium) {
         this.riskId = riskId;
-        this.riskAmount = riskAmount;
-    }
-
-    public Risk getNegate() {
-        return new Risk(riskId, riskAmount.negate());
-    }
-
-    public boolean isAppliesTo(RiskDefinition riskDefinition) {
-        return Objects.equals(riskId, riskDefinition.getId());
-    }
-
-    public boolean isAppliesTo(List<RiskDefinition> riskDefinitions) {
-        return riskDefinitions.stream()
-                .anyMatch(this::isAppliesTo);
-    }
-
-    public PositiveAmount getRiskAmount() {
-        return riskAmount;
+        this.name = name;
+        this.riskPremium = riskPremium;
     }
 
 }

@@ -74,16 +74,17 @@ public abstract class Operation extends BaseEntity {
         this.operationType = operationType;
     }
 
-    public Period executeOn(Period previousPeriod) {
-        Period copy = previousPeriod.getCopy("execute");
+    public Period executeOn(Period period) {
+        Period copy = period.getCopy("execute");
         execute(copy);
         return copy;
     }
 
-    public Period reexecuteOn(Period previousPeriod, LocalDateTime registration)
+    public Period reexecuteOn(Period previousPeriod, Operation initialOperation)
             throws ReexecutionException {
-        Period copy = previousPeriod.getCopy("reexecute for " + registration);
-        reexecute(copy, registration);
+        Period copy = previousPeriod.getCopy("reexecute for " + initialOperation.operationType + " "
+                + initialOperation.date);
+        reexecute(copy, initialOperation.registration);
         return copy;
     }
 

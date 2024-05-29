@@ -24,9 +24,13 @@ import java.time.LocalDate;
 public class FinanceServiceImpl implements FinanceService {
 
     private final PaymentRepository paymentRepository;
+
     private final PaymentFactory paymentFactory;
+
     private final DomainEventPublisher domainEventPublisher;
+
     private final RefundFactory refundFactory;
+
     private final RefundRepository refundRepository;
 
     @Override

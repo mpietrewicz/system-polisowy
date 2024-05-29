@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Embeddable
 public class Cancelation {
 
-    private LocalDateTime registration = LocalDateTime.now();
+    private final LocalDateTime registration = LocalDateTime.now();
 
     public boolean isHappenedBefore(LocalDateTime timestamp) {
         return this.registration.compareTo(timestamp) <= 0;

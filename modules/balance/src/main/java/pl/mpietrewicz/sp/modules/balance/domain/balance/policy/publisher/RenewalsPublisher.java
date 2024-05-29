@@ -8,11 +8,7 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.period.PeriodProvider;
 
 import javax.inject.Inject;
 import java.time.YearMonth;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @DomainPolicy
 public class RenewalsPublisher implements PublishPolicy {
@@ -21,26 +17,11 @@ public class RenewalsPublisher implements PublishPolicy {
     protected DomainEventPublisher eventPublisher;
 
     @Override
-    public void doPublish(AggregateId contractId, PeriodProvider before, PeriodProvider after) {
-        List<YearMonth> allRenewals = getAllRenewals(before, after);
-        List<YearMonth> newRenewals = getNewRenewals(allRenewals);
-
-        for (YearMonth renewalMonth : newRenewals) {
+    public void doPublish(AggregateId contractId, PeriodProvider periodProvider) {
+        for (YearMonth renewalMonth : periodProvider.getRenewalMonths()) {
             RenewalAddedEvent event = createEvent(contractId, renewalMonth);
             eventPublisher.publish(event);
         }
-    }
-
-    private List<YearMonth> getAllRenewals(PeriodProvider before, PeriodProvider after) {
-        return Stream.of(before.getRenewalMonths(), after.getRenewalMonths())
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
-    }
-
-    private List<YearMonth> getNewRenewals(List<YearMonth> allRenewals) {
-        return allRenewals.stream()
-                .filter(renual -> Collections.frequency(allRenewals, renual) == 1)
-                .collect(Collectors.toList());
     }
 
     private RenewalAddedEvent createEvent(AggregateId contractId, YearMonth renewalMonth) {
