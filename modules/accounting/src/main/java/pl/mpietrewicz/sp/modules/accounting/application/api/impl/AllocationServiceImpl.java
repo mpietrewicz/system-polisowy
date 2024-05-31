@@ -10,30 +10,28 @@ import pl.mpietrewicz.sp.modules.accounting.domain.allocation.Allocation;
 import pl.mpietrewicz.sp.modules.accounting.domain.allocation.AllocationFactory;
 import pl.mpietrewicz.sp.modules.accounting.infrastructure.repo.AllocationRepository;
 
-import javax.persistence.NoResultException;
 import java.util.List;
+import java.util.Optional;
 
 @ApplicationService(boundedContext = "accounting", transactionManager = "accountingTransactionManager")
 @RequiredArgsConstructor
 public class AllocationServiceImpl implements AllocationService {
 
     private final AllocationRepository allocationRepository;
+
     private final AllocationFactory allocationFactory;
 
     @Override
     public void update(AggregateId contractId, List<MonthlyBalance> monthlyBalances) {
         List<RiskDefinition> riskDefinitions = allocationRepository.findRiskDefinitions(contractId);
-        Allocation allocation = getAllocation(contractId, monthlyBalances, riskDefinitions);
+        Optional<Allocation> allocation = allocationRepository.findByContractId(contractId);
 
-//        allocation.update(monthlyBalances, riskDefinitions);
-    }
-
-    private Allocation getAllocation(AggregateId contractId, List<MonthlyBalance> monthlyBalances,
-                                     List<RiskDefinition> riskDefinitions) {
-        try {
-            return allocationRepository.findByContractId(contractId);
-        } catch (NoResultException e) {
-            return allocationFactory.create(contractId, monthlyBalances, riskDefinitions);
+        if (allocation.isPresent()) {
+            allocation.get().add(monthlyBalances, riskDefinitions);
+        } else {
+            Allocation newAllocation = allocationFactory.create(contractId);
+            newAllocation.add(monthlyBalances, riskDefinitions);
+            allocationRepository.save(newAllocation);
         }
     }
 

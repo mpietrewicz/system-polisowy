@@ -30,11 +30,11 @@ public class Divisor implements Serializable {
 		this.divisor = new BigDecimal(divisor);
 	}
 
-	public PositiveAmount getQuotient(PositiveAmount dividend) {
+	public PositiveAmount getQuotient(BigDecimal dividend) {
 		try {
-			return PositiveAmount.withValue(divisor.divide(dividend.getBigDecimal(), DEFAULT_SCALE, DEFAULT_ROUNDING));
+			return PositiveAmount.withValue(divisor.divide(dividend, DEFAULT_SCALE, DEFAULT_ROUNDING));
 		} catch (NotPositiveAmountException e) {
-			throw new IllegalStateException(); // todo: obsłużyc w prszyszłości
+			throw new IllegalStateException();
 		}
 	}
 

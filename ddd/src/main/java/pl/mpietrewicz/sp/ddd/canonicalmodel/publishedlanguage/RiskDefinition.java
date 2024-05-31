@@ -9,6 +9,7 @@ import pl.mpietrewicz.sp.ddd.sharedkernel.valueobject.Divisor;
 public class RiskDefinition {
 
     private final Long id;
+    private final String name;
     private final Divisor premiumDivisor;
 
 }

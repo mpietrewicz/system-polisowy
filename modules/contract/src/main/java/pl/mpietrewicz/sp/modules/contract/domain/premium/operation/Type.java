@@ -5,6 +5,8 @@ import pl.mpietrewicz.sp.ddd.annotations.domain.ValueObject;
 @ValueObject
 public enum Type {
 
-    ADD, CHANGE, DELETE;
+    ADD,
+    CHANGE,
+    DELETE
 
 }

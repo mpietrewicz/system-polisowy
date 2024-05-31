@@ -20,14 +20,13 @@ import java.util.concurrent.ConcurrentHashMap;
 class GateHistory {
 
 	@SuppressWarnings("serial")
-	// TODO Sprawdzic czy nie musi byc concurrent (history jest, na tym
-	// poziomie nie musi byc totalnej synchronizacji, to tylko rodzaj
-	// cache)
+	// TODO Check if it doesn't have to be concurrent
+	//  (history is there level doesn't have to be total synchronization, it's just kind of cache)
 	private class CommandExecutionsMap extends LinkedHashMap<Object, Date> {
 		protected boolean removeEldestEntry(Map.Entry<Object, Date> eldest) {
 			return this.size() > maxHistoryCapacity;
 		}
-	};
+	}
 
 	private static final int DEFAULT_MAX_HISTORY_CAPACITY = 3;
 
@@ -108,4 +107,5 @@ class GateHistory {
 		}
 		executions.put(command, executeDate);
 	}
+
 }

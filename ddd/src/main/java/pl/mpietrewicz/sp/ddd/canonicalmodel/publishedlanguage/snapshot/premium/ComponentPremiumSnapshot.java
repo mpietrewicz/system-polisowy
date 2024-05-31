@@ -36,22 +36,17 @@ public class ComponentPremiumSnapshot {
         }
     }
 
-    public PositiveAmount getPremiumAt(YearMonth month) {
-        return getPremiumAt(month.atDay(1))
-                .orElseThrow();
-    }
-
     private boolean isBetweenStartAdnEnd(LocalDate date) {
         return date.compareTo(start) >= 0
                 && (end == null || date.compareTo(end) <= 0);
     }
 
-    public PositiveAmount getCurrentPremium() { // todo: połączyć to ze zwracaną warością
+    public PositiveAmount getCurrentPremium() {
         return getPremiumAt(LocalDate.now())
                 .orElseThrow();
     }
 
-    public LocalDate getValidFrom() { // todo: połączyć to ze zwracaną warością
+    public LocalDate getValidFrom() {
         LocalDate now = LocalDate.now();
         return changes.stream()
                 .filter(change -> change.isBeforeOrEquals(now))

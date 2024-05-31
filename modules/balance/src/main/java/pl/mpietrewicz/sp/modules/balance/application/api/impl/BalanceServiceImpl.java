@@ -1,5 +1,6 @@
 package pl.mpietrewicz.sp.modules.balance.application.api.impl;
 
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.RefundAddedEvent;
@@ -37,6 +38,7 @@ public class BalanceServiceImpl implements BalanceService {
     }
 
     @Override
+    @Timed(value = "BalanceService.addPayment")
     public void addPayment(PaymentData paymentData, PaymentPolicyEnum paymentPolicyEnum) {
         Balance balance = balanceRepository.findBy(paymentData.getContractId());
         balance.addPayment(paymentData, paymentPolicyEnum);
@@ -58,6 +60,7 @@ public class BalanceServiceImpl implements BalanceService {
     }
 
     @Override
+    @Timed(value = "BalanceService.changePremium")
     public void changePremium(AggregateId contractId, LocalDate date, LocalDateTime timestamp) {
         Balance balance = balanceRepository.findBy(contractId);
         balance.changePremium(date, timestamp);

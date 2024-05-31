@@ -7,6 +7,6 @@ public enum PaidStatus {
 
     UNPAID,
     UNDERPAID,
-    PAID;
+    PAID
 
 }

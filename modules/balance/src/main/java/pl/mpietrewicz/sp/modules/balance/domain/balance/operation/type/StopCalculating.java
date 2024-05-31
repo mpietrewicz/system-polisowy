@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.STOP_CALCULATING;
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.RequiredPeriod.ALL_MONTHS;
+import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.RequiredPeriod.MONTHS_AFTER;
 
 @ValueObject
 @Entity
@@ -35,7 +35,7 @@ public class StopCalculating extends Operation implements StopCalculatingService
     private boolean valid;
 
     @Transient
-    private static final RequiredPeriod requiredPeriod = ALL_MONTHS;
+    private static final RequiredPeriod requiredPeriod = MONTHS_AFTER;
 
     public StopCalculating(LocalDate end, Balance balance) {
         super(LocalDateTime.now(), balance, STOP_CALCULATING);

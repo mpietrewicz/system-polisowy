@@ -22,7 +22,7 @@ public class BasicComponentPremium extends ComponentPremium {
 
     @Override
     public LocalDate cancel(LocalDateTime timestamp) {
-        throw new UnsupportedOperationException(); // todo: w przyszłości obsłużyć bardziej biznesowo
+        throw new UnsupportedOperationException();
     }
 
 }

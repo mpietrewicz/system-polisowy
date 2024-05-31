@@ -26,7 +26,7 @@ import java.time.YearMonth;
 
 import static pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.PaymentPolicyEnum.CONTINUATION;
 import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.OperationType.CHANGE_PREMIUM;
-import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.RequiredPeriod.ALL_MONTHS;
+import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.RequiredPeriod.MONTHS_AFTER;
 
 @ValueObject
 @Entity
@@ -35,7 +35,7 @@ import static pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Require
 public class ChangePremium extends Operation {
 
     @Transient
-    private static final RequiredPeriod requiredPeriod = ALL_MONTHS;
+    private static final RequiredPeriod requiredPeriod = MONTHS_AFTER;
 
     public ChangePremium(LocalDate date, LocalDateTime timestamp, Balance balance) {
         super(date, timestamp, balance, CHANGE_PREMIUM);

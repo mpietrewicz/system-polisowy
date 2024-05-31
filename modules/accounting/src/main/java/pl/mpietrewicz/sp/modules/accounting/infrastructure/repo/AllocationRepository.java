@@ -6,6 +6,7 @@ import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.RiskDefinition;
 import pl.mpietrewicz.sp.modules.accounting.domain.allocation.Allocation;
 
 import java.util.List;
+import java.util.Optional;
 
 @DomainRepository
 public interface AllocationRepository {
@@ -14,7 +15,7 @@ public interface AllocationRepository {
 
     void save(Allocation allocation);
 
-    Allocation findByContractId(AggregateId contractId);
+    Optional<Allocation> findByContractId(AggregateId contractId);
 
     List<RiskDefinition> findRiskDefinitions(AggregateId componentId);
 

@@ -46,3 +46,13 @@ cors-origin: http://localhost:4200
 #       hibernate:
 #         SQL: TRACE
 #         type: TRACE
+
+management:
+    endpoints:
+        web:
+            exposure:
+                include: "*"
+    metrics:
+        export:
+            prometheus:
+                enabled: true

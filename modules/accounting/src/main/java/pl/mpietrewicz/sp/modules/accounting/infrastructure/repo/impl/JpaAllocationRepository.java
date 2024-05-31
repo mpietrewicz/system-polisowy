@@ -12,6 +12,7 @@ import pl.mpietrewicz.sp.modules.accounting.infrastructure.repo.AllocationReposi
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.util.List;
+import java.util.Optional;
 
 @DomainRepositoryImpl
 @RequiredArgsConstructor
@@ -28,25 +29,27 @@ public class JpaAllocationRepository extends GenericJpaRepository<Allocation> im
     }
 
     @Override
-    public Allocation findByContractId(AggregateId contractId) {
-        return springDataAllocationRepository.findByContractId(contractId)
-                .orElseThrow();
+    public Optional<Allocation> findByContractId(AggregateId contractId) {
+        return springDataAllocationRepository.findByContractId(contractId);
     }
 
     @Override
-    public List<RiskDefinition> findRiskDefinitions(AggregateId contractId) { // todo: pobierać z bazy danych lub z pliku
+    public List<RiskDefinition> findRiskDefinitions(AggregateId contractId) {
         return List.of(
                 RiskDefinition.builder()
                         .id(1L)
+                        .name("joint dislocation")
                         .premiumDivisor(new Divisor(10))
                         .build(),
                 RiskDefinition.builder()
                         .id(2L)
-                        .premiumDivisor(new Divisor(30))
+                        .name("broken bones")
+                        .premiumDivisor(new Divisor(20))
                         .build(),
                 RiskDefinition.builder()
                         .id(3L)
-                        .premiumDivisor(new Divisor(60))
+                        .name("cancer disease")
+                        .premiumDivisor(new Divisor(70))
                         .build()
         );
     }

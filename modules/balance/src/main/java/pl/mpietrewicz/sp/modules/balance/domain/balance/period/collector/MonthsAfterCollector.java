@@ -4,29 +4,36 @@ import io.micrometer.core.annotation.Timed;
 import pl.mpietrewicz.sp.ddd.annotations.domain.InternalDomainService;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.month.Month;
 import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.Operation;
+import pl.mpietrewicz.sp.modules.balance.domain.balance.operation.type.StopCalculating;
 
-import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @InternalDomainService
-public class AllMonthsCollector implements MonthsCollector {
+public class MonthsAfterCollector extends AllMonthsCollector {
 
     @Override
-    @Timed(value = "AllMonthsCollector.getPeriodCopyFor")
+    @Timed(value = "MonthBeforeOperationCollector.getPeriodCopy")
     public List<Month> getMonthsFor(Operation operation, List<Operation> operations) {
         List<Month> result = new ArrayList<>();
+        YearMonth monthBeforeOperation = getMonthBeforeOperation(operation);
         Month checked = null;
+
+        outerLoop:
         for (Operation descendingOperation : getDescendingOperationsBefore(operation, operations)) {
             List<Month> descendingMonths = descendingOperation.getPeriodMonths().stream()
                     .sorted(Month::compareDescending)
                     .collect(Collectors.toList());
             for (Month month : descendingMonths) {
                 if (month.isValid() && (checked == null || month.isBefore(checked))) {
-                    result.add(month);
-                    checked = month;
+                    if (month.getYearMonth().compareTo(monthBeforeOperation) >= 0) {
+                        result.add(month);
+                        checked = month;
+                    } else {
+                        break outerLoop;
+                    }
                 }
             }
         }
@@ -34,22 +41,12 @@ public class AllMonthsCollector implements MonthsCollector {
         return result;
     }
 
-    protected LocalDate getStartPeriod(Operation operation, List<Operation> operations) {
-        return getDescendingOperationsBefore(operation, operations).stream()
-                .min(Operation::orderComparator)
-                .map(Operation::getPeriodStart)
-                .orElse(null);
-    }
-
-    protected List<Operation> getDescendingOperationsBefore(Operation operation, List<Operation> operations) {
-        return operations.stream()
-                .filter(isBefore(operation))
-                .sorted(Operation::reverseOrderComparator)
-                .collect(Collectors.toList());
-    }
-
-    private Predicate<Operation> isBefore(Operation operation) {
-        return o -> o.isBefore(operation);
+    private YearMonth getMonthBeforeOperation(Operation operation) {
+        if (operation instanceof StopCalculating) {
+            return YearMonth.from(((StopCalculating) operation).getEnd()).minusMonths(1);
+        } else {
+            return YearMonth.from(operation.getDate()).minusMonths(1);
+        }
     }
 
 }

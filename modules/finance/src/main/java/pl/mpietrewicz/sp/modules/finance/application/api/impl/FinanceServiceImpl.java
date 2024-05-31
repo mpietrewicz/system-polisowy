@@ -1,5 +1,6 @@
 package pl.mpietrewicz.sp.modules.finance.application.api.impl;
 
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.events.PaymentAddedEvent;
@@ -23,12 +24,17 @@ import java.time.LocalDate;
 public class FinanceServiceImpl implements FinanceService {
 
     private final PaymentRepository paymentRepository;
+
     private final PaymentFactory paymentFactory;
+
     private final DomainEventPublisher domainEventPublisher;
+
     private final RefundFactory refundFactory;
+
     private final RefundRepository refundRepository;
 
     @Override
+    @Timed(value = "FinanceService.addPayment")
     public void addPayment(AggregateId contractId, PositiveAmount paymentAmount, LocalDate date) {
         Payment payment = paymentFactory.createPayment(contractId, paymentAmount, date);
 

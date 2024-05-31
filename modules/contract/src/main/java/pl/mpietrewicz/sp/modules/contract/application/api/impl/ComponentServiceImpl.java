@@ -1,5 +1,6 @@
 package pl.mpietrewicz.sp.modules.contract.application.api.impl;
 
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import pl.mpietrewicz.sp.ddd.annotations.application.ApplicationService;
 import pl.mpietrewicz.sp.ddd.canonicalmodel.publishedlanguage.AggregateId;
@@ -25,6 +26,7 @@ public class ComponentServiceImpl implements ComponentService {
     private final PremiumRepository premiumRepository;
 
     @Override
+    @Timed(value = "ComponentService.addComponent")
     public void addComponent(AggregateId contractId, String name, LocalDate start, PositiveAmount premiumAmount) {
         Contract contract = contractRepository.load(contractId);
         Premium premium = premiumRepository.findBy(contractId);

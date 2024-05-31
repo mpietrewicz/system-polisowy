@@ -5,6 +5,6 @@ import pl.mpietrewicz.sp.modules.balance.domain.balance.period.PeriodProvider;
 
 public interface PublishPolicy {
 
-    void doPublish(AggregateId contractId, PeriodProvider before, PeriodProvider after);
+    void doPublish(AggregateId contractId, PeriodProvider periodProvider);
 
 }

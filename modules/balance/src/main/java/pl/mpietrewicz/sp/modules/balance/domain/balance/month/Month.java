@@ -101,6 +101,7 @@ public class Month extends BaseEntity implements LastMonth {
         return month;
     }
 
+    @Override
     public YearMonth getYearMonth() {
         return YearMonth.from(yearMonth);
     }

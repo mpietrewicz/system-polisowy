@@ -11,7 +11,7 @@ import pl.mpietrewicz.sp.modules.balance.exceptions.RenewalException;
 import java.time.LocalDate;
 import java.time.YearMonth;
 
-import static pl.mpietrewicz.sp.DateUtils.getMonthsBetween;
+import static pl.mpietrewicz.sp.ddd.sharedkernel.util.DateUtils.getMonthsBetween;
 
 @DomainPolicyImpl
 public class RenewalWithoutUnderpaymentPolicy implements PaymentPolicy {
